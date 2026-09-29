@@ -13,7 +13,7 @@
 }
 
 .aero-panel {
-  background: linear-gradient(135deg, rgba(255, 255, 255, .28), rgba(255, 255, 255, .12));
+  background: linear-gradient(135deg, rgba(255, 255, 255, .40), rgba(255, 255, 255, .20));
   backdrop-filter: blur(22px) saturate(140%);
   -webkit-backdrop-filter: blur(22px) saturate(140%);
 }
@@ -30,7 +30,7 @@
 
 /* Reusable glass card */
 .glass {
-  background: linear-gradient(135deg, rgba(255, 255, 255, .26), rgba(255, 255, 255, .08));
+  background: linear-gradient(135deg, rgba(255, 255, 255, .36), rgba(255, 255, 255, .16));
   backdrop-filter: blur(22px) saturate(140%);
   -webkit-backdrop-filter: blur(22px) saturate(140%);
   border-radius: var(--radius-card);

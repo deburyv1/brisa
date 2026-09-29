@@ -12,7 +12,7 @@
   padding: 22px 14px 14px;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, rgba(255, 255, 255, .28), rgba(255, 255, 255, .12));
+  background: linear-gradient(135deg, rgba(255, 255, 255, .40), rgba(255, 255, 255, .20));
   backdrop-filter: blur(22px) saturate(140%);
   -webkit-backdrop-filter: blur(22px) saturate(140%);
 }
@@ -114,6 +114,7 @@
 .sidebar-clock {
   border-radius: 20px;
   padding: 14px;
+  margin-top: 10px;
 }
 
 .clock-label {

@@ -21,6 +21,7 @@ import { initFinance } from "./finance.js";
 import { initTransactionModal } from "./transactionModal.js";
 import { initAccountModal } from "./accountModal.js";
 import { initPlayer } from "./player.js";
+import { initAvatar } from "./avatar.js";
 
 window.initTasks = initTasks;
 window.initJournal = initJournal;
@@ -104,6 +105,7 @@ async function main() {
   initAccountModal();
   initCapture();
   initNext();
+  initAvatar();
   initPlayer();
   initNavigation();
 

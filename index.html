@@ -281,6 +281,35 @@
   </div>
 </div>
 
+<!-- Modal: Foto de perfil -->
+<div class="modal-overlay" id="avatar-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Foto de perfil</div>
+      <button class="modal-close" id="avatar-modal-close">✕</button>
+    </div>
+    <div class="modal-form">
+      <div class="form-group">
+        <label>Elegir imagen</label>
+        <input type="file" id="avatar-file" accept="image/*">
+      </div>
+      <div id="avatar-preview" class="avatar-preview">
+        <span class="avatar-preview-hint">Vista previa</span>
+      </div>
+      <div class="form-group">
+        <label>Zoom</label>
+        <input type="range" id="avatar-zoom" min="1" max="3" step="0.05" value="1">
+      </div>
+      <p class="avatar-help">Arrastra la imagen para acomodarla. Se guarda solo en este dispositivo.</p>
+      <div class="modal-actions">
+        <button type="button" class="modal-btn modal-btn-secondary" id="avatar-remove">Quitar foto</button>
+        <button type="button" class="modal-btn modal-btn-secondary" id="avatar-modal-cancel">Cancelar</button>
+        <button type="button" class="modal-btn modal-btn-primary" id="avatar-save">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Modal: Crear Persona -->
 <div class="modal-overlay" id="person-modal">
   <div class="modal">

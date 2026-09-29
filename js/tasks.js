@@ -49,6 +49,13 @@ function formatDateTime(dt) {
          d.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
 }
 
+const PRIORITY_LABELS = { high: "Alta", medium: "Media", low: "Baja" };
+
+function priorityPill(priority) {
+  const label = PRIORITY_LABELS[priority] || priority;
+  return `<span class="task-priority ${priority}">${label}</span>`;
+}
+
 export async function initTasks() {
   const section = document.querySelector("#tasks-section");
   if (!section) return;
@@ -101,7 +108,7 @@ function renderTasks(section, tasks) {
     </div>
     <div class="tasks-list">
       ${tasks.map(t => `
-        <div class="task-item ${t.is_completed ? "done" : ""}" data-task-id="${t.id}">
+        <div class="task-item ${t.is_completed ? "done" : ""}${!t.is_completed && t.priority === "high" ? " urgent" : ""}" data-task-id="${t.id}">
           <div class="task-checkbox ${t.is_completed ? "done" : ""}" data-action="toggle"></div>
           <div class="task-info">
             <div class="task-name">${t.title}</div>
@@ -109,7 +116,7 @@ function renderTasks(section, tasks) {
               ${t.scheduled_datetime ? `📅 ${formatDateTime(t.scheduled_datetime)}` : ""}
               ${t.due_datetime ? ` · ⏰ ${formatDateTime(t.due_datetime)}` : ""}
               ${t.estimated_minutes ? ` · ~${t.estimated_minutes} min` : ""}
-              ${t.priority ? ` · ${t.priority}` : ""}
+              ${t.priority ? ` ${priorityPill(t.priority)}` : ""}
             </div>
           </div>
           <div class="task-actions">

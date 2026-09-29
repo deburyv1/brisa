@@ -45,12 +45,15 @@ export function checkGuidance() {
   return items;
 }
 
+let dismissedKey = null;
+
 export function renderGuidanceBanner() {
   const items = checkGuidance();
   const banner = document.querySelector(".guidance-banner");
   if (!banner) return;
 
-  if (items.length === 0) {
+  const key = items.map(i => i.text).join("|");
+  if (items.length === 0 || key === dismissedKey) {
     banner.style.display = "none";
     return;
   }
@@ -70,6 +73,17 @@ export function renderGuidanceBanner() {
     pill.addEventListener("click", () => goTo(item));
     banner.appendChild(pill);
   });
+
+  const close = document.createElement("button");
+  close.textContent = "✕";
+  close.title = "Ocultar avisos";
+  close.style.cssText = "border:0;background:rgba(255,255,255,.2);color:#fff;width:18px;height:18px;border-radius:50%;font-size:9px;cursor:pointer;margin-left:10px;line-height:1;";
+  close.addEventListener("click", (e) => {
+    e.stopPropagation();
+    dismissedKey = key;
+    banner.style.display = "none";
+  });
+  banner.appendChild(close);
 }
 
 async function goTo(item) {

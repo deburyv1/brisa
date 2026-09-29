@@ -37,4 +37,51 @@
   color: white;
   background: linear-gradient(145deg, #67e1f0, #0785b0);
   font-size: 14px;
+  overflow: hidden;
+}
+
+/* Avatar crop modal */
+.avatar-preview {
+  position: relative;
+  width: 220px;
+  height: 220px;
+  margin: 4px auto;
+  border-radius: 16px;
+  overflow: hidden;
+  background: rgba(0, 30, 60, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  touch-action: none;
+  cursor: grab;
+}
+
+.avatar-preview:active {
+  cursor: grabbing;
+}
+
+.avatar-preview img {
+  position: absolute;
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+}
+
+.avatar-preview-hint {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.avatar-help {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+  text-align: center;
+}
+
+input[type="range"] {
+  width: 100%;
+  accent-color: #27c9eb;
 }

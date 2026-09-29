@@ -6,7 +6,7 @@
   margin-top: 11px;
   border-radius: var(--radius-panel);
   padding: 20px 24px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, .08));
+  background: linear-gradient(135deg, rgba(255, 255, 255, .32), rgba(255, 255, 255, .14));
   backdrop-filter: blur(25px) saturate(140%);
   -webkit-backdrop-filter: blur(25px) saturate(140%);
   border: 1px solid rgba(255, 255, 255, 0.3);
