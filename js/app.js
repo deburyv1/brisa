@@ -80,7 +80,14 @@ function initNavigation() {
   }
 
   navButtons.forEach(btn => {
-    btn.addEventListener("click", () => showSection(btn.dataset.nav));
+    btn.addEventListener("click", () => {
+      // Manual navigation clears one-shot filters (banner sets its own after)
+      if (btn.dataset.nav === "finance" && window.setFinanceUncategorized) {
+        window.setFinanceUncategorized(false);
+        if (window.initFinance) window.initFinance();
+      }
+      showSection(btn.dataset.nav);
+    });
   });
 
   showSection("home");

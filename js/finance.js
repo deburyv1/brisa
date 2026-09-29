@@ -12,6 +12,11 @@ let activeAccountId = null;
 let activeAccount = null;
 let showOnlyUncategorized = false;
 
+export function setUncategorizedOnly(v) {
+  showOnlyUncategorized = !!v;
+}
+if (typeof window !== "undefined") window.setFinanceUncategorized = setUncategorizedOnly;
+
 async function fetchAccounts() {
   try {
     const res = await fetch(`${API_BASE}/accounts`);
