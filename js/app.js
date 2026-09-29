@@ -55,6 +55,7 @@ const ALL_SECTIONS = [
   "#next-section",
   "#today-section",
   "#birthdays-section",
+  "#inbox-section",
   "#tasks-section",
   "#journal-section",
   "#finance-section",
