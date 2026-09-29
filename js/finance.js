@@ -9,6 +9,7 @@ const API_BASE = "/api";
 const CATEGORIES = ["Comida", "Transporte", "Casa", "Salud", "Ocio", "Trabajo", "Sueldo", "Otro"];
 
 let activeAccountId = null;
+let activeAccount = null;
 let showOnlyUncategorized = false;
 
 async function fetchAccounts() {
@@ -103,9 +104,18 @@ async function uploadImport(section, file, force) {
       alert(result.error || "No se pudo importar.");
       return;
     }
-    alert(
-      `Importados: ${result.imported}\nDuplicados: ${result.duplicates}\nAnteriores al saldo inicial: ${result.before_initial}\nOmitidos: ${result.skipped}`
-    );
+    const initialStr = activeAccount?.initial_date
+      ? ` (saldo inicial al ${formatTxDate(activeAccount.initial_date)})`
+      : "";
+    if (result.imported === 0 && result.before_initial > 0) {
+      alert(
+        `No se importó nada: los ${result.before_initial} movimientos son anteriores o iguales a la fecha de saldo inicial${initialStr}.\nRevisa la fecha con "✎ Cuenta".`
+      );
+    } else {
+      alert(
+        `Importados: ${result.imported}\nDuplicados: ${result.duplicates}\nAnteriores al saldo inicial: ${result.before_initial}\nOmitidos: ${result.skipped}`
+      );
+    }
     if (window.initFinance) window.initFinance();
   } catch (err) {
     console.error("Error importando:", err);
@@ -161,6 +171,7 @@ export async function initFinance() {
     activeAccountId = accounts[0].id;
   }
   const account = accounts.find(a => a.id == activeAccountId);
+  activeAccount = account;
 
   const [txs, uncategorized, imports] = await Promise.all([
     fetchTransactions(activeAccountId, showOnlyUncategorized),
@@ -187,6 +198,7 @@ function renderFinance(section, accounts, account, txs, uncategorized, imports) 
       <div class="finance-title">Finanzas</div>
       <div class="finance-header-actions">
         <button class="finance-import-btn" id="import-xlsx">⬆ Importar cartola</button>
+        <button class="finance-import-btn" id="edit-account" title="Editar cuenta">✎ Cuenta</button>
         <button class="finance-add-btn" id="add-tx">+ Nuevo</button>
       </div>
     </div>
@@ -271,6 +283,10 @@ function renderFinance(section, accounts, account, txs, uncategorized, imports) 
 
   section.querySelector("#add-account")?.addEventListener("click", () => {
     if (window.openAccountModal) window.openAccountModal();
+  });
+
+  section.querySelector("#edit-account")?.addEventListener("click", () => {
+    if (window.openAccountModal) window.openAccountModal(activeAccountId);
   });
 
   section.querySelector("#import-xlsx")?.addEventListener("click", () => {

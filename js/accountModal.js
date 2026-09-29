@@ -15,11 +15,28 @@ export function initAccountModal() {
   if (!overlay || !closeBtn || !cancelBtn || !form || !titleEl) return;
 
   let cleanSnapshot = null;
+  let editingId = null;
 
-  function open() {
-    titleEl.textContent = "Nueva cuenta";
+  function open(accountId = null) {
+    editingId = accountId;
     form.reset();
-    cleanSnapshot = snapshotForm(form);
+
+    if (accountId) {
+      titleEl.textContent = "Editar cuenta";
+      fetch(`${API_BASE}/accounts/${accountId}`)
+        .then(r => r.json())
+        .then(a => {
+          form.name.value = a.name || "";
+          form.account_number.value = a.account_number || "";
+          form.initial_balance.value = a.initial_balance ?? "";
+          form.initial_date.value = a.initial_date ? String(a.initial_date).slice(0, 10) : "";
+          cleanSnapshot = snapshotForm(form);
+        })
+        .catch(e => console.error("Error cargando cuenta:", e));
+    } else {
+      titleEl.textContent = "Nueva cuenta";
+      cleanSnapshot = snapshotForm(form);
+    }
     overlay.classList.add("active");
     const firstInput = form.querySelector("input[name='name']");
     if (firstInput) firstInput.focus();
@@ -28,6 +45,7 @@ export function initAccountModal() {
   function close() {
     overlay.classList.remove("active");
     form.reset();
+    editingId = null;
   }
 
   function tryClose() {
@@ -54,11 +72,14 @@ export function initAccountModal() {
     if (!data.name || !data.name.trim()) return;
 
     try {
-      const res = await fetch(`${API_BASE}/accounts`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
+      const res = await fetch(
+        editingId ? `${API_BASE}/accounts/${editingId}` : `${API_BASE}/accounts`,
+        {
+          method: editingId ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        }
+      );
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         alert(err.error || "No se pudo guardar. Intenta de nuevo.");
