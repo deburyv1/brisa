@@ -10,7 +10,10 @@ export function checkGuidance() {
   const transactions = state.transactions || [];
 
   const uncategorized = transactions.filter(t => !t.category);
-  const overdue = tasks.filter(t => t.status !== "done" && new Date(t.dueDate) < new Date());
+  const overdue = tasks.filter(t => {
+    if (t.is_completed || !t.due_datetime) return false;
+    return new Date(t.due_datetime) < new Date();
+  });
 
   if (uncategorized.length > 0) {
     reminders.push(`${uncategorized.length} transacción(es) sin categorizar`);

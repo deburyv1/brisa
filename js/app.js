@@ -16,6 +16,7 @@ import { initJournal } from "./journal.js";
 import { initJournalModal } from "./journalModal.js";
 import { initFinance } from "./finance.js";
 import { initTransactionModal } from "./transactionModal.js";
+import { initAccountModal } from "./accountModal.js";
 import { initPlayer } from "./player.js";
 
 window.initTasks = initTasks;
@@ -82,6 +83,7 @@ async function main() {
   initTaskModal();
   initJournalModal();
   initTransactionModal();
+  initAccountModal();
   initPlayer();
   initNavigation();
 

@@ -74,6 +74,18 @@ try {
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`);
 
+  await pool.query(`CREATE TABLE IF NOT EXISTS accounts (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER DEFAULT 1,
+    name VARCHAR(100) NOT NULL,
+    account_number VARCHAR(50),
+    initial_balance NUMERIC(12,2) DEFAULT 0,
+    initial_date DATE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
+
+  await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS account_id INTEGER REFERENCES accounts(id)`);
+
   await pool.query(`CREATE TABLE IF NOT EXISTS spotify_tokens (
     user_id INTEGER PRIMARY KEY,
     access_token VARCHAR(500) NOT NULL,

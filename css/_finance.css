@@ -185,6 +185,110 @@
   background: rgba(255, 107, 107, 0.35);
 }
 
+.finance-header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.finance-import-btn {
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+  padding: 7px 14px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  transition: var(--transition-speed);
+}
+
+.finance-import-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Account selector */
+.finance-accounts {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.finance-account {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 99px;
+  padding: 6px 14px;
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: var(--transition-speed);
+}
+
+.finance-account:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+.finance-account.active {
+  color: #fff;
+  background: linear-gradient(180deg, #00c6ff, #0072ff);
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(0, 113, 170, .3), inset 0 1px 1px rgba(255, 255, 255, 0.8);
+}
+
+.finance-account.add {
+  border-style: dashed;
+}
+
+/* Uncategorized alert */
+.finance-alert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, rgba(244, 195, 46, .25), rgba(244, 195, 46, .08));
+  border: 1px solid rgba(244, 195, 46, 0.4);
+}
+
+.finance-alert-btn {
+  border: 0;
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(145deg, #27c9eb, #087fb0);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* Inline category select */
+.tx-category {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 4px 6px;
+  font-size: 9px;
+  font-family: inherit;
+  color: #fff;
+  background: rgba(255, 255, 255, .08);
+  outline: none;
+  cursor: pointer;
+  max-width: 130px;
+}
+
+.tx-category option {
+  background: #1a3a52;
+  color: #fff;
+}
+
 /* Empty state */
 .finance-empty {
   display: flex;
@@ -198,6 +302,12 @@
 .finance-empty-icon {
   font-size: 28px;
   opacity: 0.6;
+}
+
+.finance-empty-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
 }
 
 .finance-empty-text {

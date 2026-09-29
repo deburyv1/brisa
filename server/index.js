@@ -8,6 +8,7 @@ import tasksRouter from './routes/tasks.js';
 import spotifyRouter from './routes/spotify.js';
 import journalRouter from './routes/journal.js';
 import transactionsRouter from './routes/transactions.js';
+import accountsRouter from './routes/accounts.js';
 import weatherRouter from './routes/weather.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -26,6 +27,7 @@ app.use('/api/tasks', tasksRouter);
 app.use('/api/spotify', spotifyRouter);
 app.use('/api/journal', journalRouter);
 app.use('/api/transactions', transactionsRouter);
+app.use('/api/accounts', accountsRouter);
 app.use('/api/weather', weatherRouter);
 
 // Serve static files (frontend)

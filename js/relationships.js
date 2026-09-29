@@ -30,7 +30,8 @@ export async function initRelationships() {
     section.innerHTML = `
       <div class="relationships-empty">
         <div class="relationships-empty-icon">👥</div>
-        <div class="relationships-empty-text">Todavía no tenés relaciones guardadas.<br>Creá la primera para empezar.</div>
+        <div class="relationships-empty-title">Tus relaciones viven acá</div>
+        <div class="relationships-empty-text">Guardá a las personas importantes y Brisa te avisa sus cumpleaños.<br>Más adelante: ideas de regalo, anécdotas y recordatorios.</div>
         <button class="relationships-empty-btn" id="add-first-person">+ Nueva relación</button>
       </div>
     `;

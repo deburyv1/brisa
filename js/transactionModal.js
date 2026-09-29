@@ -14,8 +14,12 @@ export function initTransactionModal() {
   if (!overlay || !closeBtn || !cancelBtn || !form || !titleEl) return;
 
   let editingId = null;
+  let currentAccountId = null;
 
-  function open(txId = null) {
+  function open(accountId = null, txId = null) {
+    // open(accountId) or open(accountId, txId)
+    if (typeof accountId === "object") accountId = null;
+    currentAccountId = accountId;
     editingId = txId;
     form.reset();
 
@@ -70,12 +74,13 @@ export function initTransactionModal() {
     }
 
     try {
+      const payload = { ...data, account_id: currentAccountId };
       const res = await fetch(
         editingId ? `${API_BASE}/transactions/${editingId}` : `${API_BASE}/transactions`,
         {
           method: editingId ? "PUT" : "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
+          body: JSON.stringify(payload),
         }
       );
       if (!res.ok) {

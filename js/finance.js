@@ -1,19 +1,50 @@
 /* ============================================
    BRISA - Finance Module
-   CRUD for transactions via /api/transactions
+   Accounts + import + quick categorize via /api
    ============================================ */
 import { state } from "./state.js";
 
 const API_BASE = "/api";
 
-async function fetchTransactions() {
+const CATEGORIES = ["Comida", "Transporte", "Casa", "Salud", "Ocio", "Trabajo", "Sueldo", "Otro"];
+
+let activeAccountId = null;
+let showOnlyUncategorized = false;
+
+async function fetchAccounts() {
   try {
-    const res = await fetch(`${API_BASE}/transactions`);
+    const res = await fetch(`${API_BASE}/accounts`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (e) {
+    console.warn("No se pudieron cargar cuentas:", e);
+    return null;
+  }
+}
+
+async function fetchTransactions(accountId, uncategorizedOnly = false) {
+  try {
+    const params = new URLSearchParams();
+    if (accountId) params.set("account_id", accountId);
+    if (uncategorizedOnly) params.set("uncategorized", "1");
+    const res = await fetch(`${API_BASE}/transactions?${params}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   } catch (e) {
     console.warn("No se pudieron cargar transacciones:", e);
     return null;
+  }
+}
+
+async function fetchUncategorizedCount(accountId) {
+  try {
+    const params = accountId ? `?account_id=${accountId}` : "";
+    const res = await fetch(`${API_BASE}/transactions/uncategorized-count${params}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    return data.count || 0;
+  } catch {
+    return 0;
   }
 }
 
@@ -32,14 +63,20 @@ function formatTxDate(dateStr) {
   return d.toLocaleDateString("es-ES", { day: "numeric", month: "short" });
 }
 
+function escapeHtml(str) {
+  return String(str ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 export async function initFinance() {
   const section = document.querySelector("#finance-section");
   if (!section) return;
 
-  const txs = await fetchTransactions();
-  state.transactions = txs || [];
-
-  if (!txs) {
+  const accounts = await fetchAccounts();
+  if (!accounts) {
     section.innerHTML = `
       <div class="finance-empty">
         <div class="finance-empty-icon">⚠️</div>
@@ -53,60 +90,105 @@ export async function initFinance() {
     return;
   }
 
-  if (txs.length === 0) {
+  state.accounts = accounts;
+
+  if (accounts.length === 0) {
     section.innerHTML = `
       <div class="finance-empty">
-        <div class="finance-empty-icon">💰</div>
-        <div class="finance-empty-text">Todavía no tenés movimientos.<br>Registrá el primero para empezar.</div>
-        <button class="finance-empty-btn" id="add-first-tx">+ Nuevo movimiento</button>
+        <div class="finance-empty-icon">🏦</div>
+        <div class="finance-empty-title">Empecemos con tu cuenta</div>
+        <div class="finance-empty-text">Creá tu cuenta corriente con su saldo inicial<br>y después importá la cartola del banco.</div>
+        <button class="finance-empty-btn" id="add-first-account">+ Nueva cuenta</button>
       </div>
     `;
-    const btn = section.querySelector("#add-first-tx");
-    if (btn) {
-      btn.addEventListener("click", () => {
-        if (window.openTransactionModal) window.openTransactionModal();
-      });
-    }
+    section.querySelector("#add-first-account")?.addEventListener("click", () => {
+      if (window.openAccountModal) window.openAccountModal();
+    });
     return;
   }
 
-  renderFinance(section, txs);
+  if (!activeAccountId || !accounts.find(a => a.id == activeAccountId)) {
+    activeAccountId = accounts[0].id;
+  }
+  const account = accounts.find(a => a.id == activeAccountId);
+
+  const [txs, uncategorized] = await Promise.all([
+    fetchTransactions(activeAccountId, showOnlyUncategorized),
+    fetchUncategorizedCount(activeAccountId),
+  ]);
+  state.transactions = txs || [];
+
+  renderFinance(section, accounts, account, txs || [], uncategorized);
 }
 
-function renderFinance(section, txs) {
-  const income = txs.filter(t => t.type === "income").reduce((s, t) => s + Number(t.amount), 0);
-  const expense = txs.filter(t => t.type !== "income").reduce((s, t) => s + Number(t.amount), 0);
-  const balance = income - expense;
+function renderFinance(section, accounts, account, txs, uncategorized) {
+  const income = txs
+    .filter(t => t.type === "income")
+    .reduce((s, t) => s + Number(t.amount), 0);
+  const expense = txs
+    .filter(t => t.type !== "income")
+    .reduce((s, t) => s + Number(t.amount), 0);
+  const initial = Number(account.initial_balance) || 0;
+  const balance = initial + income - expense;
 
   section.innerHTML = `
     <div class="finance-header">
       <div class="finance-title">Finanzas</div>
-      <button class="finance-add-btn" id="add-tx">+ Nuevo</button>
+      <div class="finance-header-actions">
+        <button class="finance-import-btn" id="import-xlsx">⬆ Importar cartola</button>
+        <button class="finance-add-btn" id="add-tx">+ Nuevo</button>
+      </div>
     </div>
+
+    <div class="finance-accounts">
+      ${accounts.map(a => `
+        <button class="finance-account ${a.id == activeAccountId ? "active" : ""}" data-account-id="${a.id}">
+          ${escapeHtml(a.name)}
+        </button>
+      `).join("")}
+      <button class="finance-account add" id="add-account">+ Cuenta</button>
+    </div>
+
     <div class="finance-summary">
       <div class="finance-stat">
-        <div class="finance-stat-label">Ingresos</div>
-        <div class="finance-stat-value income">+${formatMoney(income)}</div>
+        <div class="finance-stat-label">Saldo inicial</div>
+        <div class="finance-stat-value">${formatMoney(initial)}</div>
       </div>
       <div class="finance-stat">
-        <div class="finance-stat-label">Gastos</div>
-        <div class="finance-stat-value expense">−${formatMoney(expense)}</div>
+        <div class="finance-stat-label">Movimientos</div>
+        <div class="finance-stat-value ${income - expense >= 0 ? "income" : "expense"}">${income - expense >= 0 ? "+" : "−"}${formatMoney(Math.abs(income - expense))}</div>
       </div>
-      <div class="finance-stat">
-        <div class="finance-stat-label">Balance</div>
+      <div class="finance-stat highlight">
+        <div class="finance-stat-label">Saldo actual</div>
         <div class="finance-stat-value">${formatMoney(balance)}</div>
       </div>
     </div>
+
+    ${uncategorized > 0 ? `
+      <div class="finance-alert">
+        <span>⚠️ ${uncategorized} movimiento${uncategorized === 1 ? "" : "s"} sin categorizar</span>
+        <button class="finance-alert-btn" id="toggle-uncategorized">${showOnlyUncategorized ? "Ver todos" : "Revisar"}</button>
+      </div>
+    ` : ""}
+
     <div class="finance-list">
-      ${txs.map(t => {
+      ${txs.length === 0 ? `
+        <div class="finance-empty">
+          <div class="finance-empty-text">${showOnlyUncategorized ? "Nada pendiente. Todo categorizado. 🎉" : "Sin movimientos en esta cuenta."}</div>
+        </div>
+      ` : txs.map(t => {
         const isIncome = t.type === "income";
         return `
         <div class="tx-item" data-tx-id="${t.id}">
           <div class="tx-sign ${isIncome ? "income" : "expense"}">${isIncome ? "+" : "−"}</div>
           <div class="tx-info">
             <div class="tx-desc">${escapeHtml(t.description)}</div>
-            <div class="tx-meta">${formatTxDate(t.date)}${t.category ? ` · ${escapeHtml(t.category)}` : ""}</div>
+            <div class="tx-meta">${formatTxDate(t.date)}</div>
           </div>
+          <select class="tx-category" data-tx-id="${t.id}" title="Categoría">
+            <option value="">Sin categoría</option>
+            ${CATEGORIES.map(c => `<option value="${c}" ${t.category === c ? "selected" : ""}>${c}</option>`).join("")}
+          </select>
           <div class="tx-amount ${isIncome ? "income" : "expense"}">${isIncome ? "+" : "−"}${formatMoney(t.amount)}</div>
           <div class="tx-actions">
             <button class="tx-btn tx-btn-edit" data-action="edit">Editar</button>
@@ -115,35 +197,85 @@ function renderFinance(section, txs) {
         </div>`;
       }).join("")}
     </div>
+    <input type="file" id="import-file" accept=".xlsx,.xls" style="display:none">
   `;
 
-  const addBtn = section.querySelector("#add-tx");
-  if (addBtn) {
-    addBtn.addEventListener("click", () => {
-      if (window.openTransactionModal) window.openTransactionModal();
+  section.querySelector("#add-tx")?.addEventListener("click", () => {
+    if (window.openTransactionModal) window.openTransactionModal(activeAccountId);
+  });
+
+  section.querySelector("#add-account")?.addEventListener("click", () => {
+    if (window.openAccountModal) window.openAccountModal();
+  });
+
+  section.querySelector("#import-xlsx")?.addEventListener("click", () => {
+    section.querySelector("#import-file")?.click();
+  });
+
+  section.querySelector("#import-file")?.addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append("file", file);
+    try {
+      const res = await fetch(`${API_BASE}/transactions/import?account_id=${activeAccountId}`, {
+        method: "POST",
+        body: formData,
+      });
+      const result = await res.json();
+      if (!res.ok) {
+        alert(result.error || "No se pudo importar.");
+        return;
+      }
+      alert(`Importados: ${result.imported}\nDuplicados: ${result.duplicates}\nOmitidos: ${result.skipped}`);
+      if (window.initFinance) window.initFinance();
+    } catch (err) {
+      console.error("Error importando:", err);
+      alert("No se pudo importar. Intentá de nuevo.");
+    }
+  });
+
+  section.querySelector("#toggle-uncategorized")?.addEventListener("click", () => {
+    showOnlyUncategorized = !showOnlyUncategorized;
+    if (window.initFinance) window.initFinance();
+  });
+
+  section.querySelectorAll(".finance-account[data-account-id]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      activeAccountId = btn.dataset.accountId;
+      showOnlyUncategorized = false;
+      if (window.initFinance) window.initFinance();
     });
-  }
+  });
+
+  // Quick categorize inline
+  section.querySelectorAll(".tx-category").forEach(sel => {
+    sel.addEventListener("change", async () => {
+      try {
+        await fetch(`${API_BASE}/transactions/${sel.dataset.txId}/category`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ category: sel.value || null }),
+        });
+        if (window.initFinance) window.initFinance();
+      } catch (err) {
+        console.error("Error categorizando:", err);
+      }
+    });
+  });
 
   section.querySelectorAll(".tx-item").forEach(item => {
     const id = item.dataset.txId;
 
     item.querySelector('[data-action="edit"]')?.addEventListener("click", () => {
-      if (window.openTransactionModal) window.openTransactionModal(id);
+      if (window.openTransactionModal) window.openTransactionModal(activeAccountId, id);
     });
 
     item.querySelector('[data-action="delete"]')?.addEventListener("click", async () => {
       if (confirm("¿Eliminar este movimiento?")) {
-        await deleteTransaction(id);
+        await fetch(`${API_BASE}/transactions/${id}`, { method: "DELETE" });
         if (window.initFinance) window.initFinance();
       }
     });
   });
-}
-
-function escapeHtml(str) {
-  return String(str ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
 }
