@@ -212,6 +212,8 @@ export async function initFinance() {
 }
 
 function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncategorized, imports) {
+  const byId = {};
+  for (const t of allTxs) byId[t.id] = t;
   const income = allTxs
     .filter(t => t.type === "income")
     .reduce((s, t) => s + Number(t.amount), 0);
@@ -262,22 +264,31 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
     </div>
 
     ${(() => {
-      const byCat = {};
+      const net = {};
+      const gross = {};
       for (const t of monthTxs) {
-        if (t.type === "income") continue;
+        if (t.type === "income") {
+          const parent = t.linked_id ? byId[t.linked_id] : null;
+          if (parent && parent.category) {
+            const cat = parent.category;
+            net[cat] = (net[cat] || 0) - Number(t.amount);
+          }
+          continue;
+        }
         const cat = t.category || "Sin categoría";
-        byCat[cat] = (byCat[cat] || 0) + Number(t.amount);
+        gross[cat] = (gross[cat] || 0) + Number(t.amount);
+        net[cat] = (net[cat] || 0) + Number(t.amount);
       }
-      const rows = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
+      const rows = Object.entries(net).sort((a, b) => b[1] - a[1]);
       const total = rows.reduce((s, [, v]) => s + v, 0);
       if (rows.length === 0) return "";
       return `
       <div class="finance-breakdown">
         <div class="finance-breakdown-title">Gastos de ${monthLabel(currentMonth)} · ${formatMoney(total)}</div>
         ${rows.map(([cat, val]) => `
-          <div class="breakdown-row">
+          <div class="breakdown-row" title="${gross[cat] && gross[cat] !== val ? `Bruto: ${formatMoney(gross[cat])}` : escapeHtml(cat)}">
             <div class="breakdown-cat">${escapeHtml(cat)}</div>
-            <div class="breakdown-bar"><span style="width:${total ? Math.round(val / total * 100) : 0}%"></span></div>
+            <div class="breakdown-bar"><span style="width:${total ? Math.max(0, Math.round(val / total * 100)) : 0}%"></span></div>
             <div class="breakdown-val">${formatMoney(val)}</div>
           </div>
         `).join("")}
@@ -298,12 +309,13 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
         </div>
       ` : txs.map(t => {
         const isIncome = t.type === "income";
+        const parent = t.linked_id ? byId[t.linked_id] : null;
         return `
         <div class="tx-item" data-tx-id="${t.id}">
           <div class="tx-sign ${isIncome ? "income" : "expense"}">${isIncome ? "+" : "−"}</div>
           <div class="tx-info">
             <div class="tx-desc">${escapeHtml(t.description)}</div>
-            <div class="tx-meta">${formatTxDate(t.date)}</div>
+            <div class="tx-meta">${formatTxDate(t.date)}${parent ? ` · ↩ ${escapeHtml(parent.description)}` : ""}</div>
           </div>
           <select class="tx-category" data-tx-id="${t.id}" title="Categoría">
             <option value="">Sin categoría</option>

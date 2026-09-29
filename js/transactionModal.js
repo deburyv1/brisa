@@ -16,6 +16,33 @@ function fillCategories(form, type, selected) {
     list.map(c => `<option value="${c}" ${selected === c ? "selected" : ""}>${c}</option>`).join("");
 }
 
+function toggleLinkRow(form) {
+  const row = form.querySelector("#tx-link-row");
+  if (row) row.style.display = form.type.value === "income" ? "" : "none";
+}
+
+async function fillLinkOptions(form, accountId, selected, excludeId) {
+  const sel = form.querySelector("#tx-link-select");
+  if (!sel) return;
+  sel.innerHTML = `<option value="">Sin vincular</option>`;
+  if (!accountId) return;
+  try {
+    const res = await fetch(`${API_BASE}/transactions?account_id=${accountId}`);
+    if (!res.ok) return;
+    const txs = await res.json();
+    for (const t of txs.filter(t => t.type !== "income" && String(t.id) !== String(excludeId))) {
+      const opt = document.createElement("option");
+      opt.value = t.id;
+      const d = t.date ? String(t.date).slice(0, 10) : "";
+      opt.textContent = `${t.description} · ${Number(t.amount).toLocaleString("es-ES")}${d ? " · " + d : ""}`;
+      if (String(t.id) === String(selected)) opt.selected = true;
+      sel.appendChild(opt);
+    }
+  } catch (e) {
+    console.error("Error cargando gastos:", e);
+  }
+}
+
 export function initTransactionModal() {
   const overlay = document.querySelector("#transaction-modal");
   const closeBtn = document.querySelector("#transaction-modal-close");
@@ -40,11 +67,13 @@ export function initTransactionModal() {
       titleEl.textContent = "Editar movimiento";
       fetch(`${API_BASE}/transactions/${txId}`)
         .then(r => r.json())
-        .then(tx => {
+        .then(async tx => {
           form.description.value = tx.description || "";
           form.amount.value = tx.amount ?? "";
           form.type.value = tx.type || "expense";
           fillCategories(form, form.type.value, tx.category || "");
+          toggleLinkRow(form);
+          await fillLinkOptions(form, currentAccountId, tx.linked_id || "", txId);
           form.date.value = tx.date ? String(tx.date).slice(0, 10) : "";
           cleanSnapshot = snapshotForm(form);
         })
@@ -53,7 +82,10 @@ export function initTransactionModal() {
       titleEl.textContent = "Nuevo movimiento";
       form.date.value = new Date().toISOString().slice(0, 10);
       fillCategories(form, form.type.value, "");
-      cleanSnapshot = snapshotForm(form);
+      toggleLinkRow(form);
+      fillLinkOptions(form, currentAccountId, "", null).then(() => {
+        cleanSnapshot = snapshotForm(form);
+      });
     }
 
     overlay.classList.add("active");
@@ -77,6 +109,7 @@ export function initTransactionModal() {
 
   form.type.addEventListener("change", () => {
     fillCategories(form, form.type.value, "");
+    toggleLinkRow(form);
   });
 
   overlay.addEventListener("click", (e) => {
