@@ -6,7 +6,12 @@ import { state } from "./state.js";
 
 const API_BASE = "/api";
 
-const CATEGORIES = ["Comida", "Transporte", "Casa", "Salud", "Ocio", "Trabajo", "Sueldo", "Otro"];
+const EXPENSE_CATEGORIES = ["Comida", "Transporte", "Casa", "Salud", "Ocio", "Suscripciones", "Trabajo", "Préstamo", "Otro"];
+const INCOME_CATEGORIES = ["Sueldo", "Aguinaldo", "Reembolso", "Préstamo", "Otro"];
+
+function categoriesFor(type) {
+  return type === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+}
 
 let activeAccountId = null;
 let activeAccount = null;
@@ -258,7 +263,7 @@ function renderFinance(section, accounts, account, allTxs, txs, uncategorized, i
           </div>
           <select class="tx-category" data-tx-id="${t.id}" title="Categoría">
             <option value="">Sin categoría</option>
-            ${CATEGORIES.map(c => `<option value="${c}" ${t.category === c ? "selected" : ""}>${c}</option>`).join("")}
+            ${categoriesFor(t.type).map(c => `<option value="${c}" ${t.category === c ? "selected" : ""}>${c}</option>`).join("")}
           </select>
           <div class="tx-amount ${isIncome ? "income" : "expense"}">${isIncome ? "+" : "−"}${formatMoney(t.amount)}</div>
           <div class="tx-actions">

@@ -5,6 +5,17 @@
 const API_BASE = "/api";
 import { snapshotForm, isDirty, confirmDiscard } from "./modalGuard.js";
 
+const EXPENSE_CATEGORIES = ["Comida", "Transporte", "Casa", "Salud", "Ocio", "Suscripciones", "Trabajo", "Préstamo", "Otro"];
+const INCOME_CATEGORIES = ["Sueldo", "Aguinaldo", "Reembolso", "Préstamo", "Otro"];
+
+function fillCategories(form, type, selected) {
+  const sel = form.querySelector("#tx-category-select");
+  if (!sel) return;
+  const list = type === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+  sel.innerHTML = `<option value="">Sin categoría</option>` +
+    list.map(c => `<option value="${c}" ${selected === c ? "selected" : ""}>${c}</option>`).join("");
+}
+
 export function initTransactionModal() {
   const overlay = document.querySelector("#transaction-modal");
   const closeBtn = document.querySelector("#transaction-modal-close");
@@ -33,7 +44,7 @@ export function initTransactionModal() {
           form.description.value = tx.description || "";
           form.amount.value = tx.amount ?? "";
           form.type.value = tx.type || "expense";
-          form.category.value = tx.category || "";
+          fillCategories(form, form.type.value, tx.category || "");
           form.date.value = tx.date ? String(tx.date).slice(0, 10) : "";
           cleanSnapshot = snapshotForm(form);
         })
@@ -41,6 +52,7 @@ export function initTransactionModal() {
     } else {
       titleEl.textContent = "Nuevo movimiento";
       form.date.value = new Date().toISOString().slice(0, 10);
+      fillCategories(form, form.type.value, "");
       cleanSnapshot = snapshotForm(form);
     }
 
@@ -62,6 +74,10 @@ export function initTransactionModal() {
 
   closeBtn.addEventListener("click", tryClose);
   cancelBtn.addEventListener("click", tryClose);
+
+  form.type.addEventListener("change", () => {
+    fillCategories(form, form.type.value, "");
+  });
 
   overlay.addEventListener("click", (e) => {
     if (e.target === overlay) tryClose();
