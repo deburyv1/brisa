@@ -6,6 +6,18 @@ import { fetchPeople, getDisplayName, getInitials, formatDate } from "./people.j
 
 const API_BASE = "/api";
 
+const RELATION_LABELS = {
+  family: "Familiar",
+  friend: "Amigo/a",
+  partner: "Pareja",
+  work: "Trabajo",
+  other: "Otro",
+};
+
+export function relationLabel(value) {
+  return RELATION_LABELS[value] || "—";
+}
+
 export async function initRelationships() {
   const section = document.querySelector("#relationships-section");
   if (!section) return;
@@ -55,7 +67,7 @@ export async function initRelationships() {
           <div class="person-avatar">${getInitials(p.name)}</div>
           <div class="person-info">
             <div class="person-name">${getDisplayName(p)}</div>
-            <div class="person-relation">${p.relation || "—"}</div>
+            <div class="person-relation">${relationLabel(p.relation)}</div>
             ${p.birthday ? `<div class="person-birthday">🎂 ${formatDate(p.birthday)}</div>` : ""}
           </div>
           <div class="tx-actions">
