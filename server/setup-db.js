@@ -118,7 +118,7 @@ try {
   );
   for (const row of orphans.rows) {
     const imp = await pool.query(
-      `INSERT INTO imports (user_id, account_id, filename, file_hash, imported) VALUES (1, $1, 'carga anterior', 'backfill') RETURNING id`,
+      `INSERT INTO imports (user_id, account_id, filename, file_hash) VALUES (1, $1, 'carga anterior', 'backfill') RETURNING id`,
       [row.account_id]
     );
     await pool.query(
