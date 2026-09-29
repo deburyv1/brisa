@@ -19,7 +19,7 @@ router.get('/', async (req, res) => {
       conditions.push('category IS NULL');
     }
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
-    const result = await pool.query(`SELECT * FROM transactions ${where} ORDER BY date DESC, id DESC`);
+    const result = await pool.query(`SELECT * FROM transactions ${where} ORDER BY date DESC, id DESC`, params);
     res.json(result.rows);
   } catch (err) {
     console.error('Error fetching transactions:', err);
