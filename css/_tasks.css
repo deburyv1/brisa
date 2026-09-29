@@ -1,0 +1,192 @@
+/* ============================================
+   BRISA - Tasks View
+   ============================================ */
+.tasks {
+  position: relative;
+  margin-top: 11px;
+  border-radius: var(--radius-panel);
+  padding: 20px 24px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, .08));
+  backdrop-filter: blur(25px) saturate(140%);
+  -webkit-backdrop-filter: blur(25px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 10px 30px rgba(0, 58, 94, .08);
+}
+
+.tasks-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.tasks-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+}
+
+.tasks-add-btn {
+  border: 0;
+  border-radius: 10px;
+  padding: 7px 14px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(145deg, #27c9eb, #087fb0);
+  cursor: pointer;
+  transition: var(--transition-speed);
+}
+
+.tasks-add-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 120, 170, .3);
+}
+
+.tasks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.task-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, .15), rgba(255, 255, 255, .05));
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: var(--transition-speed);
+}
+
+.task-item:hover {
+  background: linear-gradient(135deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, .08));
+}
+
+.task-checkbox {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  transition: var(--transition-speed);
+}
+
+.task-checkbox:hover {
+  border-color: #fff;
+}
+
+.task-checkbox.done {
+  background: linear-gradient(145deg, #27c9eb, #087fb0);
+  border-color: transparent;
+}
+
+.task-checkbox.done::after {
+  content: "✓";
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.task-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.task-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.task-item.done .task-name {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.task-meta {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: .03em;
+}
+
+.task-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.task-btn {
+  border: 0;
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  transition: var(--transition-speed);
+}
+
+.task-btn-edit {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.task-btn-edit:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.task-btn-delete {
+  background: rgba(255, 107, 107, 0.2);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+}
+
+.task-btn-delete:hover {
+  background: rgba(255, 107, 107, 0.35);
+}
+
+/* Empty state */
+.tasks-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 24px 16px;
+  text-align: center;
+}
+
+.tasks-empty-icon {
+  font-size: 28px;
+  opacity: 0.6;
+}
+
+.tasks-empty-text {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.4;
+}
+
+.tasks-empty-btn {
+  border: 0;
+  border-radius: 12px;
+  padding: 8px 18px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(145deg, #27c9eb, #087fb0);
+  cursor: pointer;
+  transition: var(--transition-speed);
+}
+
+.tasks-empty-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 120, 170, .3);
+}

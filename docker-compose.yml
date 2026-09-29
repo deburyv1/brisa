@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:16
+    container_name: brisa-postgres
+    environment:
+      POSTGRES_PASSWORD: esunsecreto
+      POSTGRES_DB: brisa
+    ports:
+      - "5432:5432"
+    volumes:
+      - brisa-data:/var/lib/postgresql/data
+
+  app:
+    build: .
+    container_name: brisa-app
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./server/.env
+    environment:
+      DATABASE_URL: postgres://postgres:esunsecreto@db:5432/brisa
+    depends_on:
+      - db
+    volumes:
+      - ./index.html:/app/server/public/index.html
+      - ./css:/app/server/public/css
+      - ./js:/app/server/public/js
+      - ./icons:/app/server/public/icons
+      - ./aero-backgrounds:/app/server/public/aero-backgrounds
+      - ./brisa-icons:/app/server/public/brisa-icons
+      - ./server/routes:/app/server/routes
+      - ./server/index.js:/app/server/index.js
+      - ./server/db.js:/app/server/db.js
+
+volumes:
+  brisa-data:

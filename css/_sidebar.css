@@ -1,0 +1,189 @@
+/* ============================================
+   BRISA - Sidebar
+   ============================================ */
+.sidebar {
+  position: fixed;
+  z-index: 5;
+  top: 15px;
+  bottom: 15px;
+  left: 15px;
+  width: var(--sidebar-width);
+  border-radius: var(--radius-panel);
+  padding: 22px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, rgba(255, 255, 255, .28), rgba(255, 255, 255, .12));
+  backdrop-filter: blur(22px) saturate(140%);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
+}
+
+.brand-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 2px 6px 27px;
+}
+
+.logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  color: white;
+  font-size: 22px;
+  background: transparent;
+  border: none;
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.9));
+}
+
+.brand {
+  font-weight: 500;
+  font-size: 20px;
+  line-height: 1;
+  color: #fff;
+}
+
+.tagline {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 4px;
+}
+
+.nav-title {
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: .11em;
+  color: rgba(255, 255, 255, 0.7);
+  padding: 0 10px 8px;
+}
+
+.nav {
+  position: relative;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  text-align: left;
+  padding: 11px 12px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 400;
+  transition: var(--transition-speed);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.nav:last-child { border-bottom: none; }
+
+.nav-img {
+  width: 24px;
+  height: 24px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15)) drop-shadow(0 0 4px rgba(255, 255, 255, 0.3));
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+.nav.active .nav-img {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15)) drop-shadow(0 0 8px rgba(255, 255, 255, 0.6));
+}
+
+.nav i {
+  font-style: normal;
+  margin-left: auto;
+  font-size: 10px;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 3px 8px;
+  border-radius: 99px;
+  backdrop-filter: blur(8px);
+}
+
+.nav:hover {
+  background: rgba(255, 255, 255, .42);
+  transform: translateX(2px);
+}
+
+.nav.active {
+  color: #fff;
+  background: linear-gradient(180deg, #00c6ff, #0072ff);
+  box-shadow: 0 9px 23px rgba(0, 113, 170, .3), inset 0 1px 1px rgba(255, 255, 255, 0.8), inset 0 -1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Sidebar clock */
+.sidebar-clock {
+  border-radius: 20px;
+  padding: 14px;
+}
+
+.clock-label {
+  font-size: 9px;
+  font-weight: 300;
+  color: #588094;
+  letter-spacing: .1em;
+}
+
+.clock-time {
+  font-size: 36px;
+  line-height: 1;
+  font-weight: 300;
+  color: #07587f;
+  margin: 4px 0;
+}
+
+.clock-date {
+  font-size: 9px;
+  color: #648594;
+}
+
+.tiny-meter {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.65);
+  border-radius: 99px;
+  margin-top: 12px;
+  overflow: hidden;
+}
+
+.tiny-meter span {
+  display: block;
+  height: 100%;
+  width: 44%;
+  background: linear-gradient(90deg, #f4c32e, #12c7db);
+  border-radius: 99px;
+}
+
+/* ============================================
+   BRISA - Sidebar Card & Widget
+   ============================================ */
+.sidebar-card {
+  position: relative;
+  border-radius: var(--radius-card);
+  padding: 14px;
+  margin-top: auto;
+  background: linear-gradient(135deg, rgba(255, 255, 255, .28), rgba(255, 255, 255, .12));
+  backdrop-filter: blur(22px) saturate(140%);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.6), inset 0 -1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-card .card-title { font-size: 12px; font-weight: 700; color: #fff; margin-bottom: 2px; }
+.sidebar-card .card-subtitle { font-size: 8px; color: rgba(255, 255, 255, 0.7); margin-bottom: 2px; }
+.sidebar-card .card-meta { font-size: 7px; color: rgba(255, 255, 255, 0.5); letter-spacing: .08em; }
+
+.sidebar-widget {
+  position: relative;
+  border-radius: var(--radius-card);
+  padding: 14px;
+  margin-top: 10px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, .28), rgba(255, 255, 255, .12));
+  backdrop-filter: blur(22px) saturate(140%);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.6), inset 0 -1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-widget .widget-label { font-size: 7px; font-weight: 700; letter-spacing: .12em; color: rgba(255, 255, 255, 0.5); }
+.sidebar-widget .widget-value { font-size: 14px; font-weight: 700; color: #fff; margin: 4px 0; }
+.sidebar-widget .widget-bar { height: 4px; background: rgba(255, 255, 255, 0.15); border-radius: 99px; overflow: hidden; margin-top: 8px; }
+.sidebar-widget .widget-bar span { display: block; height: 100%; width: 72%; background: linear-gradient(90deg, #00c6ff, #0072ff); border-radius: 99px; }

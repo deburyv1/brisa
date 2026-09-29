@@ -1,0 +1,53 @@
+/* ============================================
+   BRISA - Layout
+   ============================================ */
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: var(--ink);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+button { font: inherit; cursor: pointer; }
+
+.world {
+  min-height: 100vh;
+  background-image: linear-gradient(rgba(18, 136, 205, .08), rgba(10, 105, 132, .05)), url("../aero-backgrounds/aero-background.jpg");
+  background-size: cover;
+  background-position: center top;
+  background-attachment: fixed;
+  padding: 15px;
+  position: relative;
+}
+
+.world:before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 18% 18%, rgba(255, 255, 255, .24), transparent 24%),
+              linear-gradient(180deg, rgba(0, 111, 204, .04), rgba(0, 170, 135, .05));
+}
+
+.content {
+  margin-left: calc(var(--sidebar-width) + 30px);
+  max-width: 1450px;
+  padding: 0 2px 25px;
+}
+
+/* ============================================
+   BRISA - Responsive
+   ============================================ */
+@media (max-width: 950px) {
+  .sidebar { display: none; }
+  .content { margin-left: 0; }
+}
+
+@media (max-width: 650px) {
+  .top { height: auto; padding: 8px; gap: 7px; }
+  .welcome { align-items: flex-start; }
+  .welcome h1 { font-size: 26px; }
+}

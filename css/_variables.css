@@ -1,0 +1,16 @@
+/* ============================================
+   BRISA - Variables & Design Tokens
+   ============================================ */
+:root {
+  --ink: #164b69;
+  --blue: #087ead;
+  --cyan: #11b9df;
+  --glass: rgba(232, 248, 255, .68);
+  --glass2: rgba(247, 255, 255, .42);
+  --edge: rgba(255, 255, 255, .9);
+  --shadow: 0 18px 45px rgba(0, 58, 94, .18);
+  --sidebar-width: 255px;
+  --radius-panel: 25px;
+  --radius-card: 18px;
+  --transition-speed: .16s;
+}

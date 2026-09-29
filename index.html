@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>brisa — Aero Home</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div class="world">
+
+  <!-- Guidance Banner (populated by JS) -->
+  <div class="guidance-banner glass" style="display:none;position:fixed;top:15px;left:50%;transform:translateX(-50%);z-index:10;padding:10px 20px;border-radius:99px;font-size:9px;font-weight:700;color:#fff;background:rgba(0,198,255,.7);backdrop-filter:blur(10px);letter-spacing:.04em"></div>
+
+  <aside class="sidebar aero-panel">
+    <div class="brand-row">
+      <div class="logo">✦</div>
+      <div>
+        <div class="brand">brisa</div>
+        <div class="tagline">tu espacio personal</div>
+      </div>
+    </div>
+
+    <div class="nav-title">TU ESPACIO</div>
+    <nav>
+      <button class="nav active" data-nav="home"><img src="brisa-icons/iexplore_32536.ico" class="nav-img" alt="Inicio"> Inicio</button>
+      <button class="nav" data-nav="tasks"><img src="brisa-icons/DxpTaskSync_50.ico" class="nav-img" alt="Acciones"> Acciones <i>4</i></button>
+      <button class="nav" data-nav="journal"><img src="brisa-icons/vista_sticky_notes.ico" class="nav-img" alt="Notas"> Notas <i>0</i></button>
+      <button class="nav" data-nav="finance"><img src="brisa-icons/budget.ico" class="nav-img" alt="Finanzas"> Finanzas</button>
+      <button class="nav" data-nav="people"><img src="brisa-icons/vista_messenger.ico" class="nav-img" alt="Relaciones"> Relaciones</button>
+    </nav>
+
+    <!-- Player Panel -->
+    <div class="player-panel" id="player-panel">
+      <button class="player-toggle">
+        <span>Música</span>
+        <span class="player-toggle-icon">▼</span>
+      </button>
+      <div class="player-content">
+        <div class="player-inner"></div>
+      </div>
+    </div>
+
+    <div class="sidebar-clock aero-inset">
+      <div class="clock-label">AHORA</div>
+      <div class="clock-time" id="sideTime">10:27</div>
+      <div class="clock-date">lunes, 28 de septiembre</div>
+      <div class="tiny-meter"><span id="tinyMeter"></span></div>
+    </div>
+  </aside>
+
+  <main class="content">
+    <header class="top aero-bar">
+      <div class="crumb">Mi espacio <b>/</b> <strong id="crumb-current">Inicio</strong></div>
+      <div class="top-right">
+        <div class="date-pill" id="date-pill">lun, 28 sept</div>
+        <div class="profile">L</div>
+      </div>
+    </header>
+
+    <section class="welcome aero-panel" id="welcome-section">
+      <div class="welcome-left">
+        <h1 id="greeting">Cargando...</h1>
+        <p class="greeting-date" id="date"></p>
+        <p class="greeting-quote">Un día más para construir la vida que te gusta.</p>
+      </div>
+      <div class="welcome-weather">
+        <div class="weather-icon"></div>
+        <div class="weather-info">
+          <div class="weather-city">Cargando...</div>
+          <div class="temp">—</div>
+          <div class="weather-label">Cargando clima</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Today Section -->
+    <section class="today" id="today-section"></section>
+
+    <!-- Birthdays Section -->
+    <section class="birthdays" id="birthdays-section"></section>
+
+    <!-- Tasks Section -->
+    <section class="tasks" id="tasks-section" style="display:none;"></section>
+
+    <!-- Journal Section -->
+    <section class="journal" id="journal-section" style="display:none;"></section>
+
+    <!-- Finance Section -->
+    <section class="finance" id="finance-section" style="display:none;"></section>
+
+    <!-- Relationships Section -->
+    <section class="relationships" id="relationships-section" style="display:none;"></section>
+
+    <!-- Module mount point - future sections mount here -->
+    <div id="module-container"></div>
+  </main>
+</div>
+<script type="module" src="js/app.js"></script>
+
+<!-- Modal: Crear/Editar Tarea -->
+<div class="modal-overlay" id="task-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="task-modal-title">Nueva tarea</div>
+      <button class="modal-close" id="task-modal-close">✕</button>
+    </div>
+    <form class="modal-form" id="task-form">
+      <div class="form-group">
+        <label>Título<span class="required">*</span></label>
+        <input type="text" name="title" placeholder="Ej: Revisar correo" required>
+      </div>
+      <div class="form-group">
+        <label>Descripción<span class="optional">(opcional)</span></label>
+        <input type="text" name="description" placeholder="Detalles de la tarea...">
+      </div>
+      <div class="form-group">
+        <label>Fecha programada<span class="optional">(opcional)</span></label>
+        <input type="datetime-local" name="scheduled_datetime">
+      </div>
+      <div class="form-group">
+        <label>Fecha límite<span class="optional">(opcional)</span></label>
+        <input type="datetime-local" name="due_datetime">
+      </div>
+      <div class="form-group">
+        <label>Prioridad<span class="optional">(opcional)</span></label>
+        <select name="priority">
+          <option value="medium">Media</option>
+          <option value="high">Alta</option>
+          <option value="low">Baja</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="modal-btn modal-btn-secondary" id="task-modal-cancel">Cancelar</button>
+        <button type="submit" class="modal-btn modal-btn-primary">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Crear/Editar Nota -->
+<div class="modal-overlay" id="journal-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="journal-modal-title">Nueva nota</div>
+      <button class="modal-close" id="journal-modal-close">✕</button>
+    </div>
+    <form class="modal-form" id="journal-form">
+      <div class="form-group">
+        <label>Título<span class="required">*</span></label>
+        <input type="text" name="title" placeholder="Ej: Ideas para el fin de semana" required>
+      </div>
+      <div class="form-group">
+        <label>Contenido<span class="optional">(opcional)</span></label>
+        <textarea name="content" rows="5" placeholder="Escribí lo que quieras recordar..." style="border:1px solid rgba(255,255,255,0.25);border-radius:10px;padding:9px 12px;font-size:12px;font-family:inherit;color:#fff;background:rgba(255,255,255,.08);outline:none;resize:vertical;"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Ánimo<span class="optional">(opcional)</span></label>
+        <select name="mood">
+          <option value="">Sin especificar</option>
+          <option value="😊 Bien">😊 Bien</option>
+          <option value="😐 Normal">😐 Normal</option>
+          <option value="😟 Bajo">😟 Bajo</option>
+          <option value="💡 Idea">💡 Idea</option>
+          <option value="⚠️ Importante">⚠️ Importante</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="modal-btn modal-btn-secondary" id="journal-modal-cancel">Cancelar</button>
+        <button type="submit" class="modal-btn modal-btn-primary">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Crear/Editar Movimiento -->
+<div class="modal-overlay" id="transaction-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="transaction-modal-title">Nuevo movimiento</div>
+      <button class="modal-close" id="transaction-modal-close">✕</button>
+    </div>
+    <form class="modal-form" id="transaction-form">
+      <div class="form-group">
+        <label>Descripción<span class="required">*</span></label>
+        <input type="text" name="description" placeholder="Ej: Supermercado" required>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Monto<span class="required">*</span></label>
+          <input type="number" name="amount" min="1" step="any" placeholder="Ej: 15000" required>
+        </div>
+        <div class="form-group">
+          <label>Tipo</label>
+          <select name="type">
+            <option value="expense">Gasto</option>
+            <option value="income">Ingreso</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Categoría<span class="optional">(opcional)</span></label>
+          <select name="category">
+            <option value="">Sin categoría</option>
+            <option value="Comida">Comida</option>
+            <option value="Transporte">Transporte</option>
+            <option value="Casa">Casa</option>
+            <option value="Salud">Salud</option>
+            <option value="Ocio">Ocio</option>
+            <option value="Trabajo">Trabajo</option>
+            <option value="Sueldo">Sueldo</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Fecha</label>
+          <input type="date" name="date">
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="modal-btn modal-btn-secondary" id="transaction-modal-cancel">Cancelar</button>
+        <button type="submit" class="modal-btn modal-btn-primary">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Crear Persona -->
+<div class="modal-overlay" id="person-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Nueva persona</div>
+      <button class="modal-close" id="modal-close">✕</button>
+    </div>
+    <form class="modal-form" id="person-form">
+      <div class="form-group">
+        <label>Nombre<span class="required">*</span></label>
+        <input type="text" name="name" placeholder="Ej: María González" required>
+      </div>
+      <div class="form-group">
+        <label>Apodo<span class="optional">(opcional)</span></label>
+        <input type="text" name="nickname" placeholder="Ej: Mary, La Mari...">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>RUT<span class="optional">(opcional)</span></label>
+          <input type="text" name="rut" placeholder="12.345.678-9">
+        </div>
+        <div class="form-group">
+          <label>Relación<span class="optional">(opcional)</span></label>
+          <select name="relation">
+            <option value="">Seleccionar...</option>
+            <option value="family">Familiar</option>
+            <option value="friend">Amigo/a</option>
+            <option value="partner">Pareja</option>
+            <option value="work">Trabajo</option>
+            <option value="other">Otro</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Fecha de nacimiento<span class="optional">(opcional)</span></label>
+        <input type="date" name="birthday">
+      </div>
+      <div class="form-group">
+        <label>Foto<span class="optional">(opcional)</span></label>
+        <input type="file" name="photo" accept="image/*">
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="modal-btn modal-btn-secondary" id="modal-cancel">Cancelar</button>
+        <button type="submit" class="modal-btn modal-btn-primary">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+</body>
+</html>

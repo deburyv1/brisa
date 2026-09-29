@@ -1,0 +1,40 @@
+/* ============================================
+   BRISA - Header / Breadcrumbs
+   ============================================ */
+.top {
+  height: 52px;
+  border-radius: 18px;
+  padding: 0 11px 0 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+}
+
+.crumb { font-size: 12px; color: #55798c; }
+.crumb b { opacity: .55; margin: 0 5px; }
+.crumb strong { color: #164d6a; }
+
+.top-right { display: flex; align-items: center; gap: 8px; }
+
+.date-pill,
+.profile {
+  border: 1px solid rgba(255, 255, 255, .78);
+  background: rgba(255, 255, 255, .48);
+  color: #17617f;
+  border-radius: 99px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.date-pill { padding: 8px 13px; }
+
+.profile {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  color: white;
+  background: linear-gradient(145deg, #67e1f0, #0785b0);
+  font-size: 14px;
+}

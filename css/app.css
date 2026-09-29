@@ -1,0 +1,17 @@
+/* ============================================
+   BRISA - Main Stylesheet
+   Import order matters for cascade
+   ============================================ */
+@import "_variables.css";
+@import "_glass.css";
+@import "_layout.css";
+@import "_sidebar.css";
+@import "_header.css";
+@import "_welcome.css";
+@import "_birthdays.css";
+@import "_modal.css";
+@import "_player.css";
+@import "_today.css";
+@import "_tasks.css";
+@import "_journal.css";
+@import "_finance.css";
