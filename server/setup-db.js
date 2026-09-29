@@ -84,7 +84,21 @@ try {
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`);
 
+  await pool.query(`CREATE TABLE IF NOT EXISTS imports (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER DEFAULT 1,
+    account_id INTEGER REFERENCES accounts(id),
+    filename VARCHAR(255),
+    file_hash VARCHAR(64),
+    imported INTEGER DEFAULT 0,
+    duplicates INTEGER DEFAULT 0,
+    skipped INTEGER DEFAULT 0,
+    before_initial INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
+
   await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS account_id INTEGER REFERENCES accounts(id)`);
+  await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS import_id INTEGER REFERENCES imports(id)`);
 
   await pool.query(`CREATE TABLE IF NOT EXISTS spotify_tokens (
     user_id INTEGER PRIMARY KEY,

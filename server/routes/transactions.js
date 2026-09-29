@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import multer from 'multer';
 import XLSX from 'xlsx';
+import crypto from 'crypto';
 import pool from '../db.js';
 
 const router = Router();
@@ -128,9 +129,10 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// POST /api/transactions/import?account_id= — import Banco de Chile XLSX
+// POST /api/transactions/import?account_id=&force=1 — import Banco de Chile XLSX
 router.post('/import', upload.single('file'), async (req, res) => {
   const accountId = req.query.account_id || req.body.account_id;
+  const force = req.query.force === '1' || req.body.force === '1';
   if (!accountId) {
     return res.status(400).json({ error: 'account_id is required' });
   }
@@ -138,6 +140,22 @@ router.post('/import', upload.single('file'), async (req, res) => {
     return res.status(400).json({ error: 'Excel file is required' });
   }
   try {
+    const fileHash = crypto.createHash('sha256').update(req.file.buffer).digest('hex');
+
+    // Same exact file already uploaded for this account?
+    const prior = await pool.query(
+      'SELECT * FROM imports WHERE account_id = $1 AND file_hash = $2 ORDER BY created_at DESC LIMIT 1',
+      [accountId, fileHash]
+    );
+    if (prior.rows.length > 0 && !force) {
+      return res.status(409).json({ duplicate_file: true, import: prior.rows[0] });
+    }
+
+    const accountRes = await pool.query('SELECT * FROM accounts WHERE id = $1', [accountId]);
+    const initialDate = accountRes.rows[0]?.initial_date
+      ? String(accountRes.rows[0].initial_date).slice(0, 10)
+      : null;
+
     const wb = XLSX.read(req.file.buffer, { type: 'buffer' });
     const ws = wb.Sheets[wb.SheetNames[0]];
     const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
@@ -150,9 +168,16 @@ router.post('/import', upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: 'Formato no reconocido: no se encontró la fila Fecha/Detalle' });
     }
 
+    const importRes = await pool.query(
+      'INSERT INTO imports (user_id, account_id, filename, file_hash) VALUES (1, $1, $2, $3) RETURNING *',
+      [accountId, req.file.originalname || 'cartola.xlsx', fileHash]
+    );
+    const importId = importRes.rows[0].id;
+
     let imported = 0;
     let duplicates = 0;
     let skipped = 0;
+    let beforeInitial = 0;
 
     for (const r of rows.slice(headerIdx + 1)) {
       const rawDate = String(r[0]).trim();
@@ -165,6 +190,10 @@ router.post('/import', upload.single('file'), async (req, res) => {
       const m = rawDate.match(/(\d{1,2})-(\d{1,2})-(\d{4})/);
       if (!m) { skipped++; continue; }
       const date = `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+
+      // Only movements after the initial balance date
+      if (initialDate && date <= initialDate) { beforeInitial++; continue; }
+
       const type = deposit > 0 ? 'income' : 'expense';
       const amount = deposit > 0 ? deposit : charge;
 
@@ -176,13 +205,18 @@ router.post('/import', upload.single('file'), async (req, res) => {
       if (existing.rows.length > 0) { duplicates++; continue; }
 
       await pool.query(
-        'INSERT INTO transactions (user_id, account_id, description, amount, type, category, date) VALUES (1, $1, $2, $3, $4, NULL, $5)',
-        [accountId, detail, amount, type, date]
+        'INSERT INTO transactions (user_id, account_id, import_id, description, amount, type, category, date) VALUES (1, $1, $2, $3, $4, $5, NULL, $6)',
+        [accountId, importId, detail, amount, type, date]
       );
       imported++;
     }
 
-    res.json({ imported, duplicates, skipped });
+    await pool.query(
+      'UPDATE imports SET imported = $1, duplicates = $2, skipped = $3, before_initial = $4 WHERE id = $5',
+      [imported, duplicates, skipped, beforeInitial, importId]
+    );
+
+    res.json({ imported, duplicates, skipped, before_initial: beforeInitial });
   } catch (err) {
     console.error('Error importing transactions:', err);
     res.status(500).json({ error: 'Import failed' });

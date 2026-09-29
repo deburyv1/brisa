@@ -48,6 +48,25 @@ async function fetchUncategorizedCount(accountId) {
   }
 }
 
+async function fetchImports(accountId) {
+  try {
+    const params = accountId ? `?account_id=${accountId}` : "";
+    const res = await fetch(`${API_BASE}/imports${params}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (e) {
+    console.warn("No se pudo cargar historial:", e);
+    return [];
+  }
+}
+
+function formatImportDate(dateStr) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("es-ES", { day: "numeric", month: "short" }) + " " +
+    d.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+}
+
 async function deleteTransaction(id) {
   const res = await fetch(`${API_BASE}/transactions/${id}`, { method: "DELETE" });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -61,6 +80,37 @@ function formatTxDate(dateStr) {
   if (!dateStr) return "";
   const d = new Date(dateStr.length <= 10 ? dateStr + "T12:00:00" : dateStr);
   return d.toLocaleDateString("es-ES", { day: "numeric", month: "short" });
+}
+
+async function uploadImport(section, file, force) {
+  const formData = new FormData();
+  formData.append("file", file);
+  try {
+    const res = await fetch(
+      `${API_BASE}/transactions/import?account_id=${activeAccountId}${force ? "&force=1" : ""}`,
+      { method: "POST", body: formData }
+    );
+    const result = await res.json();
+    if (res.status === 409 && result.duplicate_file) {
+      const when = formatImportDate(result.import.created_at);
+      const again = confirm(
+        `Este archivo ya se importó el ${when} (${result.import.imported} movimientos). ¿Subirlo de nuevo?`
+      );
+      if (again) await uploadImport(section, file, true);
+      return;
+    }
+    if (!res.ok) {
+      alert(result.error || "No se pudo importar.");
+      return;
+    }
+    alert(
+      `Importados: ${result.imported}\nDuplicados: ${result.duplicates}\nAnteriores al saldo inicial: ${result.before_initial}\nOmitidos: ${result.skipped}`
+    );
+    if (window.initFinance) window.initFinance();
+  } catch (err) {
+    console.error("Error importando:", err);
+    alert("No se pudo importar. Intenta de nuevo.");
+  }
 }
 
 function escapeHtml(str) {
@@ -112,16 +162,17 @@ export async function initFinance() {
   }
   const account = accounts.find(a => a.id == activeAccountId);
 
-  const [txs, uncategorized] = await Promise.all([
+  const [txs, uncategorized, imports] = await Promise.all([
     fetchTransactions(activeAccountId, showOnlyUncategorized),
     fetchUncategorizedCount(activeAccountId),
+    fetchImports(activeAccountId),
   ]);
   state.transactions = txs || [];
 
-  renderFinance(section, accounts, account, txs || [], uncategorized);
+  renderFinance(section, accounts, account, txs || [], uncategorized, imports || []);
 }
 
-function renderFinance(section, accounts, account, txs, uncategorized) {
+function renderFinance(section, accounts, account, txs, uncategorized, imports) {
   const income = txs
     .filter(t => t.type === "income")
     .reduce((s, t) => s + Number(t.amount), 0);
@@ -197,6 +248,20 @@ function renderFinance(section, accounts, account, txs, uncategorized) {
         </div>`;
       }).join("")}
     </div>
+    ${imports.length > 0 ? `
+      <div class="finance-history">
+        <div class="finance-history-title">Historial de importaciones</div>
+        ${imports.map(im => `
+          <div class="finance-history-item">
+            <div class="finance-history-info">
+              <div class="finance-history-file">${escapeHtml(im.filename || "cartola.xlsx")}</div>
+              <div class="finance-history-meta">${formatImportDate(im.created_at)} · ${im.imported} imp. · ${im.duplicates} dup.</div>
+            </div>
+            <button class="tx-btn tx-btn-delete" data-delete-import="${im.id}">Deshacer</button>
+          </div>
+        `).join("")}
+      </div>
+    ` : ""}
     <input type="file" id="import-file" accept=".xlsx,.xls" style="display:none">
   `;
 
@@ -215,24 +280,8 @@ function renderFinance(section, accounts, account, txs, uncategorized) {
   section.querySelector("#import-file")?.addEventListener("change", async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const formData = new FormData();
-    formData.append("file", file);
-    try {
-      const res = await fetch(`${API_BASE}/transactions/import?account_id=${activeAccountId}`, {
-        method: "POST",
-        body: formData,
-      });
-      const result = await res.json();
-      if (!res.ok) {
-        alert(result.error || "No se pudo importar.");
-        return;
-      }
-      alert(`Importados: ${result.imported}\nDuplicados: ${result.duplicates}\nOmitidos: ${result.skipped}`);
-      if (window.initFinance) window.initFinance();
-    } catch (err) {
-      console.error("Error importando:", err);
-      alert("No se pudo importar. Intenta de nuevo.");
-    }
+    await uploadImport(section, file, false);
+    e.target.value = "";
   });
 
   section.querySelector("#toggle-uncategorized")?.addEventListener("click", () => {
@@ -260,6 +309,19 @@ function renderFinance(section, accounts, account, txs, uncategorized) {
         if (window.initFinance) window.initFinance();
       } catch (err) {
         console.error("Error categorizando:", err);
+      }
+    });
+  });
+
+  section.querySelectorAll("[data-delete-import]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      if (!confirm("¿Deshacer esta importación? Se eliminarán sus movimientos.")) return;
+      try {
+        await fetch(`${API_BASE}/imports/${btn.dataset.deleteImport}`, { method: "DELETE" });
+        if (window.initFinance) window.initFinance();
+      } catch (err) {
+        console.error("Error deshaciendo importación:", err);
+        alert("No se pudo deshacer. Intenta de nuevo.");
       }
     });
   });
