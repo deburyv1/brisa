@@ -9,7 +9,7 @@ const OUTPUT_SIZE = 256;
 export function initAvatar() {
   const profile = document.querySelector(".profile");
   if (profile) {
-    applyStored(profile);
+    applyAvatar(profile);
     profile.style.cursor = "pointer";
     profile.title = "Cambiar foto de perfil";
     profile.addEventListener("click", () => openAvatarModal());
@@ -122,7 +122,7 @@ export function initAvatar() {
   preview.addEventListener("pointerup", () => { dragging = false; });
   preview.addEventListener("pointercancel", () => { dragging = false; });
 
-  saveBtn?.addEventListener("click", () => {
+  saveBtn?.addEventListener("click", async () => {
     if (!img) return;
     const scale = baseScale * zoom;
     const canvas = document.createElement("canvas");
@@ -136,42 +136,90 @@ export function initAvatar() {
       PREVIEW_SIZE / scale, PREVIEW_SIZE / scale,
       0, 0, OUTPUT_SIZE, OUTPUT_SIZE
     );
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
     try {
-      localStorage.setItem(STORAGE_KEY, canvas.toDataURL("image/jpeg", 0.85));
+      const res = await fetch("/api/settings/avatar", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ data: dataUrl }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    } catch (e) {
+      console.error("No se pudo guardar en el servidor, uso local:", e);
+    }
+    try {
+      localStorage.setItem(STORAGE_KEY, dataUrl);
     } catch (e) {
       console.error("No se pudo guardar la foto:", e);
-      alert("No se pudo guardar la foto en este navegador.");
-      return;
     }
     const profileEl = document.querySelector(".profile");
-    if (profileEl) applyStored(profileEl);
+    if (profileEl) applyAvatar(profileEl);
     close();
   });
 
-  removeBtn?.addEventListener("click", () => {
+  removeBtn?.addEventListener("click", async () => {
+    try {
+      await fetch("/api/settings/avatar", { method: "DELETE" });
+    } catch (e) {
+      console.error("Error borrando foto del servidor:", e);
+    }
     localStorage.removeItem(STORAGE_KEY);
     const profileEl = document.querySelector(".profile");
-    if (profileEl) applyStored(profileEl);
+    if (profileEl) applyAvatar(profileEl);
     close();
   });
 
   window.openAvatarModal = open;
 }
 
-function applyStored(profileEl) {
-  let data = null;
+async function applyAvatar(profileEl) {
+  // Fast path: local cache
+  let cached = null;
   try {
-    data = localStorage.getItem(STORAGE_KEY);
+    cached = localStorage.getItem(STORAGE_KEY);
   } catch {
-    data = null;
+    cached = null;
   }
-  if (data) {
-    profileEl.style.backgroundImage = `url(${data})`;
-    profileEl.style.backgroundSize = "cover";
-    profileEl.style.backgroundPosition = "center";
-    profileEl.textContent = "";
-  } else {
-    profileEl.style.backgroundImage = "";
-    if (!profileEl.textContent) profileEl.textContent = "L";
+  if (cached) {
+    paintAvatar(profileEl, cached);
   }
+  // Source of truth: server
+  try {
+    const res = await fetch("/api/settings/avatar");
+    if (res.ok) {
+      const blob = await res.blob();
+      const dataUrl = await blobToDataUrl(blob);
+      try {
+        localStorage.setItem(STORAGE_KEY, dataUrl);
+      } catch {
+        // Cache full: server copy is enough
+      }
+      paintAvatar(profileEl, dataUrl);
+      return;
+    }
+    if (res.status === 404 && !cached) clearAvatar(profileEl);
+  } catch {
+    if (!cached) clearAvatar(profileEl);
+  }
+}
+
+function paintAvatar(profileEl, dataUrl) {
+  profileEl.style.backgroundImage = `url(${dataUrl})`;
+  profileEl.style.backgroundSize = "cover";
+  profileEl.style.backgroundPosition = "center";
+  profileEl.textContent = "";
+}
+
+function clearAvatar(profileEl) {
+  profileEl.style.backgroundImage = "";
+  if (!profileEl.textContent) profileEl.textContent = "L";
+}
+
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
 }

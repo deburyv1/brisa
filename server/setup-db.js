@@ -146,6 +146,12 @@ try {
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`);
 
+  await pool.query(`CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value BYTEA,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
+
   await pool.query(`CREATE TABLE IF NOT EXISTS spotify_tokens (
     user_id INTEGER PRIMARY KEY,
     access_token VARCHAR(500) NOT NULL,
