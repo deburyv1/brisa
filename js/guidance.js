@@ -16,10 +16,18 @@ export function checkGuidance() {
   });
 
   if (uncategorized.length > 0) {
-    reminders.push(`${uncategorized.length} transacción(es) sin categorizar`);
+    reminders.push(
+      uncategorized.length === 1
+        ? "1 transacción sin categorizar"
+        : `${uncategorized.length} transacciones sin categorizar`
+    );
   }
   if (overdue.length > 0) {
-    reminders.push(`${overdue.length} tarea(s) vencida(s) - ¡Reprogramar!`);
+    reminders.push(
+      overdue.length === 1
+        ? "1 tarea vencida — ¡reprogramar!"
+        : `${overdue.length} tareas vencidas — ¡a reprogramar!`
+    );
   }
 
   return reminders;

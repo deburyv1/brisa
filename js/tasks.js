@@ -63,7 +63,7 @@ export async function initTasks() {
     section.innerHTML = `
       <div class="tasks-empty">
         <div class="tasks-empty-icon">⚠️</div>
-        <div class="tasks-empty-text">No se pudo conectar con el servidor.<br>Revisá que el backend esté corriendo e intentá de nuevo.</div>
+        <div class="tasks-empty-text">No se pudo conectar con el servidor.<br>Revisa que el backend esté corriendo e intenta de nuevo.</div>
         <button class="tasks-empty-btn" id="retry-tasks">Reintentar</button>
       </div>
     `;
@@ -77,7 +77,7 @@ export async function initTasks() {
     section.innerHTML = `
       <div class="tasks-empty">
         <div class="tasks-empty-icon">✅</div>
-        <div class="tasks-empty-text">No tenés tareas pendientes.<br>Creá la primera para empezar.</div>
+        <div class="tasks-empty-text">No tienes tareas pendientes.<br>Crea la primera para empezar.</div>
         <button class="tasks-empty-btn" id="add-first-task">+ Nueva tarea</button>
       </div>
     `;

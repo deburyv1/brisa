@@ -88,7 +88,7 @@ export function initModal() {
       if (window.initBirthdays) window.initBirthdays();
     } catch (err) {
       console.error("Error guardando persona:", err);
-      alert("No se pudo guardar. Intentá de nuevo.");
+      alert("No se pudo guardar. Intenta de nuevo.");
     }
   });
 

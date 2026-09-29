@@ -89,7 +89,7 @@ export function initJournalModal() {
       if (window.initJournal) window.initJournal();
     } catch (err) {
       console.error("Error guardando nota:", err);
-      alert("No se pudo guardar. Intentá de nuevo.");
+      alert("No se pudo guardar. Intenta de nuevo.");
     }
   });
 

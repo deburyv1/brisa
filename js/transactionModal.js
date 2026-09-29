@@ -78,7 +78,7 @@ export function initTransactionModal() {
 
     if (!data.description || !data.description.trim()) return;
     if (!data.amount || Number(data.amount) <= 0) {
-      alert("Ingresá un monto mayor a 0.");
+      alert("Ingresa un monto mayor a 0.");
       return;
     }
 
@@ -94,14 +94,14 @@ export function initTransactionModal() {
       );
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        alert(err.error || "No se pudo guardar. Intentá de nuevo.");
+        alert(err.error || "No se pudo guardar. Intenta de nuevo.");
         return;
       }
       close();
       if (window.initFinance) window.initFinance();
     } catch (err) {
       console.error("Error guardando movimiento:", err);
-      alert("No se pudo guardar. Intentá de nuevo.");
+      alert("No se pudo guardar. Intenta de nuevo.");
     }
   });
 

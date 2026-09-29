@@ -80,7 +80,7 @@ export async function initFinance() {
     section.innerHTML = `
       <div class="finance-empty">
         <div class="finance-empty-icon">⚠️</div>
-        <div class="finance-empty-text">No se pudo conectar con el servidor.<br>Revisá que el backend esté corriendo e intentá de nuevo.</div>
+        <div class="finance-empty-text">No se pudo conectar con el servidor.<br>Revisa que el backend esté corriendo e intenta de nuevo.</div>
         <button class="finance-empty-btn" id="retry-finance">Reintentar</button>
       </div>
     `;
@@ -97,7 +97,7 @@ export async function initFinance() {
       <div class="finance-empty">
         <div class="finance-empty-icon">🏦</div>
         <div class="finance-empty-title">Empecemos con tu cuenta</div>
-        <div class="finance-empty-text">Creá tu cuenta corriente con su saldo inicial<br>y después importá la cartola del banco.</div>
+        <div class="finance-empty-text">Crea tu cuenta corriente con su saldo inicial<br>y después importa la cartola del banco.</div>
         <button class="finance-empty-btn" id="add-first-account">+ Nueva cuenta</button>
       </div>
     `;
@@ -231,7 +231,7 @@ function renderFinance(section, accounts, account, txs, uncategorized) {
       if (window.initFinance) window.initFinance();
     } catch (err) {
       console.error("Error importando:", err);
-      alert("No se pudo importar. Intentá de nuevo.");
+      alert("No se pudo importar. Intenta de nuevo.");
     }
   });
 

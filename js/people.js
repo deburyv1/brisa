@@ -54,7 +54,7 @@ export async function initBirthdays() {
     container.innerHTML = `
       <div class="birthdays-empty">
         <div class="birthdays-empty-icon">⚠️</div>
-        <div class="birthdays-empty-text">No se pudo conectar con el servidor.<br>Revisá que el backend esté corriendo e intentá de nuevo.</div>
+        <div class="birthdays-empty-text">No se pudo conectar con el servidor.<br>Revisa que el backend esté corriendo e intenta de nuevo.</div>
         <button class="birthdays-empty-btn" id="retry-birthdays">Reintentar</button>
       </div>
     `;
@@ -68,7 +68,7 @@ export async function initBirthdays() {
     container.innerHTML = `
       <div class="birthdays-empty">
         <div class="birthdays-empty-icon">🎂</div>
-        <div class="birthdays-empty-text">Todavía no tenés personas guardadas.<br>Creá la primera para ver sus cumpleaños.</div>
+        <div class="birthdays-empty-text">Todavía no tienes personas guardadas.<br>Crea la primera para ver sus cumpleaños.</div>
         <button class="birthdays-empty-btn" id="create-first-person">+ Crear primera persona</button>
       </div>
     `;

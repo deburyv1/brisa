@@ -97,7 +97,7 @@ export function initTaskModal() {
       if (window.initTasks) window.initTasks();
     } catch (err) {
       console.error("Error guardando tarea:", err);
-      alert("No se pudo guardar. Intentá de nuevo.");
+      alert("No se pudo guardar. Intenta de nuevo.");
     }
   });
 

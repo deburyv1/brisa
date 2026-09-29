@@ -28,7 +28,7 @@ export async function initRelationships() {
     section.innerHTML = `
       <div class="relationships-empty">
         <div class="relationships-empty-icon">⚠️</div>
-        <div class="relationships-empty-text">No se pudo conectar con el servidor.<br>Revisá que el backend esté corriendo e intentá de nuevo.</div>
+        <div class="relationships-empty-text">No se pudo conectar con el servidor.<br>Revisa que el backend esté corriendo e intenta de nuevo.</div>
         <button class="relationships-empty-btn" id="retry-people">Reintentar</button>
       </div>
     `;

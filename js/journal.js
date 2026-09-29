@@ -45,7 +45,7 @@ export async function initJournal() {
     section.innerHTML = `
       <div class="journal-empty">
         <div class="journal-empty-icon">⚠️</div>
-        <div class="journal-empty-text">No se pudo conectar con el servidor.<br>Revisá que el backend esté corriendo e intentá de nuevo.</div>
+        <div class="journal-empty-text">No se pudo conectar con el servidor.<br>Revisa que el backend esté corriendo e intenta de nuevo.</div>
         <button class="journal-empty-btn" id="retry-notes">Reintentar</button>
       </div>
     `;
@@ -59,7 +59,7 @@ export async function initJournal() {
     section.innerHTML = `
       <div class="journal-empty">
         <div class="journal-empty-icon">📝</div>
-        <div class="journal-empty-text">Todavía no tenés notas.<br>Escribí la primera para empezar.</div>
+        <div class="journal-empty-text">Todavía no tienes notas.<br>Escribe la primera para empezar.</div>
         <button class="journal-empty-btn" id="add-first-note">+ Nueva nota</button>
       </div>
     `;

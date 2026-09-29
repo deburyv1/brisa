@@ -61,14 +61,14 @@ export function initAccountModal() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        alert(err.error || "No se pudo guardar. Intentá de nuevo.");
+        alert(err.error || "No se pudo guardar. Intenta de nuevo.");
         return;
       }
       close();
       if (window.initFinance) window.initFinance();
     } catch (err) {
       console.error("Error guardando cuenta:", err);
-      alert("No se pudo guardar. Intentá de nuevo.");
+      alert("No se pudo guardar. Intenta de nuevo.");
     }
   });
 
