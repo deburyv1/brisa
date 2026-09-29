@@ -11,6 +11,10 @@ import transactionsRouter from './routes/transactions.js';
 import accountsRouter from './routes/accounts.js';
 import importsRouter from './routes/imports.js';
 import weatherRouter from './routes/weather.js';
+import entriesRouter from './routes/entries.js';
+import eventsRouter from './routes/events.js';
+import ideasRouter from './routes/ideas.js';
+import remindersRouter from './routes/reminders.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -31,6 +35,10 @@ app.use('/api/transactions', transactionsRouter);
 app.use('/api/accounts', accountsRouter);
 app.use('/api/imports', importsRouter);
 app.use('/api/weather', weatherRouter);
+app.use('/api/entries', entriesRouter);
+app.use('/api/events', eventsRouter);
+app.use('/api/ideas', ideasRouter);
+app.use('/api/reminders', remindersRouter);
 
 // Serve static files (frontend)
 // Docker: server/public | Local dev: repo root

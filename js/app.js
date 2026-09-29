@@ -12,6 +12,9 @@ import { initRelationships } from "./relationships.js";
 import { initToday } from "./today.js";
 import { initTasks } from "./tasks.js";
 import { initTaskModal } from "./taskModal.js";
+import { initCapture, loadEntryIntoCapture } from "./capture.js";
+import { initInbox } from "./inbox.js";
+import { initNext, renderNext } from "./nextAction.js";
 import { initJournal } from "./journal.js";
 import { initJournalModal } from "./journalModal.js";
 import { initFinance } from "./finance.js";
@@ -24,9 +27,13 @@ window.initJournal = initJournal;
 window.initFinance = initFinance;
 window.initRelationships = initRelationships;
 window.initBirthdays = initBirthdays;
+window.initInbox = initInbox;
+window.initToday = initToday;
+window.loadEntryIntoCapture = loadEntryIntoCapture;
 
 const NAV_LABELS = {
   home: "Inicio",
+  inbox: "Inbox",
   tasks: "Acciones",
   journal: "Notas",
   finance: "Finanzas",
@@ -34,7 +41,8 @@ const NAV_LABELS = {
 };
 
 const NAV_SECTIONS = {
-  home: ["#welcome-section", "#today-section", "#birthdays-section"],
+  home: ["#welcome-section", "#capture-section", "#next-section", "#today-section", "#birthdays-section"],
+  inbox: ["#inbox-section"],
   tasks: ["#tasks-section"],
   journal: ["#journal-section"],
   finance: ["#finance-section"],
@@ -43,6 +51,8 @@ const NAV_SECTIONS = {
 
 const ALL_SECTIONS = [
   "#welcome-section",
+  "#capture-section",
+  "#next-section",
   "#today-section",
   "#birthdays-section",
   "#tasks-section",
@@ -84,6 +94,8 @@ async function main() {
   initJournalModal();
   initTransactionModal();
   initAccountModal();
+  initCapture();
+  initNext();
   initPlayer();
   initNavigation();
 
@@ -94,8 +106,10 @@ async function main() {
     initFinance(),
     initRelationships(),
     initBirthdays(),
+    initInbox(),
   ]);
   initToday();
+  renderNext();
   initWeather();
   renderGuidanceBanner();
 }

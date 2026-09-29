@@ -25,6 +25,7 @@
     <div class="nav-title">TU ESPACIO</div>
     <nav>
       <button class="nav active" data-nav="home"><img src="brisa-icons/iexplore_32536.ico" class="nav-img" alt="Inicio"> Inicio</button>
+      <button class="nav" data-nav="inbox"><img src="brisa-icons/vista_netcenter.ico" class="nav-img" alt="Inbox"> Inbox <i style="display:none">0</i></button>
       <button class="nav" data-nav="tasks"><img src="brisa-icons/DxpTaskSync_50.ico" class="nav-img" alt="Acciones"> Acciones <i>4</i></button>
       <button class="nav" data-nav="journal"><img src="brisa-icons/vista_sticky_notes.ico" class="nav-img" alt="Notas"> Notas <i>0</i></button>
       <button class="nav" data-nav="finance"><img src="brisa-icons/budget.ico" class="nav-img" alt="Finanzas"> Finanzas</button>
@@ -75,6 +76,12 @@
       </div>
     </section>
 
+    <!-- Capture Section -->
+    <section class="capture aero-panel" id="capture-section"></section>
+
+    <!-- Next Action Section -->
+    <section class="next" id="next-section"></section>
+
     <!-- Today Section -->
     <section class="today" id="today-section"></section>
 
@@ -83,6 +90,9 @@
 
     <!-- Tasks Section -->
     <section class="tasks" id="tasks-section" style="display:none;"></section>
+
+    <!-- Inbox Section -->
+    <section class="inbox" id="inbox-section" style="display:none;"></section>
 
     <!-- Journal Section -->
     <section class="journal" id="journal-section" style="display:none;"></section>
@@ -129,6 +139,18 @@
           <option value="medium">Media</option>
           <option value="high">Alta</option>
           <option value="low">Baja</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Duración estimada<span class="optional">(opcional)</span></label>
+        <select name="estimated_minutes">
+          <option value="">Sin estimar</option>
+          <option value="5">5 min</option>
+          <option value="10">10 min</option>
+          <option value="15">15 min</option>
+          <option value="30">30 min</option>
+          <option value="45">45 min</option>
+          <option value="60">60 min</option>
         </select>
       </div>
       <div class="modal-actions">

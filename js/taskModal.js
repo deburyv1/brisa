@@ -38,6 +38,7 @@ export function initTaskModal() {
           form.scheduled_datetime.value = toLocalInput(task.scheduled_datetime);
           form.due_datetime.value = toLocalInput(task.due_datetime);
           form.priority.value = task.priority || "medium";
+          form.estimated_minutes.value = task.estimated_minutes ?? "";
           cleanSnapshot = snapshotForm(form);
         });
     } else {

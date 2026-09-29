@@ -8,6 +8,9 @@ export function checkGuidance() {
   const reminders = [];
   const tasks = state.tasks || [];
   const transactions = state.transactions || [];
+  const entries = state.entries || [];
+
+  const pendingInbox = entries.filter(e => e.status === "inbox");
 
   const uncategorized = transactions.filter(t => !t.category);
   const overdue = tasks.filter(t => {
@@ -15,6 +18,13 @@ export function checkGuidance() {
     return new Date(t.due_datetime) < new Date();
   });
 
+  if (pendingInbox.length > 0) {
+    reminders.push(
+      pendingInbox.length === 1
+        ? "1 cosa sin procesar en Inbox"
+        : `${pendingInbox.length} cosas sin procesar en Inbox`
+    );
+  }
   if (uncategorized.length > 0) {
     reminders.push(
       uncategorized.length === 1

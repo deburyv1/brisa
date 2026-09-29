@@ -1,0 +1,154 @@
+/* ============================================
+   BRISA - Capture Bar
+   ============================================ */
+.capture {
+  position: relative;
+  margin-top: 11px;
+  border-radius: var(--radius-panel);
+  padding: 16px 20px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, .08));
+  backdrop-filter: blur(25px) saturate(140%);
+  -webkit-backdrop-filter: blur(25px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 10px 30px rgba(0, 58, 94, .08);
+}
+
+.capture-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.capture-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.capture-input {
+  flex: 1;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-family: inherit;
+  color: #fff;
+  background: rgba(255, 255, 255, .08);
+  outline: none;
+  transition: var(--transition-speed);
+  min-width: 0;
+}
+
+.capture-input::placeholder {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.capture-input:focus {
+  border-color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, .12);
+}
+
+.capture-btn {
+  border: 0;
+  border-radius: 12px;
+  padding: 10px 18px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(145deg, #27c9eb, #087fb0);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: var(--transition-speed);
+}
+
+.capture-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 120, 170, .3);
+}
+
+.capture-suggest {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.capture-suggest-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.capture-suggest-reason {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.capture-types {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.capture-type {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 99px;
+  padding: 5px 12px;
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: var(--transition-speed);
+}
+
+.capture-type:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+.capture-type.active {
+  color: #fff;
+  background: linear-gradient(180deg, #00c6ff, #0072ff);
+  border-color: transparent;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.8);
+}
+
+.capture-when {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.capture-when-btn {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 99px;
+  padding: 5px 12px;
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+}
+
+.capture-when-btn.selected {
+  color: #fff;
+  background: linear-gradient(180deg, #00c6ff, #0072ff);
+  border-color: transparent;
+}
+
+.capture-datetime {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 10px;
+  padding: 5px 10px;
+  font-size: 10px;
+  font-family: inherit;
+  color: #fff;
+  background: rgba(255, 255, 255, .08);
+  outline: none;
+  color-scheme: dark;
+}
+
+.capture-actions {
+  display: flex;
+  gap: 8px;
+}

@@ -28,14 +28,14 @@ router.get('/:id', async (req, res) => {
 
 // POST /api/tasks
 router.post('/', async (req, res) => {
-  const { title, description, priority, scheduled_datetime, due_datetime, first_step } = req.body;
+  const { title, description, priority, scheduled_datetime, due_datetime, first_step, estimated_minutes } = req.body;
   if (!title || !title.trim()) {
     return res.status(400).json({ error: 'Title is required' });
   }
   try {
     const result = await pool.query(
-      'INSERT INTO tasks (user_id, title, description, priority, scheduled_datetime, due_datetime, first_step) VALUES (1, $1, $2, $3, $4, $5, $6) RETURNING *',
-      [title.trim(), description || null, priority || 'medium', scheduled_datetime || null, due_datetime || null, first_step || null]
+      'INSERT INTO tasks (user_id, title, description, priority, scheduled_datetime, due_datetime, first_step, estimated_minutes) VALUES (1, $1, $2, $3, $4, $5, $6, $7) RETURNING *',
+      [title.trim(), description || null, priority || 'medium', scheduled_datetime || null, due_datetime || null, first_step || null, estimated_minutes || null]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -44,14 +44,31 @@ router.post('/', async (req, res) => {
   }
 });
 
-// PUT /api/tasks/:id
+// PUT /api/tasks/:id — partial merge: only provided keys are updated
 router.put('/:id', async (req, res) => {
-  const { title, description, priority, scheduled_datetime, due_datetime, is_completed, first_step } = req.body;
+  const allowed = ['title', 'description', 'priority', 'scheduled_datetime', 'due_datetime', 'is_completed', 'first_step', 'estimated_minutes'];
+  const sets = [];
+  const values = [];
+  for (const key of allowed) {
+    if (!(key in req.body)) continue;
+    let value = req.body[key];
+    if (value === '') value = null;
+    if (key === 'title' && value) value = String(value).trim();
+    if (key === 'is_completed') value = value ? true : false;
+    if (key === 'priority' && !value) value = 'medium';
+    values.push(value);
+    sets.push(`${key} = $${values.length}`);
+  }
+  if (sets.length === 0) {
+    return res.status(400).json({ error: 'Nothing to update' });
+  }
   try {
+    values.push(req.params.id);
     const result = await pool.query(
-      'UPDATE tasks SET title = $1, description = $2, priority = $3, scheduled_datetime = $4, due_datetime = $5, is_completed = $6, first_step = $7 WHERE id = $8 RETURNING *',
-      [title || null, description || null, priority || 'medium', scheduled_datetime || null, due_datetime || null, is_completed ? true : false, first_step || null, req.params.id]
+      `UPDATE tasks SET ${sets.join(', ')} WHERE id = $${values.length} RETURNING *`,
+      values
     );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Task not found' });
     res.json(result.rows[0]);
   } catch (err) {
     console.error('Error updating task:', err);

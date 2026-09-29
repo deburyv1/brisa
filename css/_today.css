@@ -118,6 +118,26 @@
 .today-task.free { background: #d5d1ec; }
 .today-task.sleep { background: #bbcadd; }
 
+/* Event marker: diamond shape, distinct from task dots */
+.today-event {
+  position: absolute;
+  top: 50%;
+  width: 11px;
+  height: 11px;
+  transform: translate(-50%, -50%) rotate(45deg);
+  background: #f4c32e;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  z-index: 2;
+  cursor: pointer;
+  transition: var(--transition-speed);
+  box-shadow: 0 0 6px rgba(244, 195, 46, 0.6);
+}
+
+.today-event:hover {
+  transform: translate(-50%, -50%) rotate(45deg) scale(1.3);
+  z-index: 4;
+}
+
 /* Time labels */
 .today-labels {
   display: flex;
@@ -158,3 +178,4 @@
 .today-legend-dot.life { background: #a3dec8; }
 .today-legend-dot.free { background: #d5d1ec; }
 .today-legend-dot.sleep { background: #bbcadd; }
+.today-legend-dot.event { background: #f4c32e; }

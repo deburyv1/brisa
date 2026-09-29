@@ -10,6 +10,9 @@ export const state = {
   habits: [],
   journal: [],
   reminders: [],
+  entries: [],
+  events: [],
+  ideas: [],
   ui: {
     activeNav: "home",
     sidebarOpen: true

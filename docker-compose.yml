@@ -31,6 +31,7 @@ services:
       - ./server/routes:/app/server/routes
       - ./server/index.js:/app/server/index.js
       - ./server/db.js:/app/server/db.js
+      - ./server/setup-db.js:/app/server/setup-db.js
 
 volumes:
   brisa-data:

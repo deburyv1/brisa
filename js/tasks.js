@@ -108,6 +108,7 @@ function renderTasks(section, tasks) {
             <div class="task-meta">
               ${t.scheduled_datetime ? `📅 ${formatDateTime(t.scheduled_datetime)}` : ""}
               ${t.due_datetime ? ` · ⏰ ${formatDateTime(t.due_datetime)}` : ""}
+              ${t.estimated_minutes ? ` · ~${t.estimated_minutes} min` : ""}
               ${t.priority ? ` · ${t.priority}` : ""}
             </div>
           </div>

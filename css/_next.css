@@ -1,0 +1,120 @@
+/* ============================================
+   BRISA - Next Action
+   ============================================ */
+.next {
+  position: relative;
+  margin-top: 11px;
+  border-radius: var(--radius-panel);
+  padding: 18px 22px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, .08));
+  backdrop-filter: blur(25px) saturate(140%);
+  -webkit-backdrop-filter: blur(25px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 10px 30px rgba(0, 58, 94, .08);
+}
+
+.next-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.next-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.next-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.next-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.next-detail {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.next-meta {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.next-start {
+  border: 0;
+  border-radius: 12px;
+  padding: 10px 22px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(145deg, #27c9eb, #087fb0);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: var(--transition-speed);
+  flex-shrink: 0;
+}
+
+.next-start:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 120, 170, .3);
+}
+
+.next-also-label {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 12px 0 6px;
+}
+
+.next-also {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.next-alt {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 99px;
+  padding: 6px 14px;
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: var(--transition-speed);
+}
+
+.next-alt:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+.next-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  text-align: center;
+}
+
+.next-empty-icon {
+  font-size: 26px;
+}
+
+.next-empty-text {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.75);
+  line-height: 1.5;
+}

@@ -100,6 +100,51 @@ try {
   await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS account_id INTEGER REFERENCES accounts(id)`);
   await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS import_id INTEGER REFERENCES imports(id)`);
 
+  await pool.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS estimated_minutes INTEGER`);
+
+  await pool.query(`CREATE TABLE IF NOT EXISTS entries (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER DEFAULT 1,
+    raw_text TEXT NOT NULL,
+    suggested_type VARCHAR(20),
+    status VARCHAR(20) DEFAULT 'inbox',
+    target_type VARCHAR(20),
+    target_id INTEGER,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
+
+  await pool.query(`CREATE TABLE IF NOT EXISTS events (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER DEFAULT 1,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    start TIMESTAMP NOT NULL,
+    "end" TIMESTAMP,
+    location VARCHAR(255),
+    entry_id INTEGER REFERENCES entries(id) ON DELETE SET NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
+
+  await pool.query(`CREATE TABLE IF NOT EXISTS ideas (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER DEFAULT 1,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    entry_id INTEGER REFERENCES entries(id) ON DELETE SET NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
+
+  await pool.query(`CREATE TABLE IF NOT EXISTS reminders (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER DEFAULT 1,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    remind_at TIMESTAMP,
+    done BOOLEAN DEFAULT FALSE,
+    entry_id INTEGER REFERENCES entries(id) ON DELETE SET NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
+
   await pool.query(`CREATE TABLE IF NOT EXISTS spotify_tokens (
     user_id INTEGER PRIMARY KEY,
     access_token VARCHAR(500) NOT NULL,
