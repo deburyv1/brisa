@@ -3,6 +3,7 @@
    Handles task creation and editing
    ============================================ */
 const API_BASE = "/api";
+import { snapshotForm, isDirty, confirmDiscard } from "./modalGuard.js";
 
 function toLocalInput(dt) {
   if (!dt) return "";
@@ -21,6 +22,7 @@ export function initTaskModal() {
   if (!overlay || !closeBtn || !cancelBtn || !form || !titleEl) return;
 
   let editingId = null;
+  let cleanSnapshot = null;
 
   function open(taskId = null) {
     editingId = taskId;
@@ -36,9 +38,11 @@ export function initTaskModal() {
           form.scheduled_datetime.value = toLocalInput(task.scheduled_datetime);
           form.due_datetime.value = toLocalInput(task.due_datetime);
           form.priority.value = task.priority || "medium";
+          cleanSnapshot = snapshotForm(form);
         });
     } else {
       titleEl.textContent = "Nueva tarea";
+      cleanSnapshot = snapshotForm(form);
     }
 
     overlay.classList.add("active");
@@ -52,15 +56,20 @@ export function initTaskModal() {
     editingId = null;
   }
 
-  closeBtn.addEventListener("click", close);
-  cancelBtn.addEventListener("click", close);
+  function tryClose() {
+    if (isDirty(form, cleanSnapshot) && !confirmDiscard()) return;
+    close();
+  }
+
+  closeBtn.addEventListener("click", tryClose);
+  cancelBtn.addEventListener("click", tryClose);
 
   overlay.addEventListener("click", (e) => {
-    if (e.target === overlay) close();
+    if (e.target === overlay) tryClose();
   });
 
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && overlay.classList.contains("active")) close();
+    if (e.key === "Escape" && overlay.classList.contains("active")) tryClose();
   });
 
   form.addEventListener("submit", async (e) => {

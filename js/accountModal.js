@@ -3,6 +3,7 @@
    Handles bank account creation and editing
    ============================================ */
 const API_BASE = "/api";
+import { snapshotForm, isDirty, confirmDiscard } from "./modalGuard.js";
 
 export function initAccountModal() {
   const overlay = document.querySelector("#account-modal");
@@ -13,9 +14,12 @@ export function initAccountModal() {
 
   if (!overlay || !closeBtn || !cancelBtn || !form || !titleEl) return;
 
+  let cleanSnapshot = null;
+
   function open() {
     titleEl.textContent = "Nueva cuenta";
     form.reset();
+    cleanSnapshot = snapshotForm(form);
     overlay.classList.add("active");
     const firstInput = form.querySelector("input[name='name']");
     if (firstInput) firstInput.focus();
@@ -26,15 +30,20 @@ export function initAccountModal() {
     form.reset();
   }
 
-  closeBtn.addEventListener("click", close);
-  cancelBtn.addEventListener("click", close);
+  function tryClose() {
+    if (isDirty(form, cleanSnapshot) && !confirmDiscard()) return;
+    close();
+  }
+
+  closeBtn.addEventListener("click", tryClose);
+  cancelBtn.addEventListener("click", tryClose);
 
   overlay.addEventListener("click", (e) => {
-    if (e.target === overlay) close();
+    if (e.target === overlay) tryClose();
   });
 
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && overlay.classList.contains("active")) close();
+    if (e.key === "Escape" && overlay.classList.contains("active")) tryClose();
   });
 
   form.addEventListener("submit", async (e) => {

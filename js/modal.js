@@ -3,6 +3,7 @@
    Handles person creation and editing
    ============================================ */
 const API_BASE = "/api";
+import { snapshotForm, isDirty, confirmDiscard } from "./modalGuard.js";
 
 export function initModal() {
   const overlay = document.querySelector("#person-modal");
@@ -14,6 +15,7 @@ export function initModal() {
   if (!overlay || !closeBtn || !cancelBtn || !form) return;
 
   let editingId = null;
+  let cleanSnapshot = null;
 
   function open(personId = null) {
     editingId = personId;
@@ -29,10 +31,12 @@ export function initModal() {
           form.rut.value = p.rut || "";
           form.relation.value = p.relation || "";
           form.birthday.value = p.birthday ? String(p.birthday).slice(0, 10) : "";
+          cleanSnapshot = snapshotForm(form);
         })
         .catch(e => console.error("Error cargando persona:", e));
     } else {
       if (titleEl) titleEl.textContent = "Nueva persona";
+      cleanSnapshot = snapshotForm(form);
     }
 
     overlay.classList.add("active");
@@ -46,15 +50,20 @@ export function initModal() {
     editingId = null;
   }
 
-  closeBtn.addEventListener("click", close);
-  cancelBtn.addEventListener("click", close);
+  function tryClose() {
+    if (isDirty(form, cleanSnapshot) && !confirmDiscard()) return;
+    close();
+  }
+
+  closeBtn.addEventListener("click", tryClose);
+  cancelBtn.addEventListener("click", tryClose);
 
   overlay.addEventListener("click", (e) => {
-    if (e.target === overlay) close();
+    if (e.target === overlay) tryClose();
   });
 
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && overlay.classList.contains("active")) close();
+    if (e.key === "Escape" && overlay.classList.contains("active")) tryClose();
   });
 
   form.addEventListener("submit", async (e) => {

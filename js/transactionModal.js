@@ -3,6 +3,7 @@
    Handles transaction creation and editing
    ============================================ */
 const API_BASE = "/api";
+import { snapshotForm, isDirty, confirmDiscard } from "./modalGuard.js";
 
 export function initTransactionModal() {
   const overlay = document.querySelector("#transaction-modal");
@@ -15,6 +16,7 @@ export function initTransactionModal() {
 
   let editingId = null;
   let currentAccountId = null;
+  let cleanSnapshot = null;
 
   function open(accountId = null, txId = null) {
     // open(accountId) or open(accountId, txId)
@@ -33,11 +35,13 @@ export function initTransactionModal() {
           form.type.value = tx.type || "expense";
           form.category.value = tx.category || "";
           form.date.value = tx.date ? String(tx.date).slice(0, 10) : "";
+          cleanSnapshot = snapshotForm(form);
         })
         .catch(e => console.error("Error cargando movimiento:", e));
     } else {
       titleEl.textContent = "Nuevo movimiento";
       form.date.value = new Date().toISOString().slice(0, 10);
+      cleanSnapshot = snapshotForm(form);
     }
 
     overlay.classList.add("active");
@@ -51,15 +55,20 @@ export function initTransactionModal() {
     editingId = null;
   }
 
-  closeBtn.addEventListener("click", close);
-  cancelBtn.addEventListener("click", close);
+  function tryClose() {
+    if (isDirty(form, cleanSnapshot) && !confirmDiscard()) return;
+    close();
+  }
+
+  closeBtn.addEventListener("click", tryClose);
+  cancelBtn.addEventListener("click", tryClose);
 
   overlay.addEventListener("click", (e) => {
-    if (e.target === overlay) close();
+    if (e.target === overlay) tryClose();
   });
 
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && overlay.classList.contains("active")) close();
+    if (e.key === "Escape" && overlay.classList.contains("active")) tryClose();
   });
 
   form.addEventListener("submit", async (e) => {

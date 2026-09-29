@@ -3,6 +3,7 @@
    Handles note creation and editing
    ============================================ */
 const API_BASE = "/api";
+import { snapshotForm, isDirty, confirmDiscard } from "./modalGuard.js";
 
 export function initJournalModal() {
   const overlay = document.querySelector("#journal-modal");
@@ -14,6 +15,7 @@ export function initJournalModal() {
   if (!overlay || !closeBtn || !cancelBtn || !form || !titleEl) return;
 
   let editingId = null;
+  let cleanSnapshot = null;
 
   function open(noteId = null) {
     editingId = noteId;
@@ -27,10 +29,12 @@ export function initJournalModal() {
           form.title.value = note.title || "";
           form.content.value = note.content || "";
           form.mood.value = note.mood || "";
+          cleanSnapshot = snapshotForm(form);
         })
         .catch(e => console.error("Error cargando nota:", e));
     } else {
       titleEl.textContent = "Nueva nota";
+      cleanSnapshot = snapshotForm(form);
     }
 
     overlay.classList.add("active");
@@ -44,15 +48,20 @@ export function initJournalModal() {
     editingId = null;
   }
 
-  closeBtn.addEventListener("click", close);
-  cancelBtn.addEventListener("click", close);
+  function tryClose() {
+    if (isDirty(form, cleanSnapshot) && !confirmDiscard()) return;
+    close();
+  }
+
+  closeBtn.addEventListener("click", tryClose);
+  cancelBtn.addEventListener("click", tryClose);
 
   overlay.addEventListener("click", (e) => {
-    if (e.target === overlay) close();
+    if (e.target === overlay) tryClose();
   });
 
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && overlay.classList.contains("active")) close();
+    if (e.key === "Escape" && overlay.classList.contains("active")) tryClose();
   });
 
   form.addEventListener("submit", async (e) => {
