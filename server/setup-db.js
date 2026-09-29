@@ -111,6 +111,23 @@ try {
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`);
 
+  // Backfill: link pre-history movements to a synthetic import record.
+  // Idempotent: only touches transactions with import_id IS NULL.
+  const orphans = await pool.query(
+    `SELECT account_id, COUNT(*)::int AS count FROM transactions WHERE import_id IS NULL GROUP BY account_id`
+  );
+  for (const row of orphans.rows) {
+    const imp = await pool.query(
+      `INSERT INTO imports (user_id, account_id, filename, file_hash, imported) VALUES (1, $1, 'carga anterior', 'backfill') RETURNING id`,
+      [row.account_id]
+    );
+    await pool.query(
+      `UPDATE transactions SET import_id = $1 WHERE import_id IS NULL AND account_id IS NOT DISTINCT FROM $2`,
+      [imp.rows[0].id, row.account_id]
+    );
+    await pool.query(`UPDATE imports SET imported = $1 WHERE id = $2`, [row.count, imp.rows[0].id]);
+  }
+
   console.log('All tables created successfully');
   await pool.end();
   process.exit(0);
