@@ -178,21 +178,24 @@ export async function initFinance() {
   const account = accounts.find(a => a.id == activeAccountId);
   activeAccount = account;
 
-  const [txs, uncategorized, imports] = await Promise.all([
-    fetchTransactions(activeAccountId, showOnlyUncategorized),
+  const [allTxs, uncategorized, imports] = await Promise.all([
+    fetchTransactions(activeAccountId, false),
     fetchUncategorizedCount(activeAccountId),
     fetchImports(activeAccountId),
   ]);
-  state.transactions = txs || [];
+  state.transactions = allTxs || [];
+  const txs = showOnlyUncategorized
+    ? (allTxs || []).filter(t => !t.category)
+    : (allTxs || []);
 
-  renderFinance(section, accounts, account, txs || [], uncategorized, imports || []);
+  renderFinance(section, accounts, account, allTxs || [], txs, uncategorized, imports || []);
 }
 
-function renderFinance(section, accounts, account, txs, uncategorized, imports) {
-  const income = txs
+function renderFinance(section, accounts, account, allTxs, txs, uncategorized, imports) {
+  const income = allTxs
     .filter(t => t.type === "income")
     .reduce((s, t) => s + Number(t.amount), 0);
-  const expense = txs
+  const expense = allTxs
     .filter(t => t.type !== "income")
     .reduce((s, t) => s + Number(t.amount), 0);
   const initial = Number(account.initial_balance) || 0;
