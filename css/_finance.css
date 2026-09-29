@@ -242,6 +242,98 @@
   border-style: dashed;
 }
 
+/* Month navigator */
+.finance-month {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.finance-month-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  text-transform: capitalize;
+  min-width: 140px;
+  text-align: center;
+}
+
+.finance-month-btn {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition: var(--transition-speed);
+}
+
+.finance-month-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Category breakdown */
+.finance-breakdown {
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, .12), rgba(255, 255, 255, .04));
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.finance-breakdown-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 10px;
+  text-transform: capitalize;
+}
+
+.breakdown-row {
+  display: grid;
+  grid-template-columns: 110px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+}
+
+.breakdown-cat {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.85);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.breakdown-bar {
+  height: 8px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.breakdown-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #00c6ff, #0072ff);
+}
+
+.breakdown-val {
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  min-width: 70px;
+}
+
 /* Uncategorized alert */
 .finance-alert {
   display: flex;

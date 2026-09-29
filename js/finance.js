@@ -16,11 +16,27 @@ function categoriesFor(type) {
 let activeAccountId = null;
 let activeAccount = null;
 let showOnlyUncategorized = false;
+let currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
 
 export function setUncategorizedOnly(v) {
   showOnlyUncategorized = !!v;
 }
 if (typeof window !== "undefined") window.setFinanceUncategorized = setUncategorizedOnly;
+
+function inMonth(dateStr, month) {
+  return typeof dateStr === "string" && dateStr.slice(0, 7) === month;
+}
+
+function monthLabel(month) {
+  const [y, m] = month.split("-").map(Number);
+  return new Date(y, m - 1, 1).toLocaleDateString("es-ES", { month: "long", year: "numeric" });
+}
+
+function shiftMonth(month, delta) {
+  const [y, m] = month.split("-").map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
 
 async function fetchAccounts() {
   try {
@@ -189,14 +205,13 @@ export async function initFinance() {
     fetchImports(activeAccountId),
   ]);
   state.transactions = allTxs || [];
-  const txs = showOnlyUncategorized
-    ? (allTxs || []).filter(t => !t.category)
-    : (allTxs || []);
+  const monthTxs = (allTxs || []).filter(t => inMonth(t.date, currentMonth));
+  const txs = showOnlyUncategorized ? monthTxs.filter(t => !t.category) : monthTxs;
 
-  renderFinance(section, accounts, account, allTxs || [], txs, uncategorized, imports || []);
+  renderFinance(section, accounts, account, allTxs || [], monthTxs, txs, uncategorized, imports || []);
 }
 
-function renderFinance(section, accounts, account, allTxs, txs, uncategorized, imports) {
+function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncategorized, imports) {
   const income = allTxs
     .filter(t => t.type === "income")
     .reduce((s, t) => s + Number(t.amount), 0);
@@ -225,6 +240,12 @@ function renderFinance(section, accounts, account, allTxs, txs, uncategorized, i
       <button class="finance-account add" id="add-account">+ Cuenta</button>
     </div>
 
+    <div class="finance-month">
+      <button class="finance-month-btn" id="month-prev">‹</button>
+      <div class="finance-month-label">${monthLabel(currentMonth)}</div>
+      <button class="finance-month-btn" id="month-next">›</button>
+    </div>
+
     <div class="finance-summary">
       <div class="finance-stat">
         <div class="finance-stat-label">Saldo inicial</div>
@@ -239,6 +260,29 @@ function renderFinance(section, accounts, account, allTxs, txs, uncategorized, i
         <div class="finance-stat-value">${formatMoney(balance)}</div>
       </div>
     </div>
+
+    ${(() => {
+      const byCat = {};
+      for (const t of monthTxs) {
+        if (t.type === "income") continue;
+        const cat = t.category || "Sin categoría";
+        byCat[cat] = (byCat[cat] || 0) + Number(t.amount);
+      }
+      const rows = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
+      const total = rows.reduce((s, [, v]) => s + v, 0);
+      if (rows.length === 0) return "";
+      return `
+      <div class="finance-breakdown">
+        <div class="finance-breakdown-title">Gastos de ${monthLabel(currentMonth)} · ${formatMoney(total)}</div>
+        ${rows.map(([cat, val]) => `
+          <div class="breakdown-row">
+            <div class="breakdown-cat">${escapeHtml(cat)}</div>
+            <div class="breakdown-bar"><span style="width:${total ? Math.round(val / total * 100) : 0}%"></span></div>
+            <div class="breakdown-val">${formatMoney(val)}</div>
+          </div>
+        `).join("")}
+      </div>`;
+    })()}
 
     ${uncategorized > 0 ? `
       <div class="finance-alert">
@@ -315,6 +359,16 @@ function renderFinance(section, accounts, account, allTxs, txs, uncategorized, i
 
   section.querySelector("#toggle-uncategorized")?.addEventListener("click", () => {
     showOnlyUncategorized = !showOnlyUncategorized;
+    if (window.initFinance) window.initFinance();
+  });
+
+  section.querySelector("#month-prev")?.addEventListener("click", () => {
+    currentMonth = shiftMonth(currentMonth, -1);
+    if (window.initFinance) window.initFinance();
+  });
+
+  section.querySelector("#month-next")?.addEventListener("click", () => {
+    currentMonth = shiftMonth(currentMonth, 1);
     if (window.initFinance) window.initFinance();
   });
 
