@@ -105,6 +105,7 @@ function renderSuggestion(section, entry, reason) {
       </div>
       <div class="capture-actions">
         <button class="modal-btn modal-btn-secondary" id="capture-discard">Descartar</button>
+        <button class="modal-btn modal-btn-secondary" id="capture-later">Después</button>
         <button class="modal-btn modal-btn-primary" id="capture-confirm">Guardar</button>
       </div>
     </div>
@@ -137,6 +138,12 @@ function renderSuggestion(section, entry, reason) {
   });
 
   section.querySelector("#capture-confirm")?.addEventListener("click", () => confirmEntry(section, entry));
+
+  section.querySelector("#capture-later")?.addEventListener("click", () => {
+    // Leave it in inbox on purpose: decide later, no pressure now
+    renderIdle(section);
+    if (window.initInbox) window.initInbox();
+  });
 }
 
 function dateFor(when, datetimeValue) {
