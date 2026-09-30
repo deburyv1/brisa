@@ -9,6 +9,9 @@
   display: flex;
   align-items: center;
   gap: 16px;
+  width: fit-content;
+  max-width: 100%;
+  min-width: min(420px, 100%);
   background: linear-gradient(135deg, rgba(255, 255, 255, var(--glass-a1)), rgba(255, 255, 255, var(--glass-a2)));
   backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
