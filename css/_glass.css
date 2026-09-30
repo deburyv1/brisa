@@ -13,9 +13,9 @@
 }
 
 .aero-panel {
-  background: linear-gradient(135deg, rgba(255, 255, 255, .40), rgba(255, 255, 255, .20));
-  backdrop-filter: blur(22px) saturate(140%);
-  -webkit-backdrop-filter: blur(22px) saturate(140%);
+  background: linear-gradient(135deg, rgba(255, 255, 255, var(--glass-a1)), rgba(255, 255, 255, var(--glass-a2)));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
 }
 
 .aero-panel:after,
@@ -30,20 +30,21 @@
 
 /* Reusable glass card */
 .glass {
-  background: linear-gradient(135deg, rgba(255, 255, 255, .36), rgba(255, 255, 255, .16));
-  backdrop-filter: blur(22px) saturate(140%);
-  -webkit-backdrop-filter: blur(22px) saturate(140%);
+  background: linear-gradient(135deg, rgba(255, 255, 255, var(--glass-a1)), rgba(255, 255, 255, var(--glass-a2)));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
   border-radius: var(--radius-card);
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), inset 0 -1px 2px rgba(0, 0, 0, 0.1);
 }
 
-/* Full glass (Windows 7 Aero max): deeper blur, brighter edges,
-   glossy top light and a slow ambient sheen sweep */
+/* Full glass (Windows 7 Aero max): brighter edges,
+   glossy top light and a slow ambient sheen sweep.
+   Blur/saturation come from the theme vars (sliders own them). */
 body.full-glass .aero-panel,
-body.full-glass .sidebar {
-  backdrop-filter: blur(32px) saturate(180%);
-  -webkit-backdrop-filter: blur(32px) saturate(180%);
+body.full-glass .sidebar,
+body.sheen .aero-panel,
+body.sheen .sidebar {
   border-color: rgba(255, 255, 255, 0.95);
   box-shadow: 0 22px 60px rgba(0, 58, 94, .28),
     inset 0 2px 3px rgba(255, 255, 255, 0.9),
@@ -52,7 +53,9 @@ body.full-glass .sidebar {
 }
 
 body.full-glass .aero-panel::before,
-body.full-glass .sidebar::before {
+body.full-glass .sidebar::before,
+body.sheen .aero-panel::before,
+body.sheen .sidebar::before {
   content: "";
   position: absolute;
   top: -60%;
@@ -75,4 +78,37 @@ body.full-glass .nav.active {
 @keyframes aero-sheen {
   0%, 55% { left: -60%; }
   85%, 100% { left: 130%; }
+}
+
+/* Theme panel rows */
+.theme-presets {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.theme-presets .modal-btn {
+  flex: 1;
+}
+
+.theme-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 2px 0 6px;
+}
+
+.theme-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+}
+
+.theme-check input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #27c9eb;
 }

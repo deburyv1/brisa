@@ -13,4 +13,9 @@
   --radius-panel: 25px;
   --radius-card: 18px;
   --transition-speed: .16s;
+  /* Glass theme (overridden live by Personalizar) */
+  --glass-blur: 24px;
+  --glass-sat: 140%;
+  --glass-a1: .40;
+  --glass-a2: .20;
 }

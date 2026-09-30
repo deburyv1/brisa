@@ -12,9 +12,9 @@
   padding: 22px 14px 14px;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, rgba(255, 255, 255, .40), rgba(255, 255, 255, .20));
-  backdrop-filter: blur(22px) saturate(140%);
-  -webkit-backdrop-filter: blur(22px) saturate(140%);
+  background: linear-gradient(135deg, rgba(255, 255, 255, var(--glass-a1)), rgba(255, 255, 255, var(--glass-a2)));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
 }
 
 .brand-row {
