@@ -3,6 +3,12 @@
    ============================================ */
 * { box-sizing: border-box; }
 
+html {
+  /* Reserve scrollbar space always: switching views must not
+     re-center the fixed background */
+  scrollbar-gutter: stable;
+}
+
 body {
   margin: 0;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
