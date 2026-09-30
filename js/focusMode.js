@@ -31,6 +31,10 @@ function setLink(childId, parentId, kind) {
   }
 }
 
+export function linkChildToParent(childId, parentId, kind) {
+  setLink(childId, parentId, kind);
+}
+
 function takeLink(childId) {
   const links = getLinks();
   const link = links[childId];
@@ -183,12 +187,16 @@ function renderStep(task, { presetMin = 10, note = null } = {}) {
     <p id="focus-message" class="focus-message"></p>
     <div class="modal-actions">
       <button type="button" class="modal-btn modal-btn-secondary" id="focus-later">Lo dejo acá</button>
+      <button type="button" class="modal-btn modal-btn-secondary" id="focus-stuck">Atascado</button>
       <button type="button" class="modal-btn modal-btn-primary" id="focus-done">Listo ✓</button>
     </div>
   `;
   setTimer(presetMin);
   bindTimer();
   body().querySelector("#focus-later")?.addEventListener("click", closeFocus);
+  body().querySelector("#focus-stuck")?.addEventListener("click", () => {
+    if (currentTask) renderFriction(currentTask);
+  });
   body().querySelector("#focus-done")?.addEventListener("click", completeTask);
 }
 

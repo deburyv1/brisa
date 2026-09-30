@@ -157,17 +157,17 @@ async function confirmEntry(section, entry) {
   const iso = at ? at.toISOString() : null;
   const text = entry.raw_text;
 
+  // Actions pass through the readiness gate first
+  if (selectedType === "action") {
+    renderReadiness(section, entry, text, iso);
+    return;
+  }
+
   try {
     let targetType = selectedType;
     let targetId = null;
 
-    if (selectedType === "action") {
-      const task = await postJson("/api/tasks", {
-        title: text,
-        scheduled_datetime: iso,
-      });
-      targetId = task.id;
-    } else if (selectedType === "event") {
+    if (selectedType === "event") {
       if (!iso) {
         alert("El evento necesita fecha y hora.");
         return;
@@ -198,8 +198,119 @@ async function confirmEntry(section, entry) {
     if (window.initInbox) window.initInbox();
     if (window.initTasks) window.initTasks();
     if (window.initToday) window.initToday();
+    if (window.renderNext) window.renderNext();
   } catch (err) {
     console.error("Error procesando entrada:", err);
+    alert("No se pudo guardar. Intenta de nuevo.");
+  }
+}
+
+async function finishEntry(section, entry, targetType, targetId) {
+  await fetch(`${API_BASE}/entries/${entry.id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status: "processed", target_type: targetType, target_id: targetId }),
+  });
+  renderIdle(section);
+  if (window.initInbox) window.initInbox();
+  if (window.initTasks) window.initTasks();
+  if (window.initToday) window.initToday();
+  if (window.renderNext) window.renderNext();
+}
+
+// Readiness gate: is this action ready to act on?
+function renderReadiness(section, entry, text, iso) {
+  section.querySelector(".capture-suggest").innerHTML = `
+    <div class="capture-suggest-text">💭 ${escapeHtml(text)}</div>
+    <div class="capture-suggest-reason">¿Está listo para actuar?</div>
+    <div class="capture-types">
+      <button class="capture-type" data-ready="yes">Sí, crearlo</button>
+      <button class="capture-type" data-ready="verify">Falta algo</button>
+      <button class="capture-type" data-ready="split">Es muy grande</button>
+    </div>
+    <div id="capture-ready-detail"></div>
+  `;
+
+  section.querySelectorAll("[data-ready]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      section.querySelectorAll("[data-ready]").forEach(b =>
+        b.classList.toggle("active", b === btn));
+      const detail = section.querySelector("#capture-ready-detail");
+      const kind = btn.dataset.ready;
+      if (kind === "yes") {
+        detail.innerHTML = "";
+        createReadyAction(section, entry, text, iso);
+      } else if (kind === "verify") {
+        detail.innerHTML = `
+          <div class="form-group" style="margin-top:8px">
+            <input type="text" id="capture-ready-input" placeholder="¿Qué hay que verificar?">
+          </div>
+          <div class="capture-actions">
+            <button class="modal-btn modal-btn-primary" id="capture-ready-save">Crear verificación</button>
+          </div>
+        `;
+        const input = detail.querySelector("#capture-ready-input");
+        input?.focus();
+        detail.querySelector("#capture-ready-save")?.addEventListener("click", () =>
+          createVerifyAction(section, entry, text, input?.value.trim()));
+      } else if (kind === "split") {
+        detail.innerHTML = `
+          <div class="form-group" style="margin-top:8px">
+            <input type="text" id="capture-ready-input" placeholder="¿Cuál sería el primer paso físico?">
+          </div>
+          <div class="capture-actions">
+            <button class="modal-btn modal-btn-primary" id="capture-ready-save">Crear con primer paso</button>
+          </div>
+        `;
+        const input = detail.querySelector("#capture-ready-input");
+        input?.focus();
+        detail.querySelector("#capture-ready-save")?.addEventListener("click", () =>
+          createSplitAction(section, entry, text, iso, input?.value.trim()));
+      }
+    });
+  });
+}
+
+async function createReadyAction(section, entry, text, iso) {
+  try {
+    const task = await postJson("/api/tasks", { title: text, scheduled_datetime: iso });
+    await finishEntry(section, entry, "action", task.id);
+  } catch (err) {
+    console.error("Error creando acción:", err);
+    alert("No se pudo guardar. Intenta de nuevo.");
+  }
+}
+
+async function createVerifyAction(section, entry, text, what) {
+  if (!what) return;
+  try {
+    // Parent action stays dateless: no pressure until resolved
+    const parent = await postJson("/api/tasks", { title: text });
+    const child = await postJson("/api/tasks", {
+      title: `Verificar: ${what}`,
+      description: `Para: ${text}\nObjetivo: comprobar el dato, no dominar todo el tema.`,
+      estimated_minutes: 10,
+    });
+    const { linkChildToParent } = await import("./focusMode.js");
+    linkChildToParent(child.id, parent.id, "verify");
+    await finishEntry(section, entry, "action", parent.id);
+  } catch (err) {
+    console.error("Error creando verificación:", err);
+    alert("No se pudo guardar. Intenta de nuevo.");
+  }
+}
+
+async function createSplitAction(section, entry, text, iso, firstStep) {
+  if (!firstStep) return;
+  try {
+    const task = await postJson("/api/tasks", {
+      title: text,
+      scheduled_datetime: iso,
+      first_step: firstStep,
+    });
+    await finishEntry(section, entry, "action", task.id);
+  } catch (err) {
+    console.error("Error creando acción:", err);
     alert("No se pudo guardar. Intenta de nuevo.");
   }
 }
