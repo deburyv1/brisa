@@ -9,6 +9,37 @@ html {
   scrollbar-gutter: stable;
 }
 
+/* App chrome is not selectable: prevents sticky selection
+   highlights when clicking pills, nav, badges and labels */
+body {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+input,
+textarea,
+select {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* Real content stays selectable (copyable) */
+.task-name,
+.tx-desc,
+.note-title,
+.note-preview,
+.person-name,
+.inbox-text,
+.capture-suggest-text,
+.next-title,
+.next-detail,
+.greeting-quote,
+.finance-history-file,
+.weather-label {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
 body {
   margin: 0;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
