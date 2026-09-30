@@ -20,6 +20,13 @@
   pointer-events: auto;
 }
 
+/* Live-preview variant: no backdrop blur so changes are visible */
+.modal-overlay.clear {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: transparent;
+}
+
 .modal {
   width: 90%;
   max-width: 420px;
