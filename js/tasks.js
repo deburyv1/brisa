@@ -140,7 +140,11 @@ function renderTasks(section, tasks) {
 
     item.querySelector('[data-action="toggle"]')?.addEventListener("click", async () => {
       const task = state.tasks.find(t => t.id == id);
-      await updateTask(id, { is_completed: !task.is_completed });
+      const completing = !task.is_completed;
+      await updateTask(id, {
+        is_completed: completing,
+        completed_at: completing ? new Date().toISOString() : null,
+      });
       if (window.initTasks) window.initTasks();
     });
 

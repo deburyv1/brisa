@@ -46,7 +46,7 @@ router.post('/', async (req, res) => {
 
 // PUT /api/tasks/:id — partial merge: only provided keys are updated
 router.put('/:id', async (req, res) => {
-  const allowed = ['title', 'description', 'priority', 'scheduled_datetime', 'due_datetime', 'is_completed', 'first_step', 'estimated_minutes'];
+  const allowed = ['title', 'description', 'priority', 'scheduled_datetime', 'due_datetime', 'is_completed', 'first_step', 'estimated_minutes', 'completed_at'];
   const sets = [];
   const values = [];
   for (const key of allowed) {

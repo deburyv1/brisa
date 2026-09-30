@@ -384,7 +384,7 @@ async function completeTask() {
     await fetch(`${API_BASE}/tasks/${doneId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ is_completed: true }),
+      body: JSON.stringify({ is_completed: true, completed_at: new Date().toISOString() }),
     });
   } catch (e) {
     console.error("Error completando tarea:", e);

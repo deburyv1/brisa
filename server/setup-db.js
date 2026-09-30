@@ -102,6 +102,7 @@ try {
   await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS linked_id INTEGER REFERENCES transactions(id) ON DELETE SET NULL`);
 
   await pool.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS estimated_minutes INTEGER`);
+  await pool.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP`);
 
   await pool.query(`CREATE TABLE IF NOT EXISTS entries (
     id SERIAL PRIMARY KEY,

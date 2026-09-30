@@ -157,6 +157,92 @@
   z-index: 4;
 }
 
+/* Past days: gray timeline, no present marker */
+.today-timeline.past {
+  filter: grayscale(.9) brightness(1.06);
+}
+
+/* Day navigator */
+.today-daynav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.today-daybtn {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition: var(--transition-speed);
+}
+
+.today-daybtn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.today-daybtn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.today-daylabel {
+  border: 0;
+  background: transparent;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  text-transform: capitalize;
+  min-width: 90px;
+}
+
+/* Day summary (read-only) */
+.today-summary {
+  margin-top: 12px;
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, .12), rgba(255, 255, 255, .04));
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.today-summary-title {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 8px;
+}
+
+.summary-row {
+  display: grid;
+  grid-template-columns: 22px 110px 1fr;
+  align-items: baseline;
+  gap: 8px;
+  padding: 3px 0;
+  font-size: 10px;
+}
+
+.summary-icon {
+  text-align: center;
+}
+
+.summary-label {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.summary-value {
+  color: #fff;
+  font-weight: 600;
+}
+
 /* Time labels */
 .today-labels {
   display: flex;
