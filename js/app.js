@@ -24,6 +24,7 @@ import { initPlayer } from "./player.js";
 import { initAvatar } from "./avatar.js";
 import { initFocus, openFocus } from "./focusMode.js";
 import { initUpcoming } from "./upcoming.js";
+import { initWallpaper } from "./wallpaper.js";
 
 window.initTasks = initTasks;
 window.initJournal = initJournal;
@@ -102,6 +103,7 @@ function initNavigation() {
 async function main() {
   initClock();
   initGreeting();
+  initWallpaper();
   initModal();
   initTaskModal();
   initJournalModal();
