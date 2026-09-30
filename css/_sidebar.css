@@ -135,6 +135,21 @@
 .clock-date {
   font-size: 9px;
   color: #648594;
+  text-transform: capitalize;
+}
+
+.clock-weather {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #17617f;
+}
+
+.clock-weather img {
+  display: block;
 }
 
 .tiny-meter {

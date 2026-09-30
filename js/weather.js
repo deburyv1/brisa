@@ -39,6 +39,11 @@ export async function initWeather() {
     const label = data.description.charAt(0).toUpperCase() + data.description.slice(1);
     labelEl.textContent = label;
     iconEl.innerHTML = `<img src="https://openweathermap.org/img/wn/${data.icon}@2x.png" alt="${label}" style="width:64px;height:64px">`;
+    // Mirror into the sidebar widget
+    const sideTemp = document.querySelector("#sideWeatherTemp");
+    if (sideTemp) sideTemp.textContent = data.temp + "°C · " + label;
+    const sideIcon = document.querySelector("#sideWeatherIcon");
+    if (sideIcon) sideIcon.innerHTML = `<img src="https://openweathermap.org/img/wn/${data.icon}.png" alt="" style="width:22px;height:22px">`;
   } catch (e) {
     console.error("Error clima:", e);
     cityEl.textContent = "—";
