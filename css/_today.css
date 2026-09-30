@@ -38,21 +38,21 @@
 /* Timeline bar - Windows 7 glossy solid */
 .today-timeline {
   position: relative;
-  height: 40px;
-  border-radius: 8px;
+  height: 44px;
+  border-radius: 10px;
   background: linear-gradient(90deg,
-    #6478a0 0%,
-    #6478a0 25%,
-    #95e0de 25%,
-    #95e0de 50%,
-    #ebe7a9 50%,
-    #ebe7a9 75%,
-    #f1c394 75%,
-    #f1c394 87.5%,
-    #9fa2d3 87.5%,
-    #9fa2d3 100%
+    #3d4e86 0%,
+    #3d4e86 25%,
+    #2fd8cf 25%,
+    #2fd8cf 50%,
+    #ffd94d 50%,
+    #ffd94d 75%,
+    #ff9e4f 75%,
+    #ff9e4f 87.5%,
+    #6f74d8 87.5%,
+    #6f74d8 100%
   );
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.45);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), inset 0 -1px 0 rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1);
   overflow: hidden;
 }
@@ -73,25 +73,32 @@
 /* Current time indicator */
 .today-now {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 2px;
+  top: -2px;
+  bottom: -2px;
+  width: 3px;
   background: #fff;
-  box-shadow: 0 0 8px rgba(255, 255, 255, 0.8), 0 0 16px rgba(255, 255, 255, 0.4);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 1), 0 0 22px rgba(255, 255, 255, 0.6);
   z-index: 3;
 }
 
 .today-now::after {
   content: "";
   position: absolute;
-  top: -1px;
+  top: 2px;
   left: 50%;
   transform: translateX(-50%);
-  width: 8px;
-  height: 8px;
+  width: 11px;
+  height: 11px;
   border-radius: 50%;
   background: #fff;
-  box-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
+  border: 2px solid rgba(0, 140, 200, 0.55);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 1), 0 0 18px rgba(0, 198, 255, 0.8);
+  animation: now-pulse 2s ease-in-out infinite;
+}
+
+@keyframes now-pulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(255, 255, 255, 1), 0 0 18px rgba(0, 198, 255, 0.8); }
+  50% { box-shadow: 0 0 6px rgba(255, 255, 255, 0.8), 0 0 10px rgba(0, 198, 255, 0.5); }
 }
 
 /* Task markers */
@@ -116,6 +123,18 @@
 .today-task.work { background: #23c6e3; }
 .today-task.life { background: #a3dec8; }
 .today-task.free { background: #d5d1ec; }
+.today-task.high {
+  background: radial-gradient(circle at 35% 30%, #ffb3b3, #ff4d4d 70%);
+  box-shadow: 0 0 8px rgba(255, 77, 77, 0.9);
+}
+.today-task.medium {
+  background: radial-gradient(circle at 35% 30%, #9be9ff, #00a8e8 70%);
+  box-shadow: 0 0 8px rgba(0, 198, 255, 0.9);
+}
+.today-task.low {
+  background: radial-gradient(circle at 35% 30%, #d6f5e3, #4fc98a 70%);
+  box-shadow: 0 0 6px rgba(79, 201, 138, 0.7);
+}
 .today-task.sleep { background: #bbcadd; }
 
 /* Event marker: diamond shape, distinct from task dots */
@@ -179,3 +198,6 @@
 .today-legend-dot.free { background: #d5d1ec; }
 .today-legend-dot.sleep { background: #bbcadd; }
 .today-legend-dot.event { background: #f4c32e; }
+.today-legend-dot.high { background: #ff4d4d; }
+.today-legend-dot.medium { background: #00a8e8; }
+.today-legend-dot.low { background: #4fc98a; }

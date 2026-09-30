@@ -33,21 +33,29 @@ button { font: inherit; cursor: pointer; }
 }
 
 /* Night wallpaper: crossfades over the day background
-   (background-image itself is not transitionable) */
+   (background-image itself is not transitionable).
+   Lives INSIDE .world so it paints above its opaque day image,
+   below the content (aside/main get z-index above). */
 #wallpaper-night {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 0;
   pointer-events: none;
   background-image: url("../aero-backgrounds/aero-night-background.jpg");
   background-size: cover;
   background-position: center top;
+  background-attachment: fixed;
   opacity: 0;
   transition: opacity 2.5s ease;
 }
 
 body.night #wallpaper-night {
   opacity: 1;
+}
+
+.world > main {
+  position: relative;
+  z-index: 1;
 }
 
 .content {

@@ -37,3 +37,42 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), inset 0 -1px 2px rgba(0, 0, 0, 0.1);
 }
+
+/* Full glass (Windows 7 Aero max): deeper blur, brighter edges,
+   glossy top light and a slow ambient sheen sweep */
+body.full-glass .aero-panel,
+body.full-glass .sidebar {
+  backdrop-filter: blur(32px) saturate(180%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
+  border-color: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 22px 60px rgba(0, 58, 94, .28),
+    inset 0 2px 3px rgba(255, 255, 255, 0.9),
+    inset 0 -2px 4px rgba(0, 60, 100, 0.12);
+  overflow: hidden;
+}
+
+body.full-glass .aero-panel::before,
+body.full-glass .sidebar::before {
+  content: "";
+  position: absolute;
+  top: -60%;
+  bottom: -60%;
+  width: 45%;
+  left: -60%;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+  transform: skewX(-12deg);
+  animation: aero-sheen 9s ease-in-out infinite;
+}
+
+body.full-glass .nav.active {
+  box-shadow: 0 9px 26px rgba(0, 140, 220, .55),
+    inset 0 2px 2px rgba(255, 255, 255, 0.95),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.1),
+    0 0 18px rgba(0, 198, 255, 0.45);
+}
+
+@keyframes aero-sheen {
+  0%, 55% { left: -60%; }
+  85%, 100% { left: 130%; }
+}

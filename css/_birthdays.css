@@ -5,7 +5,10 @@
   position: relative;
   margin-top: 11px;
   border-radius: var(--radius-panel);
-  padding: 14px 18px;
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
   background: linear-gradient(135deg, rgba(255, 255, 255, .32), rgba(255, 255, 255, .14));
   backdrop-filter: blur(25px) saturate(140%);
   -webkit-backdrop-filter: blur(25px) saturate(140%);
@@ -16,8 +19,8 @@
 .birthdays-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
+  flex-shrink: 0;
+  margin-bottom: 0;
 }
 
 .birthdays-title {
@@ -29,9 +32,11 @@
 }
 
 .birthdays-list {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
 }
 
 .birthday-item {
