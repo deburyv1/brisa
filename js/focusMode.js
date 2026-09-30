@@ -1,32 +1,85 @@
 /* ============================================
    BRISA - Focus Mode
-   One micro-step at a time. Imperfect is allowed.
-   Fights prerequisite paralysis:
-   1. Only the next physical step is shown (rest hidden)
-   2. Everything goes to ONE staging spot (no decisions)
-   3. Time-boxed so "forever" never appears
+   Friction-first: before acting, detect what blocks.
+   Distinguishes real dependency from need for certainty:
+   verify bounded (10 min) -> enough confidence -> act.
    ============================================ */
 import { state } from "./state.js";
 
 const API_BASE = "/api";
+const LINKS_KEY = "brisa.focusLinks";
 
 let currentTask = null;
 let timerId = null;
 let remainingSec = 10 * 60;
 
-export function openFocus(taskId) {
-  const task = (state.tasks || []).find(t => t.id == taskId);
+function getLinks() {
+  try {
+    return JSON.parse(sessionStorage.getItem(LINKS_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function setLink(childId, parentId, kind) {
+  const links = getLinks();
+  links[childId] = { parentId, kind };
+  try {
+    sessionStorage.setItem(LINKS_KEY, JSON.stringify(links));
+  } catch {
+    // sessionStorage unavailable: parent link is lost, flow still works
+  }
+}
+
+function takeLink(childId) {
+  const links = getLinks();
+  const link = links[childId];
+  if (link) {
+    delete links[childId];
+    try {
+      sessionStorage.setItem(LINKS_KEY, JSON.stringify(links));
+    } catch {
+      // ignore
+    }
+  }
+  return link || null;
+}
+
+function findTask(id) {
+  return (state.tasks || []).find(t => t.id == id) || null;
+}
+
+async function resolveTask(id) {
+  const local = findTask(id);
+  if (local) return local;
+  try {
+    const res = await fetch(`${API_BASE}/tasks/${id}`);
+    if (res.ok) return await res.json();
+  } catch (e) {
+    console.error("Error cargando tarea:", e);
+  }
+  return null;
+}
+
+export async function openFocus(taskId, opts = {}) {
+  const task = await resolveTask(taskId);
   if (!task) return;
   currentTask = task;
 
   const overlay = document.querySelector("#focus-modal");
   if (!overlay) return;
-
   overlay.querySelector("#focus-title").textContent = task.title;
-  overlay.querySelector("#focus-step").textContent =
-    task.first_step || "Empieza por lo más chico que veas.";
-  setTimer(10);
   overlay.classList.add("active");
+
+  if (opts.skipFriction) {
+    renderStep(task, {});
+  } else {
+    renderFriction(task);
+  }
+}
+
+function body() {
+  return document.querySelector("#focus-body");
 }
 
 function setTimer(minutes) {
@@ -54,18 +107,11 @@ function stopTimer() {
   if (btn) btn.textContent = "Iniciar";
 }
 
-export function initFocus() {
-  const overlay = document.querySelector("#focus-modal");
-  if (!overlay) return;
-
-  overlay.querySelector("#focus-close")?.addEventListener("click", closeFocus);
-  overlay.querySelector("#focus-done")?.addEventListener("click", completeTask);
-  overlay.querySelector("#focus-later")?.addEventListener("click", closeFocus);
-
-  overlay.querySelectorAll(".focus-time-btn").forEach(b =>
+function bindTimer() {
+  document.querySelectorAll(".focus-time-btn").forEach(b =>
     b.addEventListener("click", () => setTimer(Number(b.dataset.min))));
 
-  overlay.querySelector("#focus-timer-toggle")?.addEventListener("click", () => {
+  document.querySelector("#focus-timer-toggle")?.addEventListener("click", () => {
     if (timerId) {
       stopTimer();
       return;
@@ -76,10 +122,251 @@ export function initFocus() {
       paintTimer();
       if (remainingSec === 0) {
         stopTimer();
-        document.querySelector("#focus-message").textContent =
-          "Tiempo cumplido. Bien. ¿Sigues un poco más o lo dejas hasta acá?";
+        const msg = document.querySelector("#focus-message");
+        if (msg) msg.textContent = "Tiempo cumplido. Bien. ¿Sigues un poco más o lo dejas hasta acá?";
       }
     }, 1000);
+  });
+}
+
+// ---- Views ----
+
+function renderFriction(task) {
+  body().innerHTML = `
+    <p class="focus-question">Antes de hacerlo, ¿qué te frena?</p>
+    <div class="focus-options">
+      <button class="focus-option" data-friction="unknown">🟢 No sé cuál es el siguiente paso</button>
+      <button class="focus-option" data-friction="verify">🔎 Necesito verificar algo primero</button>
+      <button class="focus-option" data-friction="big">🧩 Es más grande de lo que parece</button>
+      <button class="focus-option" data-friction="resist">😕 Me da resistencia</button>
+      <button class="focus-option primary" data-friction="ready">▶️ Ya tengo suficiente información</button>
+    </div>
+  `;
+  body().querySelectorAll(".focus-option").forEach(btn => {
+    btn.addEventListener("click", () => handleFriction(task, btn.dataset.friction));
+  });
+}
+
+function handleFriction(task, kind) {
+  if (kind === "ready") {
+    renderStep(task, {});
+  } else if (kind === "unknown") {
+    renderDefineStep(task);
+  } else if (kind === "verify") {
+    renderVerifyAsk(task);
+  } else if (kind === "big") {
+    renderSplit(task);
+  } else if (kind === "resist") {
+    renderStep(task, { presetMin: 5, note: "Empieza 5 minutos nomás. Parar también vale." });
+  }
+}
+
+function renderStep(task, { presetMin = 10, note = null } = {}) {
+  const step = task.first_step || "Empieza por lo más chico que veas.";
+  body().innerHTML = `
+    <p class="focus-permission">No tiene que quedar perfecto. Solo mueve UNA cosa.</p>
+    ${note ? `<p class="focus-note">${escapeHtml(note)}</p>` : ""}
+    <div class="focus-step-box">
+      <div class="focus-step-label">Ahora mismo, solo esto:</div>
+      <div class="focus-step">${escapeHtml(step)}</div>
+    </div>
+    <p class="focus-staging">Todo lo que saques va a <strong>un solo lugar provisorio</strong> (la cama sirve). Ordenar viene después, no ahora.</p>
+    <div class="focus-timer-row">
+      <div class="focus-time-btns">
+        <button class="focus-time-btn" data-min="10">10</button>
+        <button class="focus-time-btn" data-min="15">15</button>
+        <button class="focus-time-btn" data-min="25">25</button>
+      </div>
+      <div id="focus-timer" class="focus-timer">10:00</div>
+      <button class="modal-btn modal-btn-secondary" id="focus-timer-toggle">Iniciar</button>
+    </div>
+    <p id="focus-message" class="focus-message"></p>
+    <div class="modal-actions">
+      <button type="button" class="modal-btn modal-btn-secondary" id="focus-later">Lo dejo acá</button>
+      <button type="button" class="modal-btn modal-btn-primary" id="focus-done">Listo ✓</button>
+    </div>
+  `;
+  setTimer(presetMin);
+  bindTimer();
+  body().querySelector("#focus-later")?.addEventListener("click", closeFocus);
+  body().querySelector("#focus-done")?.addEventListener("click", completeTask);
+}
+
+function renderDefineStep(task) {
+  body().innerHTML = `
+    <p class="focus-question">¿Cuál sería el primer paso físico, bien chico?</p>
+    <div class="form-group">
+      <input type="text" id="focus-define-input" placeholder="Ej: saca una prenda y ponla en la cama">
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="modal-btn modal-btn-secondary" id="focus-back">Volver</button>
+      <button type="button" class="modal-btn modal-btn-primary" id="focus-define-save">Guardar y empezar</button>
+    </div>
+  `;
+  const input = body().querySelector("#focus-define-input");
+  input?.focus();
+  body().querySelector("#focus-back")?.addEventListener("click", () => renderFriction(task));
+  body().querySelector("#focus-define-save")?.addEventListener("click", async () => {
+    const step = input?.value.trim();
+    if (!step) return;
+    try {
+      await fetch(`${API_BASE}/tasks/${task.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ first_step: step }),
+      });
+      task.first_step = step;
+      if (window.initTasks) await window.initTasks();
+    } catch (e) {
+      console.error("Error guardando paso:", e);
+    }
+    renderStep(task, {});
+  });
+}
+
+function renderVerifyAsk(task) {
+  body().innerHTML = `
+    <p class="focus-question">¿Qué necesitas comprobar?</p>
+    <div class="form-group">
+      <input type="text" id="focus-verify-input" placeholder="Ej: que el monto coincide con el cálculo">
+    </div>
+    <p class="focus-staging">Objetivo: tener suficiente confianza para actuar, no dominar todo el tema. Límite: 10 min.</p>
+    <div class="modal-actions">
+      <button type="button" class="modal-btn modal-btn-secondary" id="focus-back">Volver</button>
+      <button type="button" class="modal-btn modal-btn-primary" id="focus-verify-save">Verificar (10 min)</button>
+    </div>
+  `;
+  const input = body().querySelector("#focus-verify-input");
+  input?.focus();
+  body().querySelector("#focus-back")?.addEventListener("click", () => renderFriction(task));
+  body().querySelector("#focus-verify-save")?.addEventListener("click", async () => {
+    const what = input?.value.trim();
+    if (!what) return;
+    try {
+      const res = await fetch(`${API_BASE}/tasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: `Verificar: ${what}`,
+          description: `Para: ${task.title}\nObjetivo: comprobar el dato, no dominar todo el tema.`,
+          estimated_minutes: 10,
+        }),
+      });
+      const child = await res.json();
+      setLink(child.id, task.id, "verify");
+      if (window.initTasks) await window.initTasks();
+      currentTask = child;
+      document.querySelector("#focus-title").textContent = child.title;
+      renderStep(child, {});
+    } catch (e) {
+      console.error("Error creando verificación:", e);
+      alert("No se pudo crear. Intenta de nuevo.");
+    }
+  });
+}
+
+function renderSplit(task) {
+  body().innerHTML = `
+    <p class="focus-question">¿Cuál sería una parte más chica?</p>
+    <div class="form-group">
+      <input type="text" id="focus-split-input" placeholder="Ej: solo la ropa de la silla">
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="modal-btn modal-btn-secondary" id="focus-back">Volver</button>
+      <button type="button" class="modal-btn modal-btn-primary" id="focus-split-save">Crear y empezar</button>
+    </div>
+  `;
+  const input = body().querySelector("#focus-split-input");
+  input?.focus();
+  body().querySelector("#focus-back")?.addEventListener("click", () => renderFriction(task));
+  body().querySelector("#focus-split-save")?.addEventListener("click", async () => {
+    const part = input?.value.trim();
+    if (!part) return;
+    try {
+      const res = await fetch(`${API_BASE}/tasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: part }),
+      });
+      const child = await res.json();
+      setLink(child.id, task.id, "split");
+      if (window.initTasks) await window.initTasks();
+      currentTask = child;
+      document.querySelector("#focus-title").textContent = child.title;
+      renderStep(child, {});
+    } catch (e) {
+      console.error("Error creando parte:", e);
+      alert("No se pudo crear. Intenta de nuevo.");
+    }
+  });
+}
+
+function renderVerifyResult(child, parent) {
+  body().innerHTML = `
+    <p class="focus-question">¿Es suficiente para dar el siguiente paso?</p>
+    <p class="focus-staging">No necesitas certeza total, solo claridad razonable para actuar.</p>
+    <div class="modal-actions">
+      <button type="button" class="modal-btn modal-btn-secondary" id="focus-need-more">No, falta algo</button>
+      <button type="button" class="modal-btn modal-btn-primary" id="focus-enough">Sí, vamos</button>
+    </div>
+  `;
+  body().querySelector("#focus-enough")?.addEventListener("click", async () => {
+    const fresh = await resolveTask(parent.id);
+    currentTask = fresh || parent;
+    document.querySelector("#focus-title").textContent = currentTask.title;
+    renderStep(currentTask, {});
+  });
+  body().querySelector("#focus-need-more")?.addEventListener("click", () => {
+    renderNewStep(parent);
+  });
+}
+
+function renderNewStep(parent) {
+  body().innerHTML = `
+    <p class="focus-question">¿Qué paso concreto falta?</p>
+    <div class="form-group">
+      <input type="text" id="focus-newstep-input" placeholder="Ej: pedir el detalle a la corredora">
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="modal-btn modal-btn-secondary" id="focus-back">Volver</button>
+      <button type="button" class="modal-btn modal-btn-primary" id="focus-newstep-save">Crear y empezar</button>
+    </div>
+  `;
+  const input = body().querySelector("#focus-newstep-input");
+  input?.focus();
+  body().querySelector("#focus-back")?.addEventListener("click", () => renderFriction(parent));
+  body().querySelector("#focus-newstep-save")?.addEventListener("click", async () => {
+    const step = input?.value.trim();
+    if (!step) return;
+    try {
+      const res = await fetch(`${API_BASE}/tasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: step }),
+      });
+      const child = await res.json();
+      if (window.initTasks) await window.initTasks();
+      currentTask = child;
+      document.querySelector("#focus-title").textContent = child.title;
+      renderStep(child, {});
+    } catch (e) {
+      console.error("Error creando paso:", e);
+      alert("No se pudo crear. Intenta de nuevo.");
+    }
+  });
+}
+
+// ---- Shell ----
+
+export function initFocus() {
+  const overlay = document.querySelector("#focus-modal");
+  if (!overlay) return;
+  overlay.querySelector("#focus-close")?.addEventListener("click", closeFocus);
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) closeFocus();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && overlay.classList.contains("active")) closeFocus();
   });
 }
 
@@ -91,8 +378,10 @@ function closeFocus() {
 
 async function completeTask() {
   if (!currentTask) return;
+  const doneId = currentTask.id;
+  const doneTitle = currentTask.title;
   try {
-    await fetch(`${API_BASE}/tasks/${currentTask.id}`, {
+    await fetch(`${API_BASE}/tasks/${doneId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ is_completed: true }),
@@ -100,11 +389,21 @@ async function completeTask() {
   } catch (e) {
     console.error("Error completando tarea:", e);
   }
-  const doneTitle = currentTask.title;
-  closeFocus();
   if (window.initTasks) await window.initTasks();
   if (window.renderNext) window.renderNext();
   if (window.initToday) window.initToday();
+
+  const link = takeLink(doneId);
+  if (link && link.kind === "verify") {
+    const parent = await resolveTask(link.parentId);
+    if (parent && !parent.is_completed) {
+      currentTask = parent;
+      document.querySelector("#focus-title").textContent = parent.title;
+      renderVerifyResult(currentTask, parent);
+      return;
+    }
+  }
+  closeFocus();
   const section = document.querySelector("#next-section");
   if (section) {
     section.innerHTML = `

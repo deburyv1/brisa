@@ -23,6 +23,7 @@ import { initAccountModal } from "./accountModal.js";
 import { initPlayer } from "./player.js";
 import { initAvatar } from "./avatar.js";
 import { initFocus, openFocus } from "./focusMode.js";
+import { initUpcoming } from "./upcoming.js";
 
 window.initTasks = initTasks;
 window.initJournal = initJournal;
@@ -124,6 +125,7 @@ async function main() {
   ]);
   initToday();
   renderNext();
+  initUpcoming();
   initWeather();
   renderGuidanceBanner();
 }
