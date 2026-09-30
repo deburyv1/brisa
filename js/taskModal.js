@@ -35,6 +35,7 @@ export function initTaskModal() {
         .then(task => {
           form.title.value = task.title || "";
           form.description.value = task.description || "";
+          form.first_step.value = task.first_step || "";
           form.scheduled_datetime.value = toLocalInput(task.scheduled_datetime);
           form.due_datetime.value = toLocalInput(task.due_datetime);
           form.priority.value = task.priority || "medium";

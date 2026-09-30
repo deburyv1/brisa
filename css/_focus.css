@@ -1,0 +1,94 @@
+/* ============================================
+   BRISA - Focus Mode (un paso a la vez)
+   ============================================ */
+.focus-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 4px;
+}
+
+.focus-permission {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0 0 12px;
+}
+
+.focus-step-box {
+  border-radius: 14px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, .16), rgba(255, 255, 255, .06));
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  margin-bottom: 10px;
+}
+
+.focus-step-label {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 4px;
+}
+
+.focus-step {
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.4;
+}
+
+.focus-staging {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+  margin: 0 0 12px;
+}
+
+.focus-staging strong {
+  color: #fff;
+}
+
+.focus-timer-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.focus-time-btns {
+  display: flex;
+  gap: 6px;
+}
+
+.focus-time-btn {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 99px;
+  padding: 4px 10px;
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+}
+
+.focus-time-btn.selected {
+  color: #fff;
+  background: linear-gradient(180deg, #00c6ff, #0072ff);
+  border-color: transparent;
+}
+
+.focus-timer {
+  font-size: 22px;
+  font-weight: 300;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  margin-left: auto;
+}
+
+.focus-message {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.8);
+  min-height: 14px;
+  margin: 0 0 8px;
+}

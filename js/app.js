@@ -22,6 +22,7 @@ import { initTransactionModal } from "./transactionModal.js";
 import { initAccountModal } from "./accountModal.js";
 import { initPlayer } from "./player.js";
 import { initAvatar } from "./avatar.js";
+import { initFocus, openFocus } from "./focusMode.js";
 
 window.initTasks = initTasks;
 window.initJournal = initJournal;
@@ -31,6 +32,8 @@ window.initBirthdays = initBirthdays;
 window.initInbox = initInbox;
 window.initToday = initToday;
 window.loadEntryIntoCapture = loadEntryIntoCapture;
+window.renderNext = renderNext;
+window.openFocus = openFocus;
 
 const NAV_LABELS = {
   home: "Inicio",
@@ -106,6 +109,7 @@ async function main() {
   initCapture();
   initNext();
   initAvatar();
+  initFocus();
   initPlayer();
   initNavigation();
 

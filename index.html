@@ -126,6 +126,10 @@
         <input type="text" name="description" placeholder="Detalles de la tarea...">
       </div>
       <div class="form-group">
+        <label>Primer paso físico<span class="optional">(opcional)</span></label>
+        <input type="text" name="first_step" placeholder="Ej: saca una prenda y ponla en la cama">
+      </div>
+      <div class="form-group">
         <label>Fecha programada<span class="optional">(opcional)</span></label>
         <input type="datetime-local" name="scheduled_datetime">
       </div>
@@ -306,6 +310,37 @@
         <button type="button" class="modal-btn modal-btn-secondary" id="avatar-modal-cancel">Cancelar</button>
         <button type="button" class="modal-btn modal-btn-primary" id="avatar-save">Guardar</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Modo hacer (un paso a la vez) -->
+<div class="modal-overlay" id="focus-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">De a un paso</div>
+      <button class="modal-close" id="focus-close">✕</button>
+    </div>
+    <h3 id="focus-title" class="focus-title"></h3>
+    <p class="focus-permission">No tiene que quedar perfecto. Solo mueve UNA cosa.</p>
+    <div class="focus-step-box">
+      <div class="focus-step-label">Ahora mismo, solo esto:</div>
+      <div id="focus-step" class="focus-step"></div>
+    </div>
+    <p class="focus-staging">Todo lo que saques va a <strong>un solo lugar provisorio</strong> (la cama sirve). Ordenar viene después, no ahora.</p>
+    <div class="focus-timer-row">
+      <div class="focus-time-btns">
+        <button class="focus-time-btn selected" data-min="10">10</button>
+        <button class="focus-time-btn" data-min="15">15</button>
+        <button class="focus-time-btn" data-min="25">25</button>
+      </div>
+      <div id="focus-timer" class="focus-timer">10:00</div>
+      <button class="modal-btn modal-btn-secondary" id="focus-timer-toggle">Iniciar</button>
+    </div>
+    <p id="focus-message" class="focus-message"></p>
+    <div class="modal-actions">
+      <button type="button" class="modal-btn modal-btn-secondary" id="focus-later">Lo dejo acá</button>
+      <button type="button" class="modal-btn modal-btn-primary" id="focus-done">Listo ✓</button>
     </div>
   </div>
 </div>

@@ -91,23 +91,10 @@ export function renderNext() {
   `;
 
   section.querySelectorAll("[data-start]").forEach(btn => {
-    btn.addEventListener("click", () => startTask(btn.dataset.start));
-  });
-}
-
-async function startTask(id) {
-  try {
-    await fetch(`${API_BASE}/tasks/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ scheduled_datetime: new Date().toISOString() }),
+    btn.addEventListener("click", () => {
+      if (window.openFocus) window.openFocus(btn.dataset.start);
     });
-  } catch (e) {
-    console.error("Error al empezar tarea:", e);
-  }
-  if (window.initTasks) await window.initTasks();
-  renderNext();
-  if (window.initToday) window.initToday();
+  });
 }
 
 function escapeHtml(str) {
