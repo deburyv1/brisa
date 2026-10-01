@@ -69,6 +69,7 @@ export function initTransactionModal() {
         .then(r => r.json())
         .then(async tx => {
           form.description.value = tx.description || "";
+          form.alias.value = tx.alias || "";
           form.amount.value = tx.amount ?? "";
           form.type.value = tx.type || "expense";
           form.is_recurring.checked = !!tx.is_recurring;
@@ -85,6 +86,7 @@ export function initTransactionModal() {
       fillCategories(form, form.type.value, preset?.category || "");
       if (preset) {
         if (preset.description) form.description.value = preset.description;
+        if (preset.alias !== undefined) form.alias.value = preset.alias || "";
         if (preset.amount != null) form.amount.value = preset.amount;
         if (preset.type) {
           form.type.value = preset.type;

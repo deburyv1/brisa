@@ -297,7 +297,7 @@
 
 .breakdown-row {
   display: grid;
-  grid-template-columns: 110px 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 10px;
   padding: 4px 0;
@@ -306,9 +306,8 @@
 .breakdown-cat {
   font-size: 10px;
   color: rgba(255, 255, 255, 0.85);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .breakdown-bar {

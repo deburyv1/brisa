@@ -150,6 +150,10 @@ async function uploadImport(section, file, force) {
   }
 }
 
+function displayName(t) {
+  return t.alias || t.description;
+}
+
 function escapeHtml(str) {
   return String(str ?? "")
     .replace(/&/g, "&amp;")
@@ -273,6 +277,9 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
         if (!patterns[key] || String(t.date) > String(patterns[key].date)) {
           patterns[key] = t;
         }
+        if (t.alias && (!patterns[key].alias || String(t.date) >= String(patterns[key].date))) {
+          patterns[key] = { ...patterns[key], alias: t.alias };
+        }
       }
       const list = Object.values(patterns).sort((a, b) =>
         String(a.description).localeCompare(String(b.description)));
@@ -294,7 +301,7 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
             inMonth(t.date, currentMonth));
           return `
           <div class="breakdown-row">
-            <div class="breakdown-cat">${escapeHtml(p.description)}</div>
+            <div class="breakdown-cat">${escapeHtml(displayName(p))}</div>
             <div class="breakdown-val">${formatMoney(p.amount)}</div>
             ${paid
               ? `<span class="fixed-pill paid">Pagada</span>`
@@ -355,7 +362,7 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
         <div class="tx-item" data-tx-id="${t.id}">
           <div class="tx-sign ${isIncome ? "income" : "expense"}">${isIncome ? "+" : "−"}</div>
           <div class="tx-info">
-            <div class="tx-desc">${escapeHtml(t.description)}</div>
+            <div class="tx-desc">${escapeHtml(displayName(t))}</div>
             <div class="tx-meta">${formatTxDate(t.date)}${parent ? ` · ↩ ${escapeHtml(parent.description)}` : ""}</div>
           </div>
           <select class="tx-category" data-tx-id="${t.id}" title="Categoría">
@@ -455,6 +462,7 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
       if (!p || !window.openTransactionModal) return;
       window.openTransactionModal(activeAccountId, null, {
         description: p.description,
+        alias: p.alias || "",
         amount: p.amount,
         category: p.category || "",
         type: p.type || "expense",
