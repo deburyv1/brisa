@@ -250,12 +250,12 @@ function netByCategory(txs, byId) {
   return { net, gross };
 }
 
-function renderBreakdown(monthTxs, byId, budgetMap) {
-  const { net, gross } = netByCategory(monthTxs, byId);
+function renderBreakdown(monthPosted, plannedByCat, byId, budgetMap) {
+  const { net, gross } = netByCategory(monthPosted, byId);
   let rows = Object.entries(net).sort((a, b) => b[1] - a[1]);
   if (budgetEdit) {
     // In edit mode show every known category so topes can be set proactively
-    const known = new Set([...rows.map(([c]) => c), ...Object.keys(budgetMap), ...EXPENSE_CATEGORIES]);
+    const known = new Set([...rows.map(([c]) => c), ...Object.keys(budgetMap), ...Object.keys(plannedByCat), ...EXPENSE_CATEGORIES]);
     rows = [...known].sort().map(c => [c, net[c] || 0]);
   }
   const total = rows.reduce((s, [, v]) => s + v, 0);
@@ -270,17 +270,19 @@ function renderBreakdown(monthTxs, byId, budgetMap) {
     </div>
     ${rows.map(([cat, val]) => {
       const cap = budgetMap[cat];
+      const planned = plannedByCat[cat] || 0;
+      const progress = val + planned;
       const pct = total ? Math.max(0, Math.round(val / total * 100)) : 0;
-      const over = cap != null && val > cap;
+      const over = cap != null && progress > cap;
       return `
       <div class="breakdown-row" title="${gross[cat] && gross[cat] !== val ? `Bruto: ${formatMoney(gross[cat])}` : escapeHtml(cat)}">
         <div class="breakdown-cat">${escapeHtml(cat)}</div>
-        <div class="breakdown-bar"><span style="width:${cap != null && !budgetEdit ? Math.min(100, Math.round(val / cap * 100)) : pct}%"></span></div>
+        <div class="breakdown-bar"><span style="width:${cap != null && !budgetEdit ? Math.min(100, Math.round(progress / cap * 100)) : pct}%"></span></div>
         ${budgetEdit && cat !== "Sin categoría" ? `
           <input class="budget-input" data-budget-cat="${escapeHtml(cat)}" type="number" min="0" step="any"
             placeholder="Tope" value="${cap != null ? cap : ""}">
         ` : `
-          <div class="breakdown-val">${formatMoney(val)}${cap != null ? `<small> de ${formatMoney(cap)}${over ? ` · +${formatMoney(val - cap)} sobre tope` : ""}</small>` : ""}</div>
+          <div class="breakdown-val">${formatMoney(val)}${planned > 0 ? `<small> +${formatMoney(planned)} previsto</small>` : ""}${cap != null ? `<small> de ${formatMoney(cap)}${over ? ` · +${formatMoney(progress - cap)} sobre tope` : ""}</small>` : ""}</div>
         `}
       </div>`;
     }).join("")}
@@ -289,8 +291,10 @@ function renderBreakdown(monthTxs, byId, budgetMap) {
 
 function renderCompare(monthTxs, allTxs, byId) {
   const prev = shiftMonth(currentMonth, -1);
-  const prevTxs = (allTxs || []).filter(t => inMonth(t.date, prev));
-  const cur = netByCategory(monthTxs, byId).net;
+  const posted = (t) => t.status !== "planned";
+  const prevTxs = (allTxs || []).filter(t => posted(t) && inMonth(t.date, prev));
+  const curPosted = (monthTxs || []).filter(posted);
+  const cur = netByCategory(curPosted, byId).net;
   const old = netByCategory(prevTxs, byId).net;
   const cats = [...new Set([...Object.keys(cur), ...Object.keys(old)])]
     .sort((a, b) => (cur[b] || 0) - (cur[a] || 0));
@@ -330,20 +334,30 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
   for (const t of allTxs) byId[t.id] = t;
   const monthUncat = (monthTxs || []).filter(t => !t.category).length;
   const monthStart = currentMonth + "-01";
+  const isPosted = (t) => t.status !== "planned";
   const beforeNet = (allTxs || [])
-    .filter(t => String(t.date).slice(0, 10) < monthStart)
+    .filter(t => isPosted(t) && String(t.date).slice(0, 10) < monthStart)
     .reduce((s, t) => s + (t.type === "income" ? Number(t.amount) : -Number(t.amount)), 0);
   const initial = Number(account.initial_balance) || 0;
   const monthStartBalance = initial + beforeNet;
-  const monthNet = (monthTxs || []).reduce((s, t) =>
-    s + (t.type === "income" ? Number(t.amount) : -Number(t.amount)), 0);
+  const monthNet = (monthTxs || [])
+    .filter(isPosted)
+    .reduce((s, t) => s + (t.type === "income" ? Number(t.amount) : -Number(t.amount)), 0);
   const income = allTxs
-    .filter(t => t.type === "income")
+    .filter(t => isPosted(t) && t.type === "income")
     .reduce((s, t) => s + Number(t.amount), 0);
   const expense = allTxs
-    .filter(t => t.type !== "income")
+    .filter(t => isPosted(t) && t.type !== "income")
     .reduce((s, t) => s + Number(t.amount), 0);
   const balance = initial + income - expense;
+
+  const monthPosted = (monthTxs || []).filter(isPosted);
+  const plannedByCat = {};
+  for (const t of (monthTxs || [])) {
+    if (isPosted(t) || t.type === "income") continue;
+    const cat = t.category || "Sin categoría";
+    plannedByCat[cat] = (plannedByCat[cat] || 0) + Number(t.amount);
+  }
 
   section.innerHTML = `
     <div class="finance-header">
@@ -442,7 +456,7 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
       ${expectedIncome > 0 ? `<div class="fixed-footnote">* Disponible proyectado: cuenta ingresos fijos aún no recibidos.</div>` : ""}`;
     })()}
 
-    ${compareMode ? renderCompare(monthTxs, allTxs, byId) : renderBreakdown(monthTxs, byId, budgetMap)}
+    ${compareMode ? renderCompare(monthPosted, allTxs, byId) : renderBreakdown(monthPosted, plannedByCat, byId, budgetMap)}
 
     ${monthUncat > 0 ? `
       <div class="finance-alert">
@@ -463,13 +477,14 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
         </div>
       ` : txs.map(t => {
         const isIncome = t.type === "income";
+        const isPlanned = t.status === "planned";
         const parent = t.linked_id ? byId[t.linked_id] : null;
         return `
-        <div class="tx-item" data-tx-id="${t.id}">
+        <div class="tx-item ${isPlanned ? "planned" : ""}" data-tx-id="${t.id}">
           <div class="tx-sign ${isIncome ? "income" : "expense"}">${isIncome ? "+" : "−"}</div>
           <div class="tx-info">
             <div class="tx-desc">${escapeHtml(displayName(t))}</div>
-            <div class="tx-meta">${formatTxDate(t.date)}${parent ? ` · ↩ ${escapeHtml(parent.description)}` : ""}</div>
+            <div class="tx-meta">${formatTxDate(t.date)}${parent ? ` · ↩ ${escapeHtml(parent.description)}` : ""}${isPlanned ? " · previsto" : ""}</div>
           </div>
           <select class="tx-category" data-tx-id="${t.id}" title="Categoría">
             <option value="">Sin categoría</option>
@@ -477,6 +492,7 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
           </select>
           <div class="tx-amount ${isIncome ? "income" : "expense"}">${isIncome ? "+" : "−"}${formatMoney(t.amount)}</div>
           <div class="tx-actions">
+            ${isPlanned ? `<button class="tx-btn tx-btn-edit" data-action="realize">Realizado</button>` : ""}
             <button class="tx-btn tx-btn-edit" data-action="edit">Editar</button>
             <button class="tx-btn tx-btn-delete" data-action="delete">Eliminar</button>
           </div>
@@ -634,6 +650,32 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
 
   section.querySelectorAll(".tx-item").forEach(item => {
     const id = item.dataset.txId;
+
+    item.querySelector('[data-action="realize"]')?.addEventListener("click", async () => {
+      const row = (allTxs || []).find(x => String(x.id) === String(id));
+      if (!row) return;
+      try {
+        await fetch(`${API_BASE}/transactions/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            description: row.description,
+            amount: row.amount,
+            type: row.type,
+            category: row.category,
+            date: new Date().toISOString().slice(0, 10),
+            account_id: row.account_id,
+            linked_id: row.linked_id,
+            is_recurring: row.is_recurring,
+            alias: row.alias,
+            status: "posted",
+          }),
+        });
+        if (window.initFinance) window.initFinance();
+      } catch (err) {
+        console.error("Error marcando realizado:", err);
+      }
+    });
 
     item.querySelector('[data-action="edit"]')?.addEventListener("click", () => {
       if (window.openTransactionModal) window.openTransactionModal(activeAccountId, id);

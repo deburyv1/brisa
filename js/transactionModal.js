@@ -73,6 +73,7 @@ export function initTransactionModal() {
           form.amount.value = tx.amount ?? "";
           form.type.value = tx.type || "expense";
           form.is_recurring.checked = !!tx.is_recurring;
+          form.is_planned.checked = tx.status === "planned";
           fillCategories(form, form.type.value, tx.category || "");
           toggleLinkRow(form);
           await fillLinkOptions(form, currentAccountId, tx.linked_id || "", txId);
@@ -145,6 +146,8 @@ export function initTransactionModal() {
 
     try {
       const payload = { ...data, account_id: currentAccountId };
+      payload.status = data.is_planned ? "planned" : "posted";
+      delete payload.is_planned;
       const res = await fetch(
         editingId ? `${API_BASE}/transactions/${editingId}` : `${API_BASE}/transactions`,
         {

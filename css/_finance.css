@@ -151,6 +151,11 @@
 .tx-amount.income { color: #7bed9f; }
 .tx-amount.expense { color: #ff9f9f; }
 
+.tx-item.planned {
+  border-style: dashed;
+  opacity: 0.9;
+}
+
 .tx-actions {
   display: flex;
   gap: 6px;
