@@ -320,6 +320,9 @@
   color: #fff;
 }
 
+.available-pos { color: #7bed9f; }
+.available-neg { color: rgba(255, 255, 255, 0.85); }
+
 .budget-input {
   width: 90px;
   border: 1px solid rgba(255, 255, 255, 0.25);

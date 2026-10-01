@@ -411,7 +411,7 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
       const availableStr = `${available < 0 ? "−" : "+"}${formatMoney(Math.abs(available))}`;
       return `
       <div class="finance-breakdown">
-        <div class="finance-breakdown-title">Fijos del mes · ${formatMoney(committed)} comprometido · ${formatMoney(monthIncome)} ingresos · <span style="color:#7bed9f">${availableStr} disponible</span></div>
+        <div class="finance-breakdown-title">Fijos del mes · ${formatMoney(committed)} comprometido · ${formatMoney(monthIncome)} ingresos · <span class="${available >= 0 ? "available-pos" : "available-neg"}">${availableStr} disponible</span></div>
         ${list.map((p, i) => {
           const paid = allTxs.some(t =>
             String(t.description || "").trim().toLowerCase() === String(p.description).trim().toLowerCase() &&
