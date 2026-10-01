@@ -341,6 +341,9 @@
   color: rgba(255, 255, 255, 0.6);
 }
 
+.breakdown-val.income { color: #7bed9f; }
+.breakdown-val.expense { color: #ff9f9f; }
+
 /* Month comparison */
 .compare-row {
   display: grid;

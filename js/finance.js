@@ -401,9 +401,10 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
         .filter(t => t.type === "income")
         .reduce((s, t) => s + Number(t.amount), 0);
       const available = monthIncome - committed;
+      const availableStr = `${available < 0 ? "−" : "+"}${formatMoney(Math.abs(available))}`;
       return `
       <div class="finance-breakdown">
-        <div class="finance-breakdown-title">Fijos del mes · ${formatMoney(committed)} comprometido · <span style="color:#7bed9f">~${formatMoney(available)} disponible</span></div>
+        <div class="finance-breakdown-title">Fijos del mes · ${formatMoney(committed)} comprometido · ${formatMoney(monthIncome)} ingresos · <span style="color:#7bed9f">${availableStr} disponible</span></div>
         ${list.map((p, i) => {
           const paid = allTxs.some(t =>
             String(t.description || "").trim().toLowerCase() === String(p.description).trim().toLowerCase() &&
@@ -411,7 +412,7 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
           return `
           <div class="breakdown-row">
             <div class="breakdown-cat">${escapeHtml(displayName(p))}</div>
-            <div class="breakdown-val">${formatMoney(p.amount)}</div>
+            <div class="breakdown-val ${p.type === "income" ? "income" : "expense"}">${p.type === "income" ? "+" : "−"}${formatMoney(p.amount)}</div>
             ${paid
               ? `<span class="fixed-pill paid">Pagada</span>`
               : `<button class="tx-btn tx-btn-edit" data-register="${i}">Registrar</button>`}
