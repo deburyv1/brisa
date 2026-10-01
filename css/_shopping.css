@@ -55,7 +55,7 @@
 }
 
 .shopping-add input[type="text"]::placeholder {
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.65);
 }
 
 .shopping-add input[type="number"] {

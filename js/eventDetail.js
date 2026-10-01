@@ -6,13 +6,55 @@
 const API_BASE = "/api";
 
 let currentEventId = null;
+let travelTickId = null;
+
+function stopTravelTick() {
+  if (travelTickId) {
+    clearInterval(travelTickId);
+    travelTickId = null;
+  }
+}
+
+// Live countdown to leave time: "sales en 25 min" or "¡deberías estar saliendo!"
+function travelCountdown(ev) {
+  if (!ev || !ev.start || !ev.travel_minutes) return "";
+  const leaveAt = new Date(ev.start).getTime() - Number(ev.travel_minutes) * 60000;
+  const diffMin = Math.round((leaveAt - Date.now()) / 60000);
+  if (diffMin <= 0) {
+    const startIn = Math.round((new Date(ev.start).getTime() - Date.now()) / 60000);
+    if (startIn <= 0) return "";
+    return "¡deberías estar saliendo!";
+  }
+  if (diffMin < 60) return `sales en ${diffMin} min`;
+  const h = Math.floor(diffMin / 60);
+  const m = diffMin % 60;
+  return m === 0 ? `sales en ${h} h` : `sales en ${h} h ${m} min`;
+}
 
 function renderTravelRow(overlay, ev) {
   const el = overlay.querySelector("#event-detail-travel");
   if (!el) return;
+  stopTravelTick();
   const leave = formatLeave(ev);
+  const countdown = travelCountdown(ev);
   if (leave) {
-    el.innerHTML = `🚌 Salir a las <strong>${leave}</strong> (${ev.travel_minutes} min de viaje) · <button class="tx-btn tx-btn-edit" id="travel-edit">Cambiar</button>`;
+    el.innerHTML = `🚌 Salir a las <strong>${leave}</strong> (${ev.travel_minutes} min de viaje)<span id="travel-countdown">${countdown ? ` · ${countdown}` : ""}</span> · <button class="tx-btn tx-btn-edit" id="travel-edit">Cambiar</button>`;
+    if (countdown) {
+      travelTickId = setInterval(() => {
+        if (!document.querySelector("#event-detail-modal.active")) {
+          stopTravelTick();
+          return;
+        }
+        const next = travelCountdown(ev);
+        const span = document.querySelector("#travel-countdown");
+        if (!next) {
+          stopTravelTick();
+          renderTravelRow(overlay, ev);
+          return;
+        }
+        if (span) span.textContent = ` · ${next}`;
+      }, 30000);
+    }
   } else {
     el.innerHTML = `🚌 Viaje: <button class="tx-btn tx-btn-edit" id="travel-edit">Agregar tiempo de viaje</button>`;
   }
@@ -118,6 +160,7 @@ export function initEventDetail() {
   });
 
   function close() {
+    stopTravelTick();
     overlay.classList.remove("active");
   }
 
