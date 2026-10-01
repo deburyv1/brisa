@@ -73,7 +73,9 @@ export async function initShopping() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ description, estimated_amount: est?.value || null }),
     });
-    if (window.initShopping) window.initShopping();
+    await initShopping();
+    // Back to the input for fast consecutive entry
+    document.querySelector("#shopping-input")?.focus();
   };
 
   section.querySelector("#shopping-add")?.addEventListener("click", add);
