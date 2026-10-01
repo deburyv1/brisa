@@ -263,6 +263,44 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
       </div>
     </div>
 
+let currentPatterns = [];
+
+    ${(() => {
+      const patterns = {};
+      for (const t of allTxs) {
+        if (!t.is_recurring) continue;
+        const key = String(t.description || "").trim().toLowerCase();
+        if (!key) continue;
+        if (!patterns[key] || String(t.date) > String(patterns[key].date)) {
+          patterns[key] = t;
+        }
+      }
+      const list = Object.values(patterns).sort((a, b) =>
+        String(a.description).localeCompare(String(b.description)));
+      currentPatterns = list;
+      if (list.length === 0) return "";
+      const committed = list
+        .filter(p => p.type !== "income")
+        .reduce((s, p) => s + Number(p.amount), 0);
+      return `
+      <div class="finance-breakdown">
+        <div class="finance-breakdown-title">Fijos del mes · ${formatMoney(committed)} comprometido</div>
+        ${list.map((p, i) => {
+          const paid = allTxs.some(t =>
+            String(t.description || "").trim().toLowerCase() === String(p.description).trim().toLowerCase() &&
+            inMonth(t.date, currentMonth));
+          return `
+          <div class="breakdown-row">
+            <div class="breakdown-cat">${escapeHtml(p.description)}</div>
+            <div class="breakdown-val">${formatMoney(p.amount)}</div>
+            ${paid
+              ? `<span class="fixed-pill paid">Pagada</span>`
+              : `<button class="tx-btn tx-btn-edit" data-register="${i}">Registrar</button>`}
+          </div>`;
+        }).join("")}
+      </div>`;
+    })()}
+
     ${(() => {
       const net = {};
       const gross = {};
@@ -405,6 +443,19 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
       } catch (err) {
         console.error("Error categorizando:", err);
       }
+    });
+  });
+
+  section.querySelectorAll("[data-register]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const p = currentPatterns[Number(btn.dataset.register)];
+      if (!p || !window.openTransactionModal) return;
+      window.openTransactionModal(activeAccountId, null, {
+        description: p.description,
+        amount: p.amount,
+        category: p.category || "",
+        type: p.type || "expense",
+      });
     });
   });
 

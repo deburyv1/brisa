@@ -56,8 +56,8 @@ export function initTransactionModal() {
   let currentAccountId = null;
   let cleanSnapshot = null;
 
-  function open(accountId = null, txId = null) {
-    // open(accountId) or open(accountId, txId)
+  function open(accountId = null, txId = null, preset = null) {
+    // open(accountId) or open(accountId, txId) or open(accountId, null, preset)
     if (typeof accountId === "object") accountId = null;
     currentAccountId = accountId;
     editingId = txId;
@@ -71,6 +71,7 @@ export function initTransactionModal() {
           form.description.value = tx.description || "";
           form.amount.value = tx.amount ?? "";
           form.type.value = tx.type || "expense";
+          form.is_recurring.checked = !!tx.is_recurring;
           fillCategories(form, form.type.value, tx.category || "");
           toggleLinkRow(form);
           await fillLinkOptions(form, currentAccountId, tx.linked_id || "", txId);
@@ -81,7 +82,16 @@ export function initTransactionModal() {
     } else {
       titleEl.textContent = "Nuevo movimiento";
       form.date.value = new Date().toISOString().slice(0, 10);
-      fillCategories(form, form.type.value, "");
+      fillCategories(form, form.type.value, preset?.category || "");
+      if (preset) {
+        if (preset.description) form.description.value = preset.description;
+        if (preset.amount != null) form.amount.value = preset.amount;
+        if (preset.type) {
+          form.type.value = preset.type;
+          fillCategories(form, preset.type, preset.category || "");
+        }
+        form.is_recurring.checked = true;
+      }
       toggleLinkRow(form);
       fillLinkOptions(form, currentAccountId, "", null).then(() => {
         cleanSnapshot = snapshotForm(form);

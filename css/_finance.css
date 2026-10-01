@@ -381,6 +381,21 @@
   color: #fff;
 }
 
+.fixed-pill {
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 99px;
+  white-space: nowrap;
+}
+
+.fixed-pill.paid {
+  color: #fff;
+  background: linear-gradient(145deg, #2ed573, #1a8a4a);
+}
+
 /* Import history */
 .finance-history {
   margin-top: 14px;

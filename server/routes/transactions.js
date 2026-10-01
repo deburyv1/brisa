@@ -74,7 +74,7 @@ router.get('/:id', async (req, res) => {
 
 // POST /api/transactions
 router.post('/', async (req, res) => {
-  const { description, amount, type, category, date, account_id, linked_id } = req.body;
+  const { description, amount, type, category, date, account_id, linked_id, is_recurring } = req.body;
   if (!description || !description.trim()) {
     return res.status(400).json({ error: 'Description is required' });
   }
@@ -86,8 +86,8 @@ router.post('/', async (req, res) => {
   if (linkId === false) return;
   try {
     const result = await pool.query(
-      'INSERT INTO transactions (user_id, account_id, description, amount, type, category, date, linked_id) VALUES (1, $1, $2, $3, $4, $5, $6, $7) RETURNING *',
-      [account_id || null, description.trim(), parsedAmount, type === 'income' ? 'income' : 'expense', category || null, date || new Date().toISOString().slice(0, 10), linkId]
+      'INSERT INTO transactions (user_id, account_id, description, amount, type, category, date, linked_id, is_recurring) VALUES (1, $1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+      [account_id || null, description.trim(), parsedAmount, type === 'income' ? 'income' : 'expense', category || null, date || new Date().toISOString().slice(0, 10), linkId, is_recurring ? true : false]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -114,7 +114,7 @@ router.patch('/:id/category', async (req, res) => {
 
 // PUT /api/transactions/:id
 router.put('/:id', async (req, res) => {
-  const { description, amount, type, category, date, account_id, linked_id } = req.body;
+  const { description, amount, type, category, date, account_id, linked_id, is_recurring } = req.body;
   if (!description || !description.trim()) {
     return res.status(400).json({ error: 'Description is required' });
   }
@@ -129,8 +129,8 @@ router.put('/:id', async (req, res) => {
   if (linkId === false) return;
   try {
     const result = await pool.query(
-      'UPDATE transactions SET description = $1, amount = $2, type = $3, category = $4, date = $5, account_id = $6, linked_id = $7 WHERE id = $8 RETURNING *',
-      [description.trim(), parsedAmount, type === 'income' ? 'income' : 'expense', category || null, date || null, account_id || null, linkId, req.params.id]
+      'UPDATE transactions SET description = $1, amount = $2, type = $3, category = $4, date = $5, account_id = $6, linked_id = $7, is_recurring = $8 WHERE id = $9 RETURNING *',
+      [description.trim(), parsedAmount, type === 'income' ? 'income' : 'expense', category || null, date || null, account_id || null, linkId, is_recurring ? true : false, req.params.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Transaction not found' });
     res.json(result.rows[0]);
