@@ -7,6 +7,42 @@ const API_BASE = "/api";
 
 let currentEventId = null;
 
+function renderTravelRow(overlay, ev) {
+  const el = overlay.querySelector("#event-detail-travel");
+  if (!el) return;
+  const leave = formatLeave(ev);
+  if (leave) {
+    el.innerHTML = `🚌 Salir a las <strong>${leave}</strong> (${ev.travel_minutes} min de viaje) · <button class="tx-btn tx-btn-edit" id="travel-edit">Cambiar</button>`;
+  } else {
+    el.innerHTML = `🚌 Viaje: <button class="tx-btn tx-btn-edit" id="travel-edit">Agregar tiempo de viaje</button>`;
+  }
+  el.querySelector("#travel-edit")?.addEventListener("click", () => {
+    el.innerHTML = `
+      <input type="number" id="travel-input" min="0" max="480" placeholder="Minutos"
+        value="${ev.travel_minutes || ""}"
+        style="width:80px;border:1px solid rgba(255,255,255,0.25);border-radius:8px;padding:5px 8px;font-size:11px;color:#fff;background:rgba(255,255,255,.08);outline:none">
+      <button class="tx-btn tx-btn-edit" id="travel-save">Guardar</button>`;
+    el.querySelector("#travel-save")?.addEventListener("click", async () => {
+      const val = el.querySelector("#travel-input")?.value;
+      try {
+        const res = await fetch(`${API_BASE}/events/${ev.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ travel_minutes: val === "" ? null : Number(val) }),
+        });
+        if (res.ok) {
+          ev.travel_minutes = val === "" ? null : Number(val);
+          renderTravelRow(overlay, ev);
+          if (window.initCalendar) window.initCalendar();
+          if (window.initToday) window.initToday();
+        }
+      } catch (e) {
+        console.error("Error guardando viaje:", e);
+      }
+    });
+  });
+}
+
 async function renderPrepList(overlay, eventId) {
   const box = overlay.querySelector("#event-prep-list");
   if (!box) return;
@@ -45,6 +81,18 @@ async function renderPrepList(overlay, eventId) {
       }
     });
   });
+}
+
+export function leaveBy(ev) {
+  if (!ev || !ev.start) return null;
+  const travel = Number(ev.travel_minutes) || 0;
+  return new Date(new Date(ev.start).getTime() - travel * 60000);
+}
+
+function formatLeave(ev) {
+  const leave = leaveBy(ev);
+  if (!leave || !ev.travel_minutes) return "";
+  return leave.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
 }
 
 function formatWhen(ev) {
@@ -91,6 +139,7 @@ export function initEventDetail() {
     overlay.querySelector("#event-detail-when").textContent = ev.start ? formatWhen(ev) : "";
     overlay.querySelector("#event-detail-location").textContent = ev.location ? `📍 ${ev.location}` : "";
     overlay.querySelector("#event-detail-desc").textContent = ev.description || "";
+    renderTravelRow(overlay, ev);
     const prepInput = overlay.querySelector("#event-prep-input");
     if (prepInput) prepInput.value = "";
     await renderPrepList(overlay, ev.id);

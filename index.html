@@ -328,6 +328,10 @@
         <input type="text" name="location" placeholder="Ej: Clínica Santa María">
       </div>
       <div class="form-group">
+        <label>Viaje en minutos<span class="optional">(opcional)</span></label>
+        <input type="number" name="travel_minutes" min="0" max="480" placeholder="Ej: 30">
+      </div>
+      <div class="form-group">
         <label>Descripción<span class="optional">(opcional)</span></label>
         <input type="text" name="description" placeholder="Detalles...">
       </div>
@@ -347,6 +351,7 @@
       <button class="modal-close" id="event-detail-close">✕</button>
     </div>
     <p id="event-detail-when" class="focus-note"></p>
+    <p id="event-detail-travel" class="focus-note"></p>
     <p id="event-detail-location" class="focus-note"></p>
     <p id="event-detail-desc" class="focus-note"></p>
     <div id="event-prep-list" class="prep-list"></div>

@@ -24,6 +24,12 @@ function minutesUntil(dt) {
   return (new Date(dt).getTime() - Date.now()) / 60000;
 }
 
+function leaveTime(ev) {
+  if (!ev || !ev.start) return null;
+  const travel = Number(ev.travel_minutes) || 0;
+  return new Date(new Date(ev.start).getTime() - travel * 60000);
+}
+
 function check() {
   const dismissed = getDismissed();
   const taskHit = (state.tasks || [])
@@ -36,9 +42,30 @@ function check() {
   try {
     const cached = JSON.parse(sessionStorage.getItem("brisa.todayEvents") || "[]");
     eventHit = cached
-      .map(ev => ({ kind: "event", item: ev, at: ev.start, min: minutesUntil(ev.start) }))
-      .filter(x => x.min > 0 && x.min <= WINDOW_MIN && !dismissed.has(`event:${x.item.id}`))
+      .map(ev => {
+        const leave = leaveTime(ev);
+        if (!leave) return null;
+        const minLeave = (leave.getTime() - Date.now()) / 60000;
+        const minStart = minutesUntil(ev.start);
+        if (minStart <= 0) return null; // already started
+        return { kind: "event", item: ev, min: minLeave, leave: true };
+      })
+      .filter(x => x && x.min > 0 && x.min <= WINDOW_MIN && !dismissed.has(`event:${x.item.id}`))
       .sort((a, b) => a.min - b.min)[0];
+    // Already past leave time but event hasn't started: urgent leave now
+    if (!eventHit) {
+      eventHit = cached
+        .map(ev => {
+          const leave = leaveTime(ev);
+          if (!leave || !ev.travel_minutes) return null;
+          const minLeave = (leave.getTime() - Date.now()) / 60000;
+          const minStart = minutesUntil(ev.start);
+          if (minLeave > 0 || minStart <= 0) return null;
+          return { kind: "event", item: ev, min: 0, leave: true, late: true };
+        })
+        .filter(x => x && !dismissed.has(`event:${x.item.id}`))
+        .sort((a, b) => minutesUntil(a.item.start) - minutesUntil(b.item.start))[0];
+    }
   } catch {
     eventHit = null;
   }
@@ -52,9 +79,13 @@ function check() {
   }
 
   const key = `${upcoming.kind}:${upcoming.item.id}`;
-  const label = upcoming.min < 1
-    ? "Ahora mismo"
-    : `En ${Math.ceil(upcoming.min)} min`;
+  const label = upcoming.late
+    ? "¡Sal ya!"
+    : upcoming.min < 1
+      ? "Ahora mismo"
+      : upcoming.leave && upcoming.item.travel_minutes
+        ? `Sal en ${Math.ceil(upcoming.min)} min`
+        : `En ${Math.ceil(upcoming.min)} min`;
 
   if (existing) {
     if (existing.dataset.key === key) {
