@@ -385,20 +385,26 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
     </div>
 
     ${(() => {
-      const patterns = {};
+      const groups = {};
       for (const t of allTxs) {
         if (!t.is_recurring) continue;
         const key = String(t.description || "").trim().toLowerCase();
         if (!key) continue;
-        if (!patterns[key] || String(t.date) > String(patterns[key].date)) {
-          patterns[key] = t;
-        }
-        if (t.alias && (!patterns[key].alias || String(t.date) >= String(patterns[key].date))) {
-          patterns[key] = { ...patterns[key], alias: t.alias };
-        }
+        (groups[key] = groups[key] || []).push(t);
       }
-      const list = Object.values(patterns).sort((a, b) =>
-        String(a.description).localeCompare(String(b.description)));
+      const dayOf = (d) => Number(String(d).slice(8, 10)) || 0;
+      const list = Object.values(groups).map(rows => {
+        const sorted = [...rows].sort((a, b) => String(a.date) > String(b.date) ? -1 : 1);
+        const rep = { ...sorted[0] };
+        const days = rows.map(t => dayOf(t.date)).filter(d => d >= 1 && d <= 31);
+        rep.usualDay = days.length
+          ? [...days].sort((a, b) =>
+              days.filter(x => x === b).length - days.filter(x => x === a).length)[0]
+          : null;
+        const withAlias = [...rows].reverse().find(t => t.alias);
+        if (withAlias) rep.alias = withAlias.alias;
+        return rep;
+      }).sort((a, b) => (a.usualDay || 99) - (b.usualDay || 99));
       currentPatterns = list;
       if (list.length === 0) return "";
       const committed = list
@@ -418,7 +424,7 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
             inMonth(t.date, currentMonth));
           return `
           <div class="breakdown-row">
-            <div class="breakdown-cat">${escapeHtml(displayName(p))}</div>
+            <div class="breakdown-cat">${escapeHtml(displayName(p))}${p.usualDay ? `<small>día ~${p.usualDay}</small>` : ""}</div>
             <div class="breakdown-val ${p.type === "income" ? "income" : "expense"}">${p.type === "income" ? "+" : "−"}${formatMoney(p.amount)}</div>
             ${paid
               ? `<span class="fixed-pill paid">Pagada</span>`

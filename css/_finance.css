@@ -450,6 +450,12 @@
   overflow-wrap: anywhere;
 }
 
+.breakdown-cat small {
+  display: block;
+  font-size: 8px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
 .breakdown-bar {
   height: 8px;
   border-radius: 99px;
