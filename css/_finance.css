@@ -400,7 +400,16 @@
 
 /* Search */
 .finance-search-row {
+  position: sticky;
+  top: 8px;
+  z-index: 5;
   margin-bottom: 10px;
+  padding: 8px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(20, 60, 100, .55), rgba(20, 60, 100, .35));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .finance-search {
