@@ -93,6 +93,39 @@
   margin: 0 0 8px;
 }
 
+/* Event prep checklist */
+.prep-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.prep-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: #fff;
+  cursor: pointer;
+  border-radius: 10px;
+  padding: 7px 10px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, .12), rgba(255, 255, 255, .04));
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.prep-row input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: #27c9eb;
+  flex-shrink: 0;
+}
+
+.prep-done {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
 .focus-question {
   font-size: 13px;
   font-weight: 600;
