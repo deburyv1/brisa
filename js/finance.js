@@ -231,8 +231,6 @@ async function fetchBudgets(month) {
   }
 }
 
-const EXPENSE_CATEGORIES = ["Comida", "Transporte", "Casa", "Salud", "Ocio", "Suscripciones", "Regalos", "Trabajo", "Préstamo", "Tarjeta", "Ahorro", "Otro"];
-
 function netByCategory(txs, byId) {
   const net = {};
   const gross = {};
