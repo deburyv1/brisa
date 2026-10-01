@@ -23,23 +23,6 @@ select {
   -webkit-user-select: text;
 }
 
-/* Real content stays selectable (copyable) */
-.task-name,
-.tx-desc,
-.note-title,
-.note-preview,
-.person-name,
-.inbox-text,
-.capture-suggest-text,
-.next-title,
-.next-detail,
-.greeting-quote,
-.finance-history-file,
-.weather-label {
-  user-select: text;
-  -webkit-user-select: text;
-}
-
 body {
   margin: 0;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
