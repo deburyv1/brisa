@@ -422,7 +422,7 @@
 
 .breakdown-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(120px, 1fr) minmax(0, 1.5fr) auto;
   align-items: center;
   gap: 10px;
   padding: 4px 0;
