@@ -20,3 +20,11 @@ export function isDirty(form, snapshot) {
 export function confirmDiscard() {
   return confirm("Tienes cambios sin guardar. ¿Descartarlos?");
 }
+
+// datetime-local ("2026-10-01T19:15") -> ISO instant, so the
+// backend always stores UTC and reads never shift with TZ.
+export function toISODateTime(v) {
+  if (!v) return v;
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? v : d.toISOString();
+}

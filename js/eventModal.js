@@ -3,6 +3,7 @@
    Handles event creation
    ============================================ */
 const API_BASE = "/api";
+import { toISODateTime } from "./modalGuard.js";
 
 export function initEventModal() {
   const overlay = document.querySelector("#event-modal");
@@ -50,7 +51,11 @@ export function initEventModal() {
       const res = await fetch(`${API_BASE}/events`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          start: toISODateTime(data.start),
+          end: toISODateTime(data.end),
+        }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       close();

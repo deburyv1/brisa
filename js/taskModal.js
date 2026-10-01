@@ -3,7 +3,7 @@
    Handles task creation and editing
    ============================================ */
 const API_BASE = "/api";
-import { snapshotForm, isDirty, confirmDiscard } from "./modalGuard.js";
+import { snapshotForm, isDirty, confirmDiscard, toISODateTime } from "./modalGuard.js";
 
 function toLocalInput(dt) {
   if (!dt) return "";
@@ -86,13 +86,21 @@ export function initTaskModal() {
         await fetch(`${API_BASE}/tasks/${editingId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
+          body: JSON.stringify({
+            ...data,
+            scheduled_datetime: toISODateTime(data.scheduled_datetime),
+            due_datetime: toISODateTime(data.due_datetime),
+          }),
         });
       } else {
         await fetch(`${API_BASE}/tasks`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
+          body: JSON.stringify({
+            ...data,
+            scheduled_datetime: toISODateTime(data.scheduled_datetime),
+            due_datetime: toISODateTime(data.due_datetime),
+          }),
         });
       }
       close();
