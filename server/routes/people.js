@@ -16,14 +16,14 @@ router.get('/', async (req, res) => {
 
 // POST /api/people
 router.post('/', async (req, res) => {
-  const { name, nickname, rut, birthday, relation, photo } = req.body;
+  const { name, nickname, rut, birthday, relation, photo, phone } = req.body;
   if (!name || !name.trim()) {
     return res.status(400).json({ error: 'Name is required' });
   }
   try {
     const result = await pool.query(
-      'INSERT INTO people (name, nickname, rut, birthday, relation, photo) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-      [name.trim(), nickname || null, rut || null, birthday || null, relation || null, photo || null]
+      'INSERT INTO people (name, nickname, rut, birthday, relation, photo, phone) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+      [name.trim(), nickname || null, rut || null, birthday || null, relation || null, photo || null, phone || null]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -46,14 +46,14 @@ router.get('/:id', async (req, res) => {
 
 // PUT /api/people/:id
 router.put('/:id', async (req, res) => {
-  const { name, nickname, rut, birthday, relation, photo } = req.body;
+  const { name, nickname, rut, birthday, relation, photo, phone } = req.body;
   if (!name || !name.trim()) {
     return res.status(400).json({ error: 'Name is required' });
   }
   try {
     const result = await pool.query(
-      'UPDATE people SET name = $1, nickname = $2, rut = $3, birthday = $4, relation = $5, photo = $6 WHERE id = $7 RETURNING *',
-      [name.trim(), nickname || null, rut || null, birthday || null, relation || null, photo || null, req.params.id]
+      'UPDATE people SET name = $1, nickname = $2, rut = $3, birthday = $4, relation = $5, photo = $6, phone = $7 WHERE id = $8 RETURNING *',
+      [name.trim(), nickname || null, rut || null, birthday || null, relation || null, photo || null, phone || null, req.params.id]
     );
     res.json(result.rows[0]);
   } catch (err) {

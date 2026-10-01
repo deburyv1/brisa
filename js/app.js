@@ -24,6 +24,9 @@ import { initPlayer } from "./player.js";
 import { initAvatar } from "./avatar.js";
 import { initFocus, openFocus } from "./focusMode.js";
 import { initUpcoming } from "./upcoming.js";
+import { initCalendar } from "./calendar.js";
+import { initEventModal } from "./eventModal.js";
+import { initWeek } from "./week.js";
 import { initWallpaper } from "./wallpaper.js";
 import { initGlass } from "./glass.js";
 
@@ -33,6 +36,7 @@ window.initFinance = initFinance;
 window.initRelationships = initRelationships;
 window.initBirthdays = initBirthdays;
 window.initInbox = initInbox;
+window.initCalendar = initCalendar;
 window.initToday = initToday;
 window.loadEntryIntoCapture = loadEntryIntoCapture;
 window.renderNext = renderNext;
@@ -43,15 +47,17 @@ const NAV_LABELS = {
   inbox: "Inbox",
   tasks: "Acciones",
   journal: "Notas",
+  calendar: "Calendario",
   finance: "Finanzas",
   people: "Relaciones",
 };
 
 const NAV_SECTIONS = {
-  home: ["#welcome-section", "#capture-section", "#next-section", "#today-section", "#birthdays-section"],
+  home: ["#welcome-section", "#capture-section", "#next-section", "#today-section", "#birthdays-section", "#week-section"],
   inbox: ["#inbox-section"],
   tasks: ["#tasks-section"],
   journal: ["#journal-section"],
+  calendar: ["#calendar-section"],
   finance: ["#finance-section"],
   people: ["#relationships-section"],
 };
@@ -65,8 +71,10 @@ const ALL_SECTIONS = [
   "#inbox-section",
   "#tasks-section",
   "#journal-section",
+  "#calendar-section",
   "#finance-section",
   "#relationships-section",
+  "#week-section",
 ];
 
 function initNavigation() {
@@ -115,6 +123,8 @@ async function main() {
   initNext();
   initAvatar();
   initFocus();
+  initCalendar();
+  initEventModal();
   initPlayer();
   initNavigation();
 
@@ -126,9 +136,11 @@ async function main() {
     initRelationships(),
     initBirthdays(),
     initInbox(),
+    initCalendar(),
   ]);
   initToday();
   renderNext();
+  initWeek();
   initUpcoming();
   initWeather();
   renderGuidanceBanner();

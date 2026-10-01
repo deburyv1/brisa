@@ -28,6 +28,7 @@ export function initModal() {
         .then(p => {
           form.name.value = p.name || "";
           form.nickname.value = p.nickname || "";
+          form.phone.value = p.phone || "";
           form.rut.value = p.rut || "";
           form.relation.value = p.relation || "";
           form.birthday.value = p.birthday ? String(p.birthday).slice(0, 10) : "";

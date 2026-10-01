@@ -1,0 +1,25 @@
+/* ============================================
+   BRISA - Home grid (center content + week rail)
+   ============================================ */
+.home-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 11px;
+  align-items: start;
+}
+
+.home-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.home-main > section:first-child {
+  margin-top: 11px;
+}
+
+@media (max-width: 1100px) {
+  .home-grid {
+    grid-template-columns: 1fr;
+  }
+}

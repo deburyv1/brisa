@@ -29,6 +29,7 @@
       <button class="nav" data-nav="inbox"><img src="brisa-icons/vista_netcenter.ico" class="nav-img" alt="Inbox"> Inbox <i style="display:none">0</i></button>
       <button class="nav" data-nav="tasks"><img src="brisa-icons/DxpTaskSync_50.ico" class="nav-img" alt="Acciones"> Acciones <i>4</i></button>
       <button class="nav" data-nav="journal"><img src="brisa-icons/vista_sticky_notes.ico" class="nav-img" alt="Notas"> Notas <i>0</i></button>
+      <button class="nav" data-nav="calendar"><img src="brisa-icons/vista_cal_1.ico" class="nav-img" alt="Calendario"> Calendario</button>
       <button class="nav" data-nav="finance"><img src="brisa-icons/budget.ico" class="nav-img" alt="Finanzas"> Finanzas</button>
       <button class="nav" data-nav="people"><img src="brisa-icons/vista_messenger.ico" class="nav-img" alt="Relaciones"> Relaciones</button>
     </nav>
@@ -64,7 +65,10 @@
       </div>
     </header>
 
-    <section class="welcome aero-panel" id="welcome-section">
+    <!-- Home grid: center content + week rail -->
+    <div class="home-grid">
+      <div class="home-main">
+        <section class="welcome aero-panel" id="welcome-section">
       <div class="welcome-left">
         <h1 id="greeting">Cargando...</h1>
         <p class="greeting-date" id="date"></p>
@@ -91,9 +95,17 @@
 
     <!-- Birthdays Section -->
     <section class="birthdays" id="birthdays-section"></section>
+      </div><!-- /.home-main -->
+
+      <!-- Week rail -->
+      <aside class="week" id="week-section" style="display:none;"></aside>
+    </div><!-- /.home-grid -->
 
     <!-- Tasks Section -->
     <section class="tasks" id="tasks-section" style="display:none;"></section>
+
+    <!-- Calendar Section -->
+    <section class="calendar" id="calendar-section" style="display:none;"></section>
 
     <!-- Inbox Section -->
     <section class="inbox" id="inbox-section" style="display:none;"></section>
@@ -260,6 +272,44 @@
   </div>
 </div>
 
+<!-- Modal: Nuevo Evento -->
+<div class="modal-overlay" id="event-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="event-modal-title">Nuevo evento</div>
+      <button class="modal-close" id="event-modal-close">✕</button>
+    </div>
+    <form class="modal-form" id="event-form">
+      <div class="form-group">
+        <label>Título<span class="required">*</span></label>
+        <input type="text" name="title" placeholder="Ej: Médico" required>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Inicio<span class="required">*</span></label>
+          <input type="datetime-local" name="start" required>
+        </div>
+        <div class="form-group">
+          <label>Fin<span class="optional">(opcional)</span></label>
+          <input type="datetime-local" name="end">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Ubicación<span class="optional">(opcional)</span></label>
+        <input type="text" name="location" placeholder="Ej: Clínica Santa María">
+      </div>
+      <div class="form-group">
+        <label>Descripción<span class="optional">(opcional)</span></label>
+        <input type="text" name="description" placeholder="Detalles...">
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="modal-btn modal-btn-secondary" id="event-modal-cancel">Cancelar</button>
+        <button type="submit" class="modal-btn modal-btn-primary">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- Modal: Nueva Cuenta -->
 <div class="modal-overlay" id="account-modal">
   <div class="modal">
@@ -406,6 +456,10 @@
       <div class="form-group">
         <label>Fecha de nacimiento<span class="optional">(opcional)</span></label>
         <input type="date" name="birthday">
+      </div>
+      <div class="form-group">
+        <label>WhatsApp<span class="optional">(opcional)</span></label>
+        <input type="tel" name="phone" placeholder="Ej: 9 1234 5678">
       </div>
       <div class="form-group">
         <label>Foto<span class="optional">(opcional)</span></label>

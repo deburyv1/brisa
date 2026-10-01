@@ -6,6 +6,21 @@ import { fetchPeople, getDisplayName, getInitials, formatDate } from "./people.j
 
 const API_BASE = "/api";
 
+function normalizePhone(raw) {
+  const digits = String(raw || "").replace(/\D/g, "");
+  if (/^9\d{8}$/.test(digits)) return "56" + digits; // móvil chileno
+  return digits || null;
+}
+
+function contactButtons(p) {
+  const intl = normalizePhone(p.phone);
+  if (!intl) return "";
+  return `
+    <a class="tx-btn tx-btn-edit" href="https://wa.me/${intl}" target="_blank" rel="noopener" title="WhatsApp">💬</a>
+    <a class="tx-btn tx-btn-edit" href="tel:+${intl}" title="Llamar">📞</a>
+  `;
+}
+
 const RELATION_LABELS = {
   family: "Familiar",
   friend: "Amigo/a",
@@ -71,6 +86,7 @@ export async function initRelationships() {
             ${p.birthday ? `<div class="person-birthday">🎂 ${formatDate(p.birthday)}</div>` : ""}
           </div>
           <div class="tx-actions">
+            ${contactButtons(p)}
             <button class="tx-btn tx-btn-edit" data-action="edit">Editar</button>
             <button class="tx-btn tx-btn-delete" data-action="delete">Eliminar</button>
           </div>

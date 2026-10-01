@@ -1,0 +1,169 @@
+/* ============================================
+   BRISA - Week rail
+   ============================================ */
+.week {
+  position: sticky;
+  top: 15px;
+  margin-top: 11px;
+  border-radius: var(--radius-panel);
+  padding: 16px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, var(--glass-a1)), rgba(255, 255, 255, var(--glass-a2)));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 10px 30px rgba(0, 58, 94, .08);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: calc(100vh - 30px);
+  overflow-y: auto;
+}
+
+.week-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.week-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.week-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.week-btn {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+}
+
+.week-range {
+  font-size: 9px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.75);
+  white-space: nowrap;
+}
+
+.week-day {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 8px;
+  border-radius: 12px;
+  padding: 8px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, .12), rgba(255, 255, 255, .04));
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.week-day.today {
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.week-date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.2;
+}
+
+.week-dow {
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: capitalize;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.week-num {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.week-day.today .week-num {
+  color: #7bedff;
+}
+
+.week-items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.week-item {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.9);
+  border: 0;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+  font-family: inherit;
+}
+
+button.week-item {
+  cursor: pointer;
+}
+
+button.week-item:hover .week-item-title {
+  text-decoration: underline;
+}
+
+.week-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.week-dot.high { background: #ff4d4d; }
+.week-dot.medium { background: #00a8e8; }
+.week-dot.low { background: #4fc98a; }
+.week-dot.event { background: #f4c32e; border-radius: 2px; transform: rotate(45deg); }
+
+.week-item-title {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.week-item-time {
+  color: rgba(255, 255, 255, 0.6);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.week-free {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.35);
+  font-style: italic;
+}
+
+@media (max-width: 1100px) {
+  .week {
+    position: static;
+    max-height: none;
+  }
+}

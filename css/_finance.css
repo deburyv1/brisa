@@ -154,6 +154,13 @@
 .tx-actions {
   display: flex;
   gap: 6px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.tx-actions a.tx-btn {
+  text-decoration: none;
 }
 
 .tx-btn {
