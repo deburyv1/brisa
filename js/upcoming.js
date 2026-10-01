@@ -1,18 +1,35 @@
 /* ============================================
    BRISA - Upcoming Module
-   Floating pill when a scheduled task starts within 10 min.
-   Polls while the app is open; dismiss is per task (session).
+   Escalating attention for tasks and event leave times:
+   10 min -> silent pill
+    5 min -> chime + system notification + flashing title
+    0 min -> fullscreen takeover until dismissed
+   Polls while the app is open; snooze supported.
    ============================================ */
 import { state } from "./state.js";
 
 const WINDOW_MIN = 10;
+const WARN_MIN = 5;
 const DISMISSED_KEY = "brisa.upcomingDismissed";
+const SNOOZE_KEY = "brisa.upcomingSnooze";
 
-function getDismissed() {
+let titleFlashId = null;
+let alarmTimers = [];
+let baseTitle = document.title;
+
+function readSet(key) {
   try {
-    return new Set(JSON.parse(sessionStorage.getItem(DISMISSED_KEY) || "[]"));
+    return new Set(JSON.parse(sessionStorage.getItem(key) || "[]"));
   } catch {
     return new Set();
+  }
+}
+
+function writeSet(key, set) {
+  try {
+    sessionStorage.setItem(key, JSON.stringify([...set]));
+  } catch {
+    // ignore
   }
 }
 
@@ -30,12 +47,155 @@ function leaveTime(ev) {
   return new Date(new Date(ev.start).getTime() - travel * 60000);
 }
 
+function chime(times = 3) {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    let t = ctx.currentTime;
+    for (let i = 0; i < times; i++) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = 880;
+      osc.type = "sine";
+      gain.gain.setValueAtTime(0.001, t);
+      gain.gain.exponentialRampToValueAtTime(0.4, t + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+      osc.start(t);
+      osc.stop(t + 0.55);
+      t += 0.7;
+    }
+  } catch (e) {
+    console.warn("Audio no disponible:", e);
+  }
+}
+
+function notify(title, body) {
+  try {
+    if (!("Notification" in window)) return;
+    if (Notification.permission === "granted") {
+      new Notification(title, { body });
+    } else if (Notification.permission === "default") {
+      Notification.requestPermission().then(p => {
+        if (p === "granted") {
+          try {
+            new Notification(title, { body });
+          } catch {
+            // ignore
+          }
+        }
+      }).catch(() => {});
+    }
+  } catch {
+    // ignore
+  }
+}
+
+function startTitleFlash(text) {
+  stopTitleFlash();
+  let on = false;
+  titleFlashId = setInterval(() => {
+    on = !on;
+    document.title = on ? text : baseTitle;
+  }, 1000);
+}
+
+function stopTitleFlash() {
+  if (titleFlashId) {
+    clearInterval(titleFlashId);
+    titleFlashId = null;
+  }
+  document.title = baseTitle;
+}
+
+function stopTakeoverSound() {
+  alarmTimers.forEach(clearInterval);
+  alarmTimers = [];
+}
+
+function showTakeover(item, isEvent, lateLeave) {
+  stopTakeoverSound();
+  document.querySelector("#upcoming-takeover")?.remove();
+  chime(4);
+  alarmTimers.push(setInterval(() => chime(4), 8000));
+
+  const heading = !isEvent ? "⏰ ¡Ahora!" : item.travel_minutes ? "🚌 ¡Sal ya!" : "📅 ¡Ahora!";
+  const sub = lateLeave && item.travel_minutes
+    ? `Debiste salir hace ${Math.max(1, Math.round(-(new Date(item.start).getTime() - Number(item.travel_minutes) * 60000 - Date.now()) / 60000))} min. Sin culpa: parte ahora.`
+    : "Lo que hiciste cuenta, aunque no esté terminado.";
+
+  const overlay = document.createElement("div");
+  overlay.className = "timer-alarm";
+  overlay.id = "upcoming-takeover";
+  overlay.innerHTML = `
+    <div class="timer-alarm-card">
+      <h2>${heading}</h2>
+      <p>${escapeHtml(item.title)}</p>
+      <p style="font-size:11px;opacity:.85">${sub}</p>
+      <div style="display:flex;gap:8px;justify-content:center">
+        <button class="modal-btn modal-btn-primary" id="upcoming-go">Ver</button>
+        <button class="modal-btn modal-btn-secondary" id="upcoming-snooze">5 min más</button>
+        <button class="modal-btn modal-btn-secondary" id="upcoming-drop">Descartar</button>
+      </div>
+    </div>
+  `;
+  overlay.querySelector("#upcoming-go")?.addEventListener("click", () => {
+    stopTakeover();
+    if (isEvent) {
+      if (window.openEventDetail) window.openEventDetail(item.id);
+    } else if (window.openFocus) {
+      window.openFocus(item.id);
+    }
+  });
+  overlay.querySelector("#upcoming-snooze")?.addEventListener("click", () => {
+    const snoozed = readSet(SNOOZE_KEY);
+    snoozed.add(`${snoozeKey(isEvent, item.id)}:${Date.now() + 5 * 60 * 1000}`);
+    writeSet(SNOOZE_KEY, snoozed);
+    stopTakeover();
+  });
+  overlay.querySelector("#upcoming-drop")?.addEventListener("click", () => {
+    const dismissed = readSet(DISMISSED_KEY);
+    dismissed.add(snoozeKey(isEvent, item.id));
+    writeSet(DISMISSED_KEY, dismissed);
+    stopTakeover();
+    hidePill();
+  });
+  document.body.appendChild(overlay);
+}
+
+function stopTakeover() {
+  stopTakeoverSound();
+  stopTitleFlash();
+  document.querySelector("#upcoming-takeover")?.remove();
+}
+
+function snoozeKey(isEvent, id) {
+  return `${isEvent ? "event" : "task"}:${id}`;
+}
+
 function check() {
-  const dismissed = getDismissed();
+  const dismissed = readSet(DISMISSED_KEY);
+  const snoozedRaw = readSet(SNOOZE_KEY);
+  const now = Date.now();
+  // Snooze entries expire after 5 minutes: "kind:id:timestamp"
+  const snoozed = new Set(
+    [...snoozedRaw].filter(k => {
+      const parts = String(k).split(":");
+      const until = Number(parts[parts.length - 1]);
+      return Number.isFinite(until) && until > now;
+    }).map(k => {
+      const parts = String(k).split(":");
+      parts.pop();
+      return parts.join(":");
+    })
+  );
+
   const taskHit = (state.tasks || [])
     .filter(t => !t.is_completed && t.scheduled_datetime)
-    .map(t => ({ kind: "task", item: t, at: t.scheduled_datetime, min: minutesUntil(t.scheduled_datetime) }))
-    .filter(x => x.min > 0 && x.min <= WINDOW_MIN && !dismissed.has(`task:${x.item.id}`))
+    .map(t => ({ kind: "task", item: t, min: minutesUntil(t.scheduled_datetime) }))
+    .filter(x => x.min > -15 && x.min <= WINDOW_MIN && !dismissed.has(snoozeKey(false, x.item.id)) && !snoozed.has(snoozeKey(false, x.item.id)))
     .sort((a, b) => a.min - b.min)[0];
 
   let eventHit = null;
@@ -45,85 +205,87 @@ function check() {
       .map(ev => {
         const leave = leaveTime(ev);
         if (!leave) return null;
-        const minLeave = (leave.getTime() - Date.now()) / 60000;
+        const minLeave = (leave.getTime() - now) / 60000;
         const minStart = minutesUntil(ev.start);
-        if (minStart <= 0) return null; // already started
+        if (minStart <= 0) return null;
         return { kind: "event", item: ev, min: minLeave, leave: true };
       })
-      .filter(x => x && x.min > 0 && x.min <= WINDOW_MIN && !dismissed.has(`event:${x.item.id}`))
+      .filter(x => x && x.min <= WINDOW_MIN && !dismissed.has(snoozeKey(true, x.item.id)) && !snoozed.has(snoozeKey(true, x.item.id)))
       .sort((a, b) => a.min - b.min)[0];
-    // Already past leave time but event hasn't started: urgent leave now
-    if (!eventHit) {
-      eventHit = cached
-        .map(ev => {
-          const leave = leaveTime(ev);
-          if (!leave || !ev.travel_minutes) return null;
-          const minLeave = (leave.getTime() - Date.now()) / 60000;
-          const minStart = minutesUntil(ev.start);
-          if (minLeave > 0 || minStart <= 0) return null;
-          return { kind: "event", item: ev, min: 0, leave: true, late: true };
-        })
-        .filter(x => x && !dismissed.has(`event:${x.item.id}`))
-        .sort((a, b) => minutesUntil(a.item.start) - minutesUntil(b.item.start))[0];
-    }
   } catch {
     eventHit = null;
   }
 
   const upcoming = [taskHit, eventHit].filter(Boolean).sort((a, b) => a.min - b.min)[0];
-
-  const existing = document.querySelector(".upcoming-pill");
   if (!upcoming) {
     hidePill();
     return;
   }
 
-  const key = `${upcoming.kind}:${upcoming.item.id}`;
-  const label = upcoming.late
+  const isEvent = upcoming.kind === "event";
+  const lateLeave = isEvent && upcoming.item.travel_minutes && upcoming.min < 0;
+  const key = snoozeKey(isEvent, upcoming.item.id);
+  const label = lateLeave
     ? "¡Sal ya!"
     : upcoming.min < 1
       ? "Ahora mismo"
-      : upcoming.leave && upcoming.item.travel_minutes
+      : isEvent && upcoming.item.travel_minutes
         ? `Sal en ${Math.ceil(upcoming.min)} min`
         : `En ${Math.ceil(upcoming.min)} min`;
 
+  // Stage 1: silent pill (always while in window)
+  const existing = document.querySelector(".upcoming-pill");
   if (existing) {
     if (existing.dataset.key === key) {
       const strong = existing.querySelector("strong");
       if (strong) strong.textContent = label;
-      return;
+    } else {
+      existing.remove();
     }
-    existing.remove();
+  }
+  if (!document.querySelector(".upcoming-pill")) {
+    const pill = document.createElement("div");
+    pill.className = "upcoming-pill";
+    pill.dataset.key = key;
+    pill.innerHTML = `
+      <strong>${label}:</strong>
+      <span>${escapeHtml(upcoming.item.title)}</span>
+      <button class="upcoming-dismiss" title="Ocultar">✕</button>
+    `;
+    pill.querySelector(".upcoming-dismiss")?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const d = readSet(DISMISSED_KEY);
+      d.add(key);
+      writeSet(DISMISSED_KEY, d);
+      stopTitleFlash();
+      hidePill();
+    });
+    pill.addEventListener("click", () => {
+      hidePill();
+      stopTitleFlash();
+      if (isEvent) {
+        if (window.openEventDetail) window.openEventDetail(upcoming.item.id);
+      } else if (window.openFocus) {
+        window.openFocus(upcoming.item.id);
+      }
+    });
+    document.body.appendChild(pill);
   }
 
-  const pill = document.createElement("div");
-  pill.className = "upcoming-pill";
-  pill.dataset.key = key;
-  pill.innerHTML = `
-    <strong>${label}:</strong>
-    <span>${escapeHtml(upcoming.item.title)}</span>
-    <button class="upcoming-dismiss" title="Ocultar">✕</button>
-  `;
-  pill.querySelector(".upcoming-dismiss")?.addEventListener("click", (e) => {
-    e.stopPropagation();
-    const set = getDismissed();
-    set.add(String(key));
-    try {
-      sessionStorage.setItem(DISMISSED_KEY, JSON.stringify([...set]));
-    } catch {
-      // ignore
-    }
-    hidePill();
-  });
-  pill.addEventListener("click", () => {
-    hidePill();
-    if (upcoming.kind === "event") {
-      if (window.openEventDetail) window.openEventDetail(upcoming.item.id);
-    } else if (window.openFocus) {
-      window.openFocus(upcoming.item.id);
-    }
-  });
-  document.body.appendChild(pill);
+  // Stage 2: chime + notification + title at 5 min (once per key)
+  const warned = readSet("brisa.upcomingWarned");
+  if (upcoming.min <= WARN_MIN && !warned.has(key)) {
+    warned.add(key);
+    writeSet("brisa.upcomingWarned", warned);
+    chime(3);
+    notify("Brisa", `${label}: ${upcoming.item.title}`);
+    startTitleFlash(`⏰ ${label} — ${upcoming.item.title}`.slice(0, 60));
+  }
+
+  // Stage 3: fullscreen takeover at zero
+  if (upcoming.min <= 0 && !document.querySelector("#upcoming-takeover")) {
+    showTakeover(upcoming.item, isEvent, lateLeave);
+  }
 }
 
 function escapeHtml(str) {
