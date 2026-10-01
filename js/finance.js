@@ -18,6 +18,9 @@ let activeAccount = null;
 let showOnlyUncategorized = false;
 let currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
 let currentPatterns = [];
+let searchText = "";
+let compareMode = false;
+let budgetEdit = false;
 
 export function setUncategorizedOnly(v) {
   showOnlyUncategorized = !!v;
@@ -204,19 +207,127 @@ export async function initFinance() {
   const account = accounts.find(a => a.id == activeAccountId);
   activeAccount = account;
 
-  const [allTxs, uncategorized, imports] = await Promise.all([
+  const [allTxs, uncategorized, imports, budgets] = await Promise.all([
     fetchTransactions(activeAccountId, false),
     fetchUncategorizedCount(activeAccountId),
     fetchImports(activeAccountId),
+    fetchBudgets(currentMonth),
   ]);
   state.transactions = allTxs || [];
   const monthTxs = (allTxs || []).filter(t => inMonth(t.date, currentMonth));
   const txs = showOnlyUncategorized ? monthTxs.filter(t => !t.category) : monthTxs;
 
-  renderFinance(section, accounts, account, allTxs || [], monthTxs, txs, uncategorized, imports || []);
+  renderFinance(section, accounts, account, allTxs || [], monthTxs, txs, uncategorized, imports || [], budgets || []);
 }
 
-function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncategorized, imports) {
+async function fetchBudgets(month) {
+  try {
+    const res = await fetch(`${API_BASE}/budgets?month=${month}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (e) {
+    console.warn("No se pudieron cargar topes:", e);
+    return [];
+  }
+}
+
+const EXPENSE_CATEGORIES = ["Comida", "Transporte", "Casa", "Salud", "Ocio", "Suscripciones", "Regalos", "Trabajo", "Préstamo", "Tarjeta", "Ahorro", "Otro"];
+
+function netByCategory(txs, byId) {
+  const net = {};
+  const gross = {};
+  for (const t of txs) {
+    if (t.type === "income") {
+      const parent = t.linked_id ? byId[t.linked_id] : null;
+      if (parent && parent.category) {
+        const cat = parent.category;
+        net[cat] = (net[cat] || 0) - Number(t.amount);
+      }
+      continue;
+    }
+    const cat = t.category || "Sin categoría";
+    gross[cat] = (gross[cat] || 0) + Number(t.amount);
+    net[cat] = (net[cat] || 0) + Number(t.amount);
+  }
+  return { net, gross };
+}
+
+function renderBreakdown(monthTxs, byId, budgetMap) {
+  const { net, gross } = netByCategory(monthTxs, byId);
+  let rows = Object.entries(net).sort((a, b) => b[1] - a[1]);
+  if (budgetEdit) {
+    // In edit mode show every known category so topes can be set proactively
+    const known = new Set([...rows.map(([c]) => c), ...Object.keys(budgetMap), ...EXPENSE_CATEGORIES]);
+    rows = [...known].sort().map(c => [c, net[c] || 0]);
+  }
+  const total = rows.reduce((s, [, v]) => s + v, 0);
+  return `
+  <div class="finance-breakdown">
+    <div class="finance-breakdown-title">
+      <span>Gastos de ${monthLabel(currentMonth)} · ${formatMoney(total)}</span>
+      <span class="finance-breakdown-actions">
+        <button class="finance-mini-btn" id="toggle-compare">Comparar</button>
+        <button class="finance-mini-btn" id="toggle-budgets">${budgetEdit ? "Listo" : "Topes"}</button>
+      </span>
+    </div>
+    ${rows.map(([cat, val]) => {
+      const cap = budgetMap[cat];
+      const pct = total ? Math.max(0, Math.round(val / total * 100)) : 0;
+      const over = cap != null && val > cap;
+      return `
+      <div class="breakdown-row" title="${gross[cat] && gross[cat] !== val ? `Bruto: ${formatMoney(gross[cat])}` : escapeHtml(cat)}">
+        <div class="breakdown-cat">${escapeHtml(cat)}</div>
+        <div class="breakdown-bar"><span style="width:${cap != null && !budgetEdit ? Math.min(100, Math.round(val / cap * 100)) : pct}%"></span></div>
+        ${budgetEdit && cat !== "Sin categoría" ? `
+          <input class="budget-input" data-budget-cat="${escapeHtml(cat)}" type="number" min="0" step="any"
+            placeholder="Tope" value="${cap != null ? cap : ""}">
+        ` : `
+          <div class="breakdown-val">${formatMoney(val)}${cap != null ? `<small> de ${formatMoney(cap)}${over ? ` · +${formatMoney(val - cap)} sobre tope` : ""}</small>` : ""}</div>
+        `}
+      </div>`;
+    }).join("")}
+  </div>`;
+}
+
+function renderCompare(monthTxs, allTxs, byId) {
+  const prev = shiftMonth(currentMonth, -1);
+  const prevTxs = (allTxs || []).filter(t => inMonth(t.date, prev));
+  const cur = netByCategory(monthTxs, byId).net;
+  const old = netByCategory(prevTxs, byId).net;
+  const cats = [...new Set([...Object.keys(cur), ...Object.keys(old)])]
+    .sort((a, b) => (cur[b] || 0) - (cur[a] || 0));
+  if (cats.length === 0) return "";
+  const max = Math.max(1, ...cats.map(c => Math.max(cur[c] || 0, old[c] || 0)));
+  return `
+  <div class="finance-breakdown">
+    <div class="finance-breakdown-title">
+      <span>${monthLabel(prev)} vs ${monthLabel(currentMonth)}</span>
+      <span class="finance-breakdown-actions">
+        <button class="finance-mini-btn" id="toggle-compare">Volver</button>
+      </span>
+    </div>
+    ${cats.map(cat => {
+      const a = old[cat] || 0;
+      const b = cur[cat] || 0;
+      const diff = b - a;
+      const arrow = diff > 0 ? "▲" : diff < 0 ? "▼" : "＝";
+      return `
+      <div class="compare-row">
+        <div class="breakdown-cat">${escapeHtml(cat)}</div>
+        <div class="compare-bars">
+          <div class="compare-bar"><span class="prev" style="width:${Math.round(a / max * 100)}%"></span></div>
+          <div class="compare-bar"><span style="width:${Math.round(b / max * 100)}%"></span></div>
+        </div>
+        <div class="breakdown-val">${formatMoney(b)} <small>${arrow} ${formatMoney(Math.abs(diff))}</small></div>
+      </div>`;
+    }).join("")}
+    <div class="compare-legend"><span><i class="swatch prev"></i>${monthLabel(prev)}</span><span><i class="swatch"></i>${monthLabel(currentMonth)}</span></div>
+  </div>`;
+}
+
+function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncategorized, imports, budgets) {
+  const budgetMap = {};
+  for (const b of budgets || []) budgetMap[b.category] = Number(b.amount);
   const byId = {};
   for (const t of allTxs) byId[t.id] = t;
   const income = allTxs
@@ -311,37 +422,7 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
       </div>`;
     })()}
 
-    ${(() => {
-      const net = {};
-      const gross = {};
-      for (const t of monthTxs) {
-        if (t.type === "income") {
-          const parent = t.linked_id ? byId[t.linked_id] : null;
-          if (parent && parent.category) {
-            const cat = parent.category;
-            net[cat] = (net[cat] || 0) - Number(t.amount);
-          }
-          continue;
-        }
-        const cat = t.category || "Sin categoría";
-        gross[cat] = (gross[cat] || 0) + Number(t.amount);
-        net[cat] = (net[cat] || 0) + Number(t.amount);
-      }
-      const rows = Object.entries(net).sort((a, b) => b[1] - a[1]);
-      const total = rows.reduce((s, [, v]) => s + v, 0);
-      if (rows.length === 0) return "";
-      return `
-      <div class="finance-breakdown">
-        <div class="finance-breakdown-title">Gastos de ${monthLabel(currentMonth)} · ${formatMoney(total)}</div>
-        ${rows.map(([cat, val]) => `
-          <div class="breakdown-row" title="${gross[cat] && gross[cat] !== val ? `Bruto: ${formatMoney(gross[cat])}` : escapeHtml(cat)}">
-            <div class="breakdown-cat">${escapeHtml(cat)}</div>
-            <div class="breakdown-bar"><span style="width:${total ? Math.max(0, Math.round(val / total * 100)) : 0}%"></span></div>
-            <div class="breakdown-val">${formatMoney(val)}</div>
-          </div>
-        `).join("")}
-      </div>`;
-    })()}
+    ${compareMode ? renderCompare(monthTxs, allTxs, byId) : renderBreakdown(monthTxs, byId, budgetMap)}
 
     ${uncategorized > 0 ? `
       <div class="finance-alert">
@@ -349,6 +430,11 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
         <button class="finance-alert-btn" id="toggle-uncategorized">${showOnlyUncategorized ? "Ver todos" : "Revisar"}</button>
       </div>
     ` : ""}
+
+    <div class="finance-search-row">
+      <input id="finance-search" class="finance-search" type="text"
+        placeholder="Buscar movimientos..." value="${escapeHtml(searchText)}" autocomplete="off">
+    </div>
 
     <div class="finance-list">
       ${txs.length === 0 ? `
@@ -421,6 +507,49 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
     showOnlyUncategorized = !showOnlyUncategorized;
     if (window.initFinance) window.initFinance();
   });
+
+  section.querySelector("#toggle-compare")?.addEventListener("click", () => {
+    compareMode = !compareMode;
+    if (window.initFinance) window.initFinance();
+  });
+
+  section.querySelector("#toggle-budgets")?.addEventListener("click", () => {
+    budgetEdit = !budgetEdit;
+    if (window.initFinance) window.initFinance();
+  });
+
+  section.querySelectorAll(".budget-input").forEach(input => {
+    input.addEventListener("change", async () => {
+      try {
+        await fetch(`${API_BASE}/budgets`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            category: input.dataset.budgetCat,
+            month: currentMonth,
+            amount: input.value === "" ? null : Number(input.value),
+          }),
+        });
+        if (window.initFinance) window.initFinance();
+      } catch (err) {
+        console.error("Error guardando tope:", err);
+      }
+    });
+  });
+
+  const searchInput = section.querySelector("#finance-search");
+  const applySearch = () => {
+    searchText = searchInput ? searchInput.value : "";
+    const q = searchText.trim().toLowerCase();
+    section.querySelectorAll(".tx-item").forEach(item => {
+      const id = item.dataset.txId;
+      const t = (allTxs || []).find(x => String(x.id) === String(id));
+      const hay = t ? `${t.description} ${t.alias || ""} ${t.category || ""}`.toLowerCase() : "";
+      item.style.display = !q || hay.includes(q) ? "" : "none";
+    });
+  };
+  searchInput?.addEventListener("input", applySearch);
+  if (searchText) applySearch();
 
   section.querySelector("#month-prev")?.addEventListener("click", () => {
     currentMonth = shiftMonth(currentMonth, -1);

@@ -84,6 +84,16 @@ try {
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`);
 
+  await pool.query(`CREATE TABLE IF NOT EXISTS budgets (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER DEFAULT 1,
+    category VARCHAR(50) NOT NULL,
+    month VARCHAR(7) NOT NULL,
+    amount NUMERIC(12,2) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, category, month)
+  )`);
+
   await pool.query(`CREATE TABLE IF NOT EXISTS imports (
     id SERIAL PRIMARY KEY,
     user_id INTEGER DEFAULT 1,

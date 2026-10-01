@@ -293,6 +293,131 @@
   color: rgba(255, 255, 255, 0.8);
   margin-bottom: 10px;
   text-transform: capitalize;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.finance-breakdown-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.finance-mini-btn {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 99px;
+  padding: 3px 10px;
+  font-size: 9px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+}
+
+.finance-mini-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
+.budget-input {
+  width: 90px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 10px;
+  font-family: inherit;
+  color: #fff;
+  background: rgba(255, 255, 255, .08);
+  outline: none;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.breakdown-val small {
+  display: block;
+  font-size: 8px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Month comparison */
+.compare-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+}
+
+.compare-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.compare-bar {
+  height: 6px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.compare-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #00c6ff, #0072ff);
+}
+
+.compare-bar span.prev {
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.compare-legend {
+  display: flex;
+  gap: 14px;
+  margin-top: 8px;
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.compare-legend .swatch {
+  display: inline-block;
+  width: 10px;
+  height: 6px;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #00c6ff, #0072ff);
+  margin-right: 4px;
+}
+
+.compare-legend .swatch.prev {
+  background: rgba(255, 255, 255, 0.45);
+}
+
+/* Search */
+.finance-search-row {
+  margin-bottom: 10px;
+}
+
+.finance-search {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 11px;
+  font-family: inherit;
+  color: #fff;
+  background: rgba(255, 255, 255, .08);
+  outline: none;
+}
+
+.finance-search::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.finance-search:focus {
+  border-color: rgba(255, 255, 255, 0.5);
 }
 
 .breakdown-row {
