@@ -26,10 +26,18 @@ export function initAvatar() {
   if (!overlay || !fileInput || !preview) return;
 
   let img = null;
+  let objectUrl = null;
   let zoom = 1;
   let offsetX = 0;
   let offsetY = 0;
   let baseScale = 1;
+
+  function revokePreview() {
+    if (objectUrl) {
+      URL.revokeObjectURL(objectUrl);
+      objectUrl = null;
+    }
+  }
 
   function open() {
     overlay.classList.add("active");
@@ -37,6 +45,9 @@ export function initAvatar() {
 
   function close() {
     overlay.classList.remove("active");
+    revokePreview();
+    preview.innerHTML = '<span class="avatar-preview-hint">Vista previa</span>';
+    img = null;
   }
 
   closeBtn?.addEventListener("click", close);
@@ -72,10 +83,11 @@ export function initAvatar() {
   fileInput.addEventListener("change", () => {
     const file = fileInput.files[0];
     if (!file) return;
+    revokePreview();
     const url = URL.createObjectURL(file);
+    objectUrl = url;
     img = new Image();
     img.onload = () => {
-      URL.revokeObjectURL(url);
       baseScale = Math.max(PREVIEW_SIZE / img.naturalWidth, PREVIEW_SIZE / img.naturalHeight);
       zoom = 1;
       offsetX = (PREVIEW_SIZE - img.naturalWidth * baseScale) / 2;

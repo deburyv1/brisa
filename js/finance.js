@@ -328,6 +328,7 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
   for (const b of budgets || []) budgetMap[b.category] = Number(b.amount);
   const byId = {};
   for (const t of allTxs) byId[t.id] = t;
+  const monthUncat = (monthTxs || []).filter(t => !t.category).length;
   const monthStart = currentMonth + "-01";
   const beforeNet = (allTxs || [])
     .filter(t => String(t.date).slice(0, 10) < monthStart)
@@ -413,11 +414,17 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
       const monthIncome = monthTxs
         .filter(t => t.type === "income")
         .reduce((s, t) => s + Number(t.amount), 0);
-      const available = monthIncome - committed;
+      const expectedIncome = list
+        .filter(p => p.type === "income" && !allTxs.some(t =>
+          String(t.description || "").trim().toLowerCase() === String(p.description).trim().toLowerCase() &&
+          inMonth(t.date, currentMonth)))
+        .reduce((s, p) => s + Number(p.amount), 0);
+      const available = monthIncome + expectedIncome - committed;
       const availableStr = `${available < 0 ? "−" : "+"}${formatMoney(Math.abs(available))}`;
+      const projectedHint = expectedIncome > 0 ? ` (incluye ~${formatMoney(expectedIncome)} por recibir)` : "";
       return `
       <div class="finance-breakdown">
-        <div class="finance-breakdown-title">Fijos del mes · ${formatMoney(committed)} comprometido · ${formatMoney(monthIncome)} ingresos · <span class="${available >= 0 ? "available-pos" : "available-neg"}">${availableStr} disponible</span></div>
+        <div class="finance-breakdown-title">Fijos del mes · ${formatMoney(committed)} comprometido · ${formatMoney(monthIncome)} recibidos · <span class="${available >= 0 ? "available-pos" : "available-neg"}" title="Proyectado${projectedHint}">${availableStr} disponible*</span></div>
         ${list.map((p, i) => {
           const paid = allTxs.some(t =>
             String(t.description || "").trim().toLowerCase() === String(p.description).trim().toLowerCase() &&
@@ -427,18 +434,19 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
             <div class="breakdown-cat">${escapeHtml(displayName(p))}${p.usualDay ? `<small>día ~${p.usualDay}</small>` : ""}</div>
             <div class="breakdown-val ${p.type === "income" ? "income" : "expense"}">${p.type === "income" ? "+" : "−"}${formatMoney(p.amount)}</div>
             ${paid
-              ? `<span class="fixed-pill paid">Pagada</span>`
+              ? `<span class="fixed-pill paid">${p.type === "income" ? "Recibido" : "Pagada"}</span>`
               : `<button class="tx-btn tx-btn-edit" data-register="${i}">Registrar</button>`}
           </div>`;
         }).join("")}
-      </div>`;
+      </div>
+      ${expectedIncome > 0 ? `<div class="fixed-footnote">* Disponible proyectado: cuenta ingresos fijos aún no recibidos.</div>` : ""}`;
     })()}
 
     ${compareMode ? renderCompare(monthTxs, allTxs, byId) : renderBreakdown(monthTxs, byId, budgetMap)}
 
-    ${uncategorized > 0 ? `
+    ${monthUncat > 0 ? `
       <div class="finance-alert">
-        <span>⚠️ ${uncategorized} movimiento${uncategorized === 1 ? "" : "s"} sin categorizar</span>
+        <span>⚠️ ${monthUncat} movimiento${monthUncat === 1 ? "" : "s"} sin categorizar este mes</span>
         <button class="finance-alert-btn" id="toggle-uncategorized">${showOnlyUncategorized ? "Ver todos" : "Revisar"}</button>
       </div>
     ` : ""}

@@ -548,6 +548,12 @@
   background: linear-gradient(145deg, #2ed573, #1a8a4a);
 }
 
+.fixed-footnote {
+  font-size: 8px;
+  color: rgba(255, 255, 255, 0.45);
+  margin-top: 6px;
+}
+
 /* Import history */
 .finance-history {
   margin-top: 14px;
