@@ -368,7 +368,7 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
         <div class="finance-stat-value">${formatMoney(initial)}</div>
       </div>
       <div class="finance-stat">
-        <div class="finance-stat-label">Movimientos</div>
+        <div class="finance-stat-label">Movimientos históricos</div>
         <div class="finance-stat-value ${income - expense >= 0 ? "income" : "expense"}">${income - expense >= 0 ? "+" : "−"}${formatMoney(Math.abs(income - expense))}</div>
       </div>
       <div class="finance-stat highlight">
