@@ -328,13 +328,20 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
   for (const b of budgets || []) budgetMap[b.category] = Number(b.amount);
   const byId = {};
   for (const t of allTxs) byId[t.id] = t;
+  const monthStart = currentMonth + "-01";
+  const beforeNet = (allTxs || [])
+    .filter(t => String(t.date).slice(0, 10) < monthStart)
+    .reduce((s, t) => s + (t.type === "income" ? Number(t.amount) : -Number(t.amount)), 0);
+  const initial = Number(account.initial_balance) || 0;
+  const monthStartBalance = initial + beforeNet;
+  const monthNet = (monthTxs || []).reduce((s, t) =>
+    s + (t.type === "income" ? Number(t.amount) : -Number(t.amount)), 0);
   const income = allTxs
     .filter(t => t.type === "income")
     .reduce((s, t) => s + Number(t.amount), 0);
   const expense = allTxs
     .filter(t => t.type !== "income")
     .reduce((s, t) => s + Number(t.amount), 0);
-  const initial = Number(account.initial_balance) || 0;
   const balance = initial + income - expense;
 
   section.innerHTML = `
@@ -364,12 +371,12 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
 
     <div class="finance-summary">
       <div class="finance-stat">
-        <div class="finance-stat-label">Saldo inicial</div>
-        <div class="finance-stat-value">${formatMoney(initial)}</div>
+        <div class="finance-stat-label">Saldo inicio mes</div>
+        <div class="finance-stat-value">${formatMoney(monthStartBalance)}</div>
       </div>
       <div class="finance-stat">
-        <div class="finance-stat-label">Movimientos históricos</div>
-        <div class="finance-stat-value ${income - expense >= 0 ? "income" : "expense"}">${income - expense >= 0 ? "+" : "−"}${formatMoney(Math.abs(income - expense))}</div>
+        <div class="finance-stat-label">Movimientos del mes</div>
+        <div class="finance-stat-value ${monthNet >= 0 ? "income" : "expense"}">${monthNet >= 0 ? "+" : "−"}${formatMoney(Math.abs(monthNet))}</div>
       </div>
       <div class="finance-stat highlight">
         <div class="finance-stat-label">Saldo actual</div>
