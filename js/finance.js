@@ -17,6 +17,7 @@ let activeAccountId = null;
 let activeAccount = null;
 let showOnlyUncategorized = false;
 let currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+let currentPatterns = [];
 
 export function setUncategorizedOnly(v) {
   showOnlyUncategorized = !!v;
@@ -262,8 +263,6 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
         <div class="finance-stat-value">${formatMoney(balance)}</div>
       </div>
     </div>
-
-let currentPatterns = [];
 
     ${(() => {
       const patterns = {};
