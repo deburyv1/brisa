@@ -112,6 +112,19 @@ try {
   await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS linked_id INTEGER REFERENCES transactions(id) ON DELETE SET NULL`);
   await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS is_recurring BOOLEAN DEFAULT FALSE`);
   await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS alias VARCHAR(255)`);
+  await pool.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS event_id INTEGER REFERENCES events(id) ON DELETE SET NULL`);
+
+  await pool.query(`CREATE TABLE IF NOT EXISTS shopping_items (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER DEFAULT 1,
+    description VARCHAR(255) NOT NULL,
+    estimated_amount NUMERIC(12,2),
+    quantity INTEGER DEFAULT 1,
+    category VARCHAR(50),
+    is_purchased BOOLEAN DEFAULT FALSE,
+    purchased_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
   await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS status VARCHAR(10) DEFAULT 'posted'`);
   await pool.query(`ALTER TABLE people ADD COLUMN IF NOT EXISTS phone VARCHAR(20)`);
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS source VARCHAR(20) DEFAULT 'local'`);

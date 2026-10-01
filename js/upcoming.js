@@ -16,17 +16,6 @@ function getDismissed() {
   }
 }
 
-function dismiss(id) {
-  const set = getDismissed();
-  set.add(String(id));
-  try {
-    sessionStorage.setItem(DISMISSED_KEY, JSON.stringify([...set]));
-  } catch {
-    // ignore
-  }
-  hidePill();
-}
-
 function hidePill() {
   document.querySelector(".upcoming-pill")?.remove();
 }
@@ -37,11 +26,24 @@ function minutesUntil(dt) {
 
 function check() {
   const dismissed = getDismissed();
-  const upcoming = (state.tasks || [])
+  const taskHit = (state.tasks || [])
     .filter(t => !t.is_completed && t.scheduled_datetime)
-    .map(t => ({ task: t, min: minutesUntil(t.scheduled_datetime) }))
-    .filter(x => x.min > 0 && x.min <= WINDOW_MIN && !dismissed.has(String(x.task.id)))
+    .map(t => ({ kind: "task", item: t, at: t.scheduled_datetime, min: minutesUntil(t.scheduled_datetime) }))
+    .filter(x => x.min > 0 && x.min <= WINDOW_MIN && !dismissed.has(`task:${x.item.id}`))
     .sort((a, b) => a.min - b.min)[0];
+
+  let eventHit = null;
+  try {
+    const cached = JSON.parse(sessionStorage.getItem("brisa.todayEvents") || "[]");
+    eventHit = cached
+      .map(ev => ({ kind: "event", item: ev, at: ev.start, min: minutesUntil(ev.start) }))
+      .filter(x => x.min > 0 && x.min <= WINDOW_MIN && !dismissed.has(`event:${x.item.id}`))
+      .sort((a, b) => a.min - b.min)[0];
+  } catch {
+    eventHit = null;
+  }
+
+  const upcoming = [taskHit, eventHit].filter(Boolean).sort((a, b) => a.min - b.min)[0];
 
   const existing = document.querySelector(".upcoming-pill");
   if (!upcoming) {
@@ -49,12 +51,13 @@ function check() {
     return;
   }
 
+  const key = `${upcoming.kind}:${upcoming.item.id}`;
   const label = upcoming.min < 1
     ? "Ahora mismo"
     : `En ${Math.ceil(upcoming.min)} min`;
 
   if (existing) {
-    if (existing.dataset.taskId == String(upcoming.task.id)) {
+    if (existing.dataset.key === key) {
       const strong = existing.querySelector("strong");
       if (strong) strong.textContent = label;
       return;
@@ -64,19 +67,30 @@ function check() {
 
   const pill = document.createElement("div");
   pill.className = "upcoming-pill";
-  pill.dataset.taskId = upcoming.task.id;
+  pill.dataset.key = key;
   pill.innerHTML = `
     <strong>${label}:</strong>
-    <span>${escapeHtml(upcoming.task.title)}</span>
+    <span>${escapeHtml(upcoming.item.title)}</span>
     <button class="upcoming-dismiss" title="Ocultar">✕</button>
   `;
   pill.querySelector(".upcoming-dismiss")?.addEventListener("click", (e) => {
     e.stopPropagation();
-    dismiss(upcoming.task.id);
+    const set = getDismissed();
+    set.add(String(key));
+    try {
+      sessionStorage.setItem(DISMISSED_KEY, JSON.stringify([...set]));
+    } catch {
+      // ignore
+    }
+    hidePill();
   });
   pill.addEventListener("click", () => {
     hidePill();
-    if (window.openFocus) window.openFocus(upcoming.task.id);
+    if (upcoming.kind === "event") {
+      if (window.openEventDetail) window.openEventDetail(upcoming.item.id);
+    } else if (window.openFocus) {
+      window.openFocus(upcoming.item.id);
+    }
   });
   document.body.appendChild(pill);
 }

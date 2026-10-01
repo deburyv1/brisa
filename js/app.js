@@ -26,6 +26,9 @@ import { initFocus, openFocus } from "./focusMode.js";
 import { initUpcoming } from "./upcoming.js";
 import { initCalendar } from "./calendar.js";
 import { initEventModal } from "./eventModal.js";
+import { initEventDetail } from "./eventDetail.js";
+import { initShopping } from "./shopping.js";
+import { initTimer } from "./timer.js";
 import { initWeek } from "./week.js";
 import { initWallpaper } from "./wallpaper.js";
 import { initGlass } from "./glass.js";
@@ -37,6 +40,7 @@ window.initRelationships = initRelationships;
 window.initBirthdays = initBirthdays;
 window.initInbox = initInbox;
 window.initCalendar = initCalendar;
+window.initShopping = initShopping;
 window.initToday = initToday;
 window.loadEntryIntoCapture = loadEntryIntoCapture;
 window.renderNext = renderNext;
@@ -50,6 +54,7 @@ const NAV_LABELS = {
   calendar: "Calendario",
   finance: "Finanzas",
   people: "Relaciones",
+  shopping: "Compras",
 };
 
 const NAV_SECTIONS = {
@@ -60,6 +65,7 @@ const NAV_SECTIONS = {
   calendar: ["#calendar-section"],
   finance: ["#finance-section"],
   people: ["#relationships-section"],
+  shopping: ["#shopping-section"],
 };
 
 const ALL_SECTIONS = [
@@ -74,6 +80,7 @@ const ALL_SECTIONS = [
   "#calendar-section",
   "#finance-section",
   "#relationships-section",
+  "#shopping-section",
   "#week-section",
 ];
 
@@ -125,6 +132,9 @@ async function main() {
   initFocus();
   initCalendar();
   initEventModal();
+  initEventDetail();
+  initShopping();
+  initTimer();
   initPlayer();
   initNavigation();
 
@@ -137,6 +147,7 @@ async function main() {
     initBirthdays(),
     initInbox(),
     initCalendar(),
+    initShopping(),
   ]);
   initToday();
   renderNext();

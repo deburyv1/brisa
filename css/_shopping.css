@@ -1,0 +1,169 @@
+/* ============================================
+   BRISA - Shopping View
+   ============================================ */
+.shopping {
+  position: relative;
+  margin-top: 11px;
+  border-radius: var(--radius-panel);
+  padding: 20px 24px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, var(--glass-a1)), rgba(255, 255, 255, var(--glass-a2)));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 10px 30px rgba(0, 58, 94, .08);
+}
+
+.shopping-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.shopping-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+}
+
+.shopping-total {
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+.shopping-add {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.shopping-add input[type="text"] {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 10px;
+  padding: 9px 12px;
+  font-size: 12px;
+  font-family: inherit;
+  color: #fff;
+  background: rgba(255, 255, 255, .08);
+  outline: none;
+}
+
+.shopping-add input[type="text"]::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.shopping-add input[type="number"] {
+  width: 90px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 10px;
+  padding: 9px 10px;
+  font-size: 12px;
+  font-family: inherit;
+  color: #fff;
+  background: rgba(255, 255, 255, .08);
+  outline: none;
+}
+
+.shopping-add-btn {
+  border: 0;
+  border-radius: 10px;
+  padding: 9px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(145deg, #27c9eb, #087fb0);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.shopping-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shopping-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, .15), rgba(255, 255, 255, .05));
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.shopping-check {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  background: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0;
+}
+
+.shopping-check.done {
+  background: linear-gradient(145deg, #2ed573, #1a8a4a);
+  border-color: transparent;
+}
+
+.shopping-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.shopping-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shopping-item.done .shopping-name {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.shopping-est {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.65);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.shopping-item .tx-actions {
+  margin-left: auto;
+}
+
+.shopping-subtitle {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+  margin: 14px 0 8px;
+}
+
+.shopping-empty {
+  text-align: center;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.65);
+  padding: 12px;
+}

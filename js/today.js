@@ -67,6 +67,13 @@ export async function initToday() {
   } catch (e) {
     console.warn("No se pudieron cargar eventos:", e);
   }
+  if (isToday) {
+    try {
+      sessionStorage.setItem("brisa.todayEvents", JSON.stringify(events));
+    } catch {
+      // cache unavailable: upcoming pill skips events
+    }
+  }
 
   const dayTasks = tasks.filter(t => t.scheduled_datetime && sameDay(t.scheduled_datetime, target));
 

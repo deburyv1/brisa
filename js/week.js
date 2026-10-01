@@ -90,11 +90,11 @@ export async function initWeek() {
       const isToday = key === todayKey;
       const items = [
         ...evs.map(ev => `
-          <div class="week-item">
+          <button class="week-item" data-open-event="${ev.id}" title="${escapeHtml(ev.title)}">
             <span class="week-dot event"></span>
-            <span class="week-item-title" title="${escapeHtml(ev.title)}">${escapeHtml(ev.title)}</span>
+            <span class="week-item-title">${escapeHtml(ev.title)}</span>
             <span class="week-item-time">${fmtRange(ev)}</span>
-          </div>`),
+          </button>`),
         ...tasks.map(t => `
           <button class="week-item" data-focus-task="${t.id}" title="${escapeHtml(t.title)}">
             <span class="week-dot ${t.priority || "medium"}"></span>
@@ -118,6 +118,11 @@ export async function initWeek() {
   section.querySelectorAll("[data-focus-task]").forEach(btn => {
     btn.addEventListener("click", () => {
       if (window.openFocus) window.openFocus(btn.dataset.focusTask);
+    });
+  });
+  section.querySelectorAll("[data-open-event]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      if (window.openEventDetail) window.openEventDetail(btn.dataset.openEvent);
     });
   });
 }

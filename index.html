@@ -32,6 +32,7 @@
       <button class="nav" data-nav="calendar"><img src="brisa-icons/vista_cal_1.ico" class="nav-img" alt="Calendario"> Calendario</button>
       <button class="nav" data-nav="finance"><img src="brisa-icons/budget.ico" class="nav-img" alt="Finanzas"> Finanzas</button>
       <button class="nav" data-nav="people"><img src="brisa-icons/vista_messenger.ico" class="nav-img" alt="Relaciones"> Relaciones</button>
+      <button class="nav" data-nav="shopping"><img src="brisa-icons/vista_book_3.ico" class="nav-img" alt="Compras"> Compras</button>
     </nav>
 
     <!-- Player Panel -->
@@ -119,11 +120,38 @@
     <!-- Relationships Section -->
     <section class="relationships" id="relationships-section" style="display:none;"></section>
 
+    <!-- Shopping Section -->
+    <section class="shopping" id="shopping-section" style="display:none;"></section>
+
     <!-- Module mount point - future sections mount here -->
     <div id="module-container"></div>
   </main>
 </div>
 <script type="module" src="js/app.js?v=20260929"></script>
+
+<!-- Floating timer: always at hand -->
+<div class="timer-pill" id="timer-pill" title="Temporizador">
+  <span>⏱</span><span id="timer-time">10:00</span>
+  <button class="timer-toggle-mini" id="timer-toggle-mini">▶</button>
+</div>
+<div class="timer-panel" id="timer-panel" style="display:none">
+  <div class="timer-display" id="timer-big">10:00</div>
+  <div class="timer-presets">
+    <button class="focus-time-btn timer-preset" data-min="5">5</button>
+    <button class="focus-time-btn timer-preset selected" data-min="10">10</button>
+    <button class="focus-time-btn timer-preset" data-min="15">15</button>
+    <button class="focus-time-btn timer-preset" data-min="25">25</button>
+  </div>
+  <div class="timer-custom">
+    <input type="number" id="timer-custom-min" placeholder="Minutos" min="1" max="480">
+    <button class="modal-btn modal-btn-secondary" id="timer-custom-set">OK</button>
+  </div>
+  <div class="timer-row">
+    <button class="modal-btn modal-btn-primary" id="timer-start-pause">Iniciar</button>
+    <button class="modal-btn modal-btn-secondary" id="timer-reset">Reset</button>
+    <button class="modal-btn modal-btn-secondary" id="timer-collapse">–</button>
+  </div>
+</div>
 
 <!-- Modal: Crear/Editar Tarea -->
 <div class="modal-overlay" id="task-modal">
@@ -308,6 +336,30 @@
         <button type="submit" class="modal-btn modal-btn-primary">Guardar</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- Modal: Detalle de evento + preparación -->
+<div class="modal-overlay" id="event-detail-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="event-detail-title">Evento</div>
+      <button class="modal-close" id="event-detail-close">✕</button>
+    </div>
+    <p id="event-detail-when" class="focus-note"></p>
+    <p id="event-detail-location" class="focus-note"></p>
+    <p id="event-detail-desc" class="focus-note"></p>
+    <div class="focus-step-box">
+      <div class="focus-step-label">¿Necesitas preparar algo?</div>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="event-prep-input" placeholder="Ej: sacar la ropa del closet"
+          style="flex:1;min-width:0;border:1px solid rgba(255,255,255,0.25);border-radius:10px;padding:9px 12px;font-size:12px;font-family:inherit;color:#fff;background:rgba(255,255,255,.08);outline:none">
+        <button class="modal-btn modal-btn-primary" id="event-prep-add">+</button>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="modal-btn modal-btn-primary" id="event-detail-ok">Listo</button>
+    </div>
   </div>
 </div>
 

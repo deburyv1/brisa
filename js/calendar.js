@@ -86,7 +86,7 @@ export async function initCalendar() {
         <div class="calendar-day-title">${formatDay(key)}</div>
         <div class="calendar-list">
           ${groups[key].map(ev => `
-            <div class="calendar-item" data-event-id="${ev.id}">
+            <div class="calendar-item" data-event-id="${ev.id}" data-action="open" style="cursor:pointer">
               <div class="calendar-time">${formatRange(ev)}</div>
               <div class="calendar-info">
                 <div class="calendar-name">${escapeHtml(ev.title)}</div>
@@ -108,12 +108,16 @@ export async function initCalendar() {
 
   section.querySelectorAll(".calendar-item").forEach(item => {
     const id = item.dataset.eventId;
-    item.querySelector('[data-action="delete"]')?.addEventListener("click", async () => {
+    item.querySelector('[data-action="delete"]')?.addEventListener("click", async (e) => {
+      e.stopPropagation();
       if (confirm("¿Eliminar este evento?")) {
         await fetch(`${API_BASE}/events/${id}`, { method: "DELETE" });
         if (window.initCalendar) window.initCalendar();
         if (window.initToday) window.initToday();
       }
+    });
+    item.addEventListener("click", () => {
+      if (window.openEventDetail) window.openEventDetail(id);
     });
   });
 }

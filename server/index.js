@@ -17,6 +17,7 @@ import eventsRouter from './routes/events.js';
 import ideasRouter from './routes/ideas.js';
 import remindersRouter from './routes/reminders.js';
 import budgetsRouter from './routes/budgets.js';
+import shoppingRouter from './routes/shopping.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -43,6 +44,7 @@ app.use('/api/events', eventsRouter);
 app.use('/api/ideas', ideasRouter);
 app.use('/api/reminders', remindersRouter);
 app.use('/api/budgets', budgetsRouter);
+app.use('/api/shopping', shoppingRouter);
 
 // Serve static files (frontend)
 // Docker: server/public | Local dev: repo root
