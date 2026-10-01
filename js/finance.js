@@ -281,9 +281,13 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
       const committed = list
         .filter(p => p.type !== "income")
         .reduce((s, p) => s + Number(p.amount), 0);
+      const monthIncome = monthTxs
+        .filter(t => t.type === "income")
+        .reduce((s, t) => s + Number(t.amount), 0);
+      const available = monthIncome - committed;
       return `
       <div class="finance-breakdown">
-        <div class="finance-breakdown-title">Fijos del mes · ${formatMoney(committed)} comprometido</div>
+        <div class="finance-breakdown-title">Fijos del mes · ${formatMoney(committed)} comprometido · <span style="color:#7bed9f">~${formatMoney(available)} disponible</span></div>
         ${list.map((p, i) => {
           const paid = allTxs.some(t =>
             String(t.description || "").trim().toLowerCase() === String(p.description).trim().toLowerCase() &&
