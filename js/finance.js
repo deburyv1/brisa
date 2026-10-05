@@ -452,7 +452,8 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
               <div class="breakdown-val ${p.type === "income" ? "income" : "expense"}">${p.type === "income" ? "+" : "−"}${formatMoney(p.amount)}</div>
               ${paid
                 ? `<span class="fixed-pill paid">${p.type === "income" ? "Recibido" : "Pagada"}</span>`
-                : `<button class="tx-btn tx-btn-edit" data-register="${i}">Registrar</button>`}
+                : `<button class="tx-btn tx-btn-edit" data-register="${i}">Registrar</button>
+                   <button class="tx-btn tx-btn-delete" data-endseries="${i}" title="Dejar de seguir esta cuenta">Terminar</button>`}
             </div>
           </div>`;
         }).join("")}
@@ -637,6 +638,41 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
         category: p.category || "",
         type: p.type || "expense",
       });
+    });
+  });
+
+  section.querySelectorAll("[data-endseries]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const p = currentPatterns[Number(btn.dataset.endseries)];
+      if (!p) return;
+      if (!confirm(`¿Terminar el seguimiento de "${p.description}"? El historial se conserva.`)) return;
+      try {
+        const rows = (allTxs || []).filter(t =>
+          t.is_recurring &&
+          String(t.description || "").trim().toLowerCase() === String(p.description).trim().toLowerCase());
+        for (const r of rows) {
+          await fetch(`${API_BASE}/transactions/${r.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              description: r.description,
+              amount: r.amount,
+              type: r.type,
+              category: r.category,
+              date: r.date ? String(r.date).slice(0, 10) : null,
+              account_id: r.account_id,
+              linked_id: r.linked_id,
+              is_recurring: false,
+              alias: r.alias,
+              status: r.status,
+              details: r.details,
+            }),
+          });
+        }
+        if (window.initFinance) window.initFinance();
+      } catch (err) {
+        console.error("Error terminando serie:", err);
+      }
     });
   });
 
