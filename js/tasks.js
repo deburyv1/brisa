@@ -6,6 +6,8 @@ import { state } from "./state.js";
 
 const API_BASE = "/api";
 
+let taskFilter = "pending";
+
 async function fetchTasks() {
   try {
     const res = await fetch(`${API_BASE}/tasks`);
@@ -101,13 +103,26 @@ export async function initTasks() {
 }
 
 function renderTasks(section, tasks) {
+  const pending = tasks.filter(t => !t.is_completed);
+  const done = tasks.filter(t => t.is_completed);
+  const visible = taskFilter === "done" ? done : taskFilter === "all" ? tasks : pending;
+
   section.innerHTML = `
     <div class="tasks-header">
       <div class="tasks-title">Acciones</div>
       <button class="tasks-add-btn" id="add-task">+ Nueva</button>
     </div>
+    <div class="tasks-filter">
+      ${[["pending", `Pendientes · ${pending.length}`], ["done", `Completadas · ${done.length}`], ["all", `Todas · ${tasks.length}`]].map(([v, label]) => `
+        <button class="tasks-filter-btn ${taskFilter === v ? "active" : ""}" data-filter="${v}">${label}</button>
+      `).join("")}
+    </div>
     <div class="tasks-list">
-      ${tasks.map(t => `
+      ${visible.length === 0 ? `
+        <div class="tasks-empty">
+          <div class="tasks-empty-text">${taskFilter === "done" ? "Nada completado todavía." : taskFilter === "all" ? "Sin tareas." : "Nada pendiente. 🌱"}</div>
+        </div>
+      ` : visible.map(t => `
         <div class="task-item ${t.is_completed ? "done" : ""}${!t.is_completed && t.priority === "high" ? " urgent" : ""}" data-task-id="${t.id}">
           <div class="task-checkbox ${t.is_completed ? "done" : ""}" data-action="toggle"></div>
           <div class="task-info">
@@ -134,6 +149,13 @@ function renderTasks(section, tasks) {
       if (window.openTaskModal) window.openTaskModal();
     });
   }
+
+  section.querySelectorAll(".tasks-filter-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      taskFilter = btn.dataset.filter;
+      renderTasks(section, state.tasks || []);
+    });
+  });
 
   section.querySelectorAll(".task-item").forEach(item => {
     const id = item.dataset.taskId;
