@@ -359,6 +359,16 @@
 .breakdown-val.income { color: #7bed9f; }
 .breakdown-val.expense { color: #ff9f9f; }
 
+/* Fixed-cost rows: self-contained cards so the action
+   always reads as belonging to its row */
+.breakdown-row.fixed-row {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 6px 10px;
+}
+
 /* Month comparison */
 .compare-row {
   display: grid;

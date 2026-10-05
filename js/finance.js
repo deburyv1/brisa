@@ -444,7 +444,7 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
             String(t.description || "").trim().toLowerCase() === String(p.description).trim().toLowerCase() &&
             inMonth(t.date, currentMonth));
           return `
-          <div class="breakdown-row">
+          <div class="breakdown-row fixed-row">
             <div class="breakdown-cat">${escapeHtml(displayName(p))}${p.usualDay ? `<small>día ~${p.usualDay}</small>` : ""}</div>
             <div class="breakdown-val ${p.type === "income" ? "income" : "expense"}">${p.type === "income" ? "+" : "−"}${formatMoney(p.amount)}</div>
             ${paid
