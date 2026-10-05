@@ -446,10 +446,12 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
           return `
           <div class="breakdown-row fixed-row">
             <div class="breakdown-cat">${escapeHtml(displayName(p))}${p.usualDay ? `<small>día ~${p.usualDay}</small>` : ""}</div>
-            <div class="breakdown-val ${p.type === "income" ? "income" : "expense"}">${p.type === "income" ? "+" : "−"}${formatMoney(p.amount)}</div>
-            ${paid
-              ? `<span class="fixed-pill paid">${p.type === "income" ? "Recibido" : "Pagada"}</span>`
-              : `<button class="tx-btn tx-btn-edit" data-register="${i}">Registrar</button>`}
+            <div class="breakdown-right">
+              <div class="breakdown-val ${p.type === "income" ? "income" : "expense"}">${p.type === "income" ? "+" : "−"}${formatMoney(p.amount)}</div>
+              ${paid
+                ? `<span class="fixed-pill paid">${p.type === "income" ? "Recibido" : "Pagada"}</span>`
+                : `<button class="tx-btn tx-btn-edit" data-register="${i}">Registrar</button>`}
+            </div>
           </div>`;
         }).join("")}
       </div>
