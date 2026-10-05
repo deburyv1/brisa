@@ -236,7 +236,16 @@ function renderReadiness(section, entry, text, iso) {
       <button class="capture-type" data-ready="split">Es muy grande</button>
     </div>
     <div id="capture-ready-detail"></div>
+    <div class="capture-actions" style="margin-top:8px">
+      <button class="modal-btn modal-btn-secondary" id="capture-ready-later">Decidir después</button>
+    </div>
   `;
+
+  section.querySelector("#capture-ready-later")?.addEventListener("click", () => {
+    // Entry is already safe in inbox: just go back to idle
+    renderIdle(section);
+    if (window.initInbox) window.initInbox();
+  });
 
   section.querySelectorAll("[data-ready]").forEach(btn => {
     btn.addEventListener("click", () => {
