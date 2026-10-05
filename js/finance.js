@@ -21,9 +21,11 @@ let currentPatterns = [];
 let searchText = "";
 let compareMode = false;
 let budgetEdit = false;
+let uncatScope = "month";
 
-export function setUncategorizedOnly(v) {
+export function setUncategorizedOnly(v, scope) {
   showOnlyUncategorized = !!v;
+  uncatScope = scope === "all" ? "all" : "month";
 }
 if (typeof window !== "undefined") window.setFinanceUncategorized = setUncategorizedOnly;
 
@@ -215,9 +217,12 @@ export async function initFinance() {
   ]);
   state.transactions = allTxs || [];
   const monthTxs = (allTxs || []).filter(t => inMonth(t.date, currentMonth));
-  const txs = showOnlyUncategorized ? monthTxs.filter(t => !t.category) : monthTxs;
+  const allUncat = (allTxs || []).filter(t => !t.category);
+  const txs = showOnlyUncategorized
+    ? (uncatScope === "all" ? allUncat : monthTxs.filter(t => !t.category))
+    : monthTxs;
 
-  renderFinance(section, accounts, account, allTxs || [], monthTxs, txs, uncategorized, imports || [], budgets || []);
+  renderFinance(section, accounts, account, allTxs || [], monthTxs, txs, uncategorized, imports || [], budgets || [], allUncat);
 }
 
 async function fetchBudgets(month) {
@@ -327,7 +332,7 @@ function renderCompare(monthTxs, allTxs, byId) {
   </div>`;
 }
 
-function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncategorized, imports, budgets) {
+function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncategorized, imports, budgets, allUncat) {
   const budgetMap = {};
   for (const b of budgets || []) budgetMap[b.category] = Number(b.amount);
   const byId = {};
@@ -478,7 +483,14 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
     <div class="finance-list">
       ${txs.length === 0 ? `
         <div class="finance-empty">
-          <div class="finance-empty-text">${showOnlyUncategorized ? "Nada pendiente. Todo categorizado. 🎉" : "Sin movimientos en esta cuenta."}</div>
+          <div class="finance-empty-text">${(() => {
+            if (!showOnlyUncategorized) return "Sin movimientos en esta cuenta.";
+            if (uncatScope === "all") return "Nada pendiente. Todo categorizado. 🎉";
+            const rest = (allUncat || []).length;
+            return rest > 0
+              ? `Este mes al día. Quedan ${rest} en otros meses.`
+              : "Nada pendiente. Todo categorizado. 🎉";
+          })()}</div>
         </div>
       ` : txs.map(t => {
         const isIncome = t.type === "income";
