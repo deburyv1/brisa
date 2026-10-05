@@ -112,6 +112,7 @@ try {
   await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS linked_id INTEGER REFERENCES transactions(id) ON DELETE SET NULL`);
   await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS is_recurring BOOLEAN DEFAULT FALSE`);
   await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS alias VARCHAR(255)`);
+  await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS details TEXT`);
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS travel_minutes INTEGER`);
   await pool.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS event_id INTEGER REFERENCES events(id) ON DELETE SET NULL`);
 

@@ -418,6 +418,8 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
           : null;
         const withAlias = [...rows].reverse().find(t => t.alias);
         if (withAlias) rep.alias = withAlias.alias;
+        const withDetails = [...rows].reverse().find(t => t.details);
+        if (withDetails) rep.details = withDetails.details;
         return rep;
       }).sort((a, b) => (a.usualDay || 99) - (b.usualDay || 99));
       currentPatterns = list;
@@ -445,7 +447,7 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
             inMonth(t.date, currentMonth));
           return `
           <div class="breakdown-row fixed-row">
-            <div class="breakdown-cat">${escapeHtml(displayName(p))}${p.usualDay ? `<small>día ~${p.usualDay}</small>` : ""}</div>
+            <div class="breakdown-cat">${escapeHtml(displayName(p))}${p.usualDay ? `<small>día ~${p.usualDay}</small>` : ""}${p.details ? `<small>📋 ${escapeHtml(p.details)}</small>` : ""}</div>
             <div class="breakdown-right">
               <div class="breakdown-val ${p.type === "income" ? "income" : "expense"}">${p.type === "income" ? "+" : "−"}${formatMoney(p.amount)}</div>
               ${paid
@@ -630,6 +632,7 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
       window.openTransactionModal(activeAccountId, null, {
         description: p.description,
         alias: p.alias || "",
+        details: p.details || "",
         amount: p.amount,
         category: p.category || "",
         type: p.type || "expense",
