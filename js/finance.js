@@ -437,7 +437,7 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
       const availableStr = `${available < 0 ? "−" : "+"}${formatMoney(Math.abs(available))}`;
       const projectedHint = expectedIncome > 0 ? ` (incluye ~${formatMoney(expectedIncome)} por recibir)` : "";
       return `
-      <div class="finance-breakdown">
+      <div class="finance-breakdown fixed-list">
         <div class="finance-breakdown-title">Fijos del mes · ${formatMoney(committed)} comprometido · ${formatMoney(monthIncome)} recibidos · <span class="${available >= 0 ? "available-pos" : "available-neg"}" title="Proyectado${projectedHint}">${availableStr} disponible*</span></div>
         ${list.map((p, i) => {
           const paid = allTxs.some(t =>
