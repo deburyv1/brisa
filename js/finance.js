@@ -491,6 +491,9 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
               ? `Este mes al día. Quedan ${rest} en otros meses.`
               : "Nada pendiente. Todo categorizado. 🎉";
           })()}</div>
+          ${showOnlyUncategorized && uncatScope !== "all" && (allUncat || []).length > 0 ? `
+            <button class="finance-empty-btn" id="show-all-uncat">Ver todas</button>
+          ` : ""}
         </div>
       ` : txs.map(t => {
         const isIncome = t.type === "income";
@@ -686,6 +689,11 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
         console.error("Error terminando serie:", err);
       }
     });
+  });
+
+  section.querySelector("#show-all-uncat")?.addEventListener("click", () => {
+    uncatScope = "all";
+    if (window.initFinance) window.initFinance();
   });
 
   section.querySelectorAll("[data-delete-import]").forEach(btn => {

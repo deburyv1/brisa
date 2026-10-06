@@ -89,7 +89,7 @@ export function renderGuidanceBanner() {
 async function goTo(item) {
   document.querySelector(`.nav[data-nav="${item.nav}"]`)?.click();
   if (item.filterUncategorized && window.setFinanceUncategorized) {
-    window.setFinanceUncategorized(true, "all");
+    window.setFinanceUncategorized(true);
     if (window.initFinance) await window.initFinance();
   }
 }
