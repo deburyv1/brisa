@@ -21,6 +21,31 @@ function toggleLinkRow(form) {
   if (row) row.style.display = form.type.value === "income" ? "" : "none";
 }
 
+function togglePersonRow(form) {
+  const row = form.querySelector("#tx-person-row");
+  if (row) row.style.display = form.owner.value === "other" ? "" : "none";
+}
+
+async function fillPersonOptions(form, selected) {
+  const sel = form.querySelector("#tx-person-select");
+  if (!sel) return;
+  sel.innerHTML = `<option value="">Seleccionar...</option>`;
+  try {
+    const res = await fetch(`${API_BASE}/people`);
+    if (!res.ok) return;
+    const people = await res.json();
+    for (const p of people) {
+      const opt = document.createElement("option");
+      opt.value = p.id;
+      opt.textContent = p.nickname || p.name;
+      if (String(p.id) === String(selected)) opt.selected = true;
+      sel.appendChild(opt);
+    }
+  } catch (e) {
+    console.error("Error cargando personas:", e);
+  }
+}
+
 async function fillLinkOptions(form, accountId, selected, excludeId) {
   const sel = form.querySelector("#tx-link-select");
   if (!sel) return;
@@ -75,9 +100,12 @@ export function initTransactionModal() {
           form.type.value = tx.type || "expense";
           form.is_recurring.checked = !!tx.is_recurring;
           form.is_planned.checked = tx.status === "planned";
+          form.owner.value = tx.owner || "mine";
           fillCategories(form, form.type.value, tx.category || "");
           toggleLinkRow(form);
+          togglePersonRow(form);
           await fillLinkOptions(form, currentAccountId, tx.linked_id || "", txId);
+          await fillPersonOptions(form, tx.person_id || "");
           form.date.value = tx.date ? String(tx.date).slice(0, 10) : "";
           cleanSnapshot = snapshotForm(form);
         })
@@ -98,6 +126,8 @@ export function initTransactionModal() {
         form.is_recurring.checked = true;
       }
       toggleLinkRow(form);
+      togglePersonRow(form);
+      fillPersonOptions(form, "");
       fillLinkOptions(form, currentAccountId, "", null).then(() => {
         cleanSnapshot = snapshotForm(form);
       });
@@ -125,6 +155,10 @@ export function initTransactionModal() {
   form.type.addEventListener("change", () => {
     fillCategories(form, form.type.value, "");
     toggleLinkRow(form);
+  });
+
+  form.owner.addEventListener("change", () => {
+    togglePersonRow(form);
   });
 
   overlay.addEventListener("click", (e) => {

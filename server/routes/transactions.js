@@ -74,7 +74,7 @@ router.get('/:id', async (req, res) => {
 
 // POST /api/transactions
 router.post('/', async (req, res) => {
-  const { description, amount, type, category, date, account_id, linked_id, is_recurring, alias, status, details } = req.body;
+  const { description, amount, type, category, date, account_id, linked_id, is_recurring, alias, status, details, owner, person_id } = req.body;
   if (!description || !description.trim()) {
     return res.status(400).json({ error: 'Description is required' });
   }
@@ -84,10 +84,20 @@ router.post('/', async (req, res) => {
   }
   const linkId = await validateLink(pool, linked_id, account_id, res);
   if (linkId === false) return;
+  const ownerVal = owner === 'other' ? 'other' : 'mine';
+  let personVal = person_id || null;
+  if (personVal) {
+    const found = await pool.query('SELECT id FROM people WHERE id = $1', [personVal]);
+    if (found.rows.length === 0) {
+      return res.status(400).json({ error: 'Person not found' });
+    }
+  } else if (ownerVal === 'other') {
+    personVal = null;
+  }
   try {
     const result = await pool.query(
-      'INSERT INTO transactions (user_id, account_id, description, amount, type, category, date, linked_id, is_recurring, alias, status, details) VALUES (1, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *',
-      [account_id || null, description.trim(), parsedAmount, type === 'income' ? 'income' : 'expense', category || null, date || new Date().toISOString().slice(0, 10), linkId, is_recurring ? true : false, alias?.trim() || null, status === 'planned' ? 'planned' : 'posted', details?.trim() || null]
+      'INSERT INTO transactions (user_id, account_id, description, amount, type, category, date, linked_id, is_recurring, alias, status, details, owner, person_id) VALUES (1, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *',
+      [account_id || null, description.trim(), parsedAmount, type === 'income' ? 'income' : 'expense', category || null, date || new Date().toISOString().slice(0, 10), linkId, is_recurring ? true : false, alias?.trim() || null, status === 'planned' ? 'planned' : 'posted', details?.trim() || null, ownerVal, personVal]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -114,7 +124,7 @@ router.patch('/:id/category', async (req, res) => {
 
 // PUT /api/transactions/:id
 router.put('/:id', async (req, res) => {
-  const { description, amount, type, category, date, account_id, linked_id, is_recurring, alias, status, details } = req.body;
+  const { description, amount, type, category, date, account_id, linked_id, is_recurring, alias, status, details, owner, person_id } = req.body;
   if (!description || !description.trim()) {
     return res.status(400).json({ error: 'Description is required' });
   }
@@ -127,10 +137,18 @@ router.put('/:id', async (req, res) => {
   }
   const linkId = await validateLink(pool, linked_id, account_id, res);
   if (linkId === false) return;
+  const ownerVal = owner === 'other' ? 'other' : 'mine';
+  let personVal = person_id || null;
+  if (personVal) {
+    const found = await pool.query('SELECT id FROM people WHERE id = $1', [personVal]);
+    if (found.rows.length === 0) {
+      return res.status(400).json({ error: 'Person not found' });
+    }
+  }
   try {
     const result = await pool.query(
-      'UPDATE transactions SET description = $1, amount = $2, type = $3, category = $4, date = $5, account_id = $6, linked_id = $7, is_recurring = $8, alias = $9, status = $10, details = $11 WHERE id = $12 RETURNING *',
-      [description.trim(), parsedAmount, type === 'income' ? 'income' : 'expense', category || null, date || null, account_id || null, linkId, is_recurring ? true : false, alias?.trim() || null, status === 'planned' ? 'planned' : 'posted', details?.trim() || null, req.params.id]
+      'UPDATE transactions SET description = $1, amount = $2, type = $3, category = $4, date = $5, account_id = $6, linked_id = $7, is_recurring = $8, alias = $9, status = $10, details = $11, owner = $12, person_id = $13 WHERE id = $14 RETURNING *',
+      [description.trim(), parsedAmount, type === 'income' ? 'income' : 'expense', category || null, date || null, account_id || null, linkId, is_recurring ? true : false, alias?.trim() || null, status === 'planned' ? 'planned' : 'posted', details?.trim() || null, ownerVal, personVal, req.params.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Transaction not found' });
     res.json(result.rows[0]);

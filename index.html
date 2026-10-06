@@ -297,6 +297,21 @@
           <input type="date" name="date">
         </div>
       </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>¿De quién es?<span class="optional">(dueño económico)</span></label>
+          <select name="owner" id="tx-owner-select">
+            <option value="mine">Mío</option>
+            <option value="other">De otra persona</option>
+          </select>
+        </div>
+        <div class="form-group" id="tx-person-row" style="display:none">
+          <label>¿Quién?</label>
+          <select name="person_id" id="tx-person-select">
+            <option value="">Seleccionar...</option>
+          </select>
+        </div>
+      </div>
       <div class="modal-actions">
         <button type="button" class="modal-btn modal-btn-secondary" id="transaction-modal-cancel">Cancelar</button>
         <button type="submit" class="modal-btn modal-btn-primary">Guardar</button>

@@ -209,11 +209,12 @@ export async function initFinance() {
   const account = accounts.find(a => a.id == activeAccountId);
   activeAccount = account;
 
-  const [allTxs, uncategorized, imports, budgets] = await Promise.all([
+  const [allTxs, uncategorized, imports, budgets, people] = await Promise.all([
     fetchTransactions(activeAccountId, false),
     fetchUncategorizedCount(activeAccountId),
     fetchImports(activeAccountId),
     fetchBudgets(currentMonth),
+    fetchPeople(),
   ]);
   state.transactions = allTxs || [];
   const monthTxs = (allTxs || []).filter(t => inMonth(t.date, currentMonth));
@@ -222,7 +223,18 @@ export async function initFinance() {
     ? (uncatScope === "all" ? allUncat : monthTxs.filter(t => !t.category))
     : monthTxs;
 
-  renderFinance(section, accounts, account, allTxs || [], monthTxs, txs, uncategorized, imports || [], budgets || [], allUncat);
+  renderFinance(section, accounts, account, allTxs || [], monthTxs, txs, uncategorized, imports || [], budgets || [], allUncat, people || []);
+}
+
+async function fetchPeople() {
+  try {
+    const res = await fetch(`${API_BASE}/people`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (e) {
+    console.warn("No se pudieron cargar personas:", e);
+    return [];
+  }
 }
 
 async function fetchBudgets(month) {
@@ -332,11 +344,13 @@ function renderCompare(monthTxs, allTxs, byId) {
   </div>`;
 }
 
-function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncategorized, imports, budgets, allUncat) {
+function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncategorized, imports, budgets, allUncat, people) {
   const budgetMap = {};
   for (const b of budgets || []) budgetMap[b.category] = Number(b.amount);
   const byId = {};
   for (const t of allTxs) byId[t.id] = t;
+  const mine = (t) => (t.owner || "mine") === "mine";
+  const monthMine = (monthTxs || []).filter(mine);
   const monthUncat = (monthTxs || []).filter(t => !t.category).length;
   const monthStart = currentMonth + "-01";
   const isPosted = (t) => t.status !== "planned";
@@ -357,6 +371,7 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
   const balance = initial + income - expense;
 
   const monthPosted = (monthTxs || []).filter(isPosted);
+  const monthMine = monthPosted.filter(mine);
   const plannedByCat = {};
   for (const t of (monthTxs || [])) {
     if (isPosted(t) || t.type === "income") continue;
@@ -466,7 +481,38 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
       ${expectedIncome > 0 ? `<div class="fixed-footnote">* Disponible proyectado: cuenta ingresos fijos aún no recibidos.</div>` : ""}`;
     })()}
 
-    ${compareMode ? renderCompare(monthPosted, allTxs, byId) : renderBreakdown(monthPosted, plannedByCat, byId, budgetMap)}
+    ${compareMode ? renderCompare(monthMine, allTxs, byId) : renderBreakdown(monthMine, plannedByCat, byId, budgetMap)}
+
+    ${(() => {
+      const per = {};
+      const pname = {};
+      for (const p of (people || [])) pname[p.id] = p.nickname || p.name;
+      for (const t of (allTxs || [])) {
+        if ((t.owner || "mine") === "mine" || !t.person_id) continue;
+        const k = String(t.person_id);
+        const e = per[k] || { name: pname[t.person_id] || "Otra persona", advanced: 0, returned: 0 };
+        if (t.type === "income") e.returned += Number(t.amount);
+        else e.advanced += Number(t.amount);
+        per[k] = e;
+      }
+      const rows = Object.values(per).filter(e => e.advanced > 0 || e.returned > 0);
+      if (rows.length === 0) return "";
+      return `
+      <div class="finance-breakdown fixed-list">
+        <div class="finance-breakdown-title">Movimientos por terceros · no es tu consumo</div>
+        ${rows.map(e => {
+          const pending = e.advanced - e.returned;
+          return `
+          <div class="breakdown-row fixed-row">
+            <div class="breakdown-cat">${escapeHtml(e.name)}<small>adelantado ${formatMoney(e.advanced)} · devuelto ${formatMoney(e.returned)}</small></div>
+            <div class="breakdown-right">
+              <div class="breakdown-val ${pending > 0 ? "expense" : "income"}">${pending > 0 ? "−" : "+"}${formatMoney(Math.abs(pending))}</div>
+              <span class="fixed-pill ${pending === 0 ? "paid" : ""}">${pending > 0 ? "Te deben" : pending < 0 ? "A favor" : "Al día"}</span>
+            </div>
+          </div>`;
+        }).join("")}
+      </div>`;
+    })()}
 
     ${monthUncat > 0 ? `
       <div class="finance-alert">
