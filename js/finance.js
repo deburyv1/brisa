@@ -350,7 +350,6 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
   const byId = {};
   for (const t of allTxs) byId[t.id] = t;
   const mine = (t) => (t.owner || "mine") === "mine";
-  const monthMine = (monthTxs || []).filter(mine);
   const monthUncat = (monthTxs || []).filter(t => !t.category).length;
   const monthStart = currentMonth + "-01";
   const isPosted = (t) => t.status !== "planned";
