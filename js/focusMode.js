@@ -135,25 +135,38 @@ function bindTimer() {
 
 // ---- Views ----
 
-function renderFriction(task) {
+async function renderFriction(task) {
+  let basics = [];
+  try {
+    const res = await fetch("/api/readiness");
+    if (res.ok) basics = (await res.json()).filter(i => !i.done);
+  } catch {
+    basics = [];
+  }
   body().innerHTML = `
     <p class="focus-question">Antes de hacerlo, ¿qué te frena?</p>
     <div class="focus-options">
+      ${basics.length > 0 ? `
+        <button class="focus-option" data-friction="basics">🧹 Lo básico pendiente (${basics.length})</button>
+      ` : ""}
       <button class="focus-option" data-friction="unknown">🟢 No sé cuál es el siguiente paso</button>
       <button class="focus-option" data-friction="verify">🔎 Necesito verificar algo primero</button>
       <button class="focus-option" data-friction="big">🧩 Es más grande de lo que parece</button>
       <button class="focus-option" data-friction="resist">😕 Me da resistencia</button>
       <button class="focus-option primary" data-friction="ready">▶️ Ya tengo suficiente información</button>
     </div>
+    <div id="focus-basics"></div>
   `;
   body().querySelectorAll(".focus-option").forEach(btn => {
-    btn.addEventListener("click", () => handleFriction(task, btn.dataset.friction));
+    btn.addEventListener("click", () => handleFriction(task, btn.dataset.friction, basics));
   });
 }
 
-function handleFriction(task, kind) {
+function handleFriction(task, kind, basics = []) {
   if (kind === "ready") {
     renderStep(task, {});
+  } else if (kind === "basics") {
+    renderBasics(task, basics);
   } else if (kind === "unknown") {
     renderDefineStep(task);
   } else if (kind === "verify") {
@@ -198,6 +211,38 @@ function renderStep(task, { presetMin = 10, note = null } = {}) {
     if (currentTask) renderFriction(currentTask);
   });
   body().querySelector("#focus-done")?.addEventListener("click", completeTask);
+}
+
+function renderBasics(task, basics) {
+  const box = body().querySelector("#focus-basics");
+  if (!box) return;
+  box.innerHTML = `
+    <div class="focus-basics">
+      ${basics.map(b => `
+        <label class="prep-row">
+          <input type="checkbox" data-basic="${b.id}">
+          <span>${escapeHtml(b.label)}</span>
+        </label>`).join("")}
+      <button class="modal-btn modal-btn-primary" id="focus-basics-done" style="margin-top:8px">Listo, sigamos</button>
+    </div>
+  `;
+  box.querySelectorAll("[data-basic]").forEach(cb => {
+    cb.addEventListener("change", async () => {
+      try {
+        await fetch("/api/readiness/check", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ item_id: Number(cb.dataset.basic), done: cb.checked }),
+        });
+        if (window.initReadiness) window.initReadiness();
+      } catch (e) {
+        console.error("Error guardando readiness:", e);
+      }
+    });
+  });
+  box.querySelector("#focus-basics-done")?.addEventListener("click", () => {
+    renderStep(task, {});
+  });
 }
 
 function renderDefineStep(task) {

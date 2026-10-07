@@ -94,6 +94,30 @@ try {
     UNIQUE(user_id, category, month)
   )`);
 
+  await pool.query(`CREATE TABLE IF NOT EXISTS readiness_items (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER DEFAULT 1,
+    label VARCHAR(100) NOT NULL,
+    active BOOLEAN DEFAULT TRUE,
+    position INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, label)
+  )`);
+
+  await pool.query(`CREATE TABLE IF NOT EXISTS readiness_state (
+    day DATE NOT NULL,
+    item_id INTEGER REFERENCES readiness_items(id) ON DELETE CASCADE,
+    PRIMARY KEY (day, item_id)
+  )`);
+
+  await pool.query(`INSERT INTO readiness_items (user_id, label, position)
+    SELECT 1, x.label, x.pos FROM (VALUES
+      ('Ducha', 1),
+      ('Cama hecha', 2),
+      ('Almuerzo pensado', 3)
+    ) AS x(label, pos)
+    WHERE NOT EXISTS (SELECT 1 FROM readiness_items WHERE user_id = 1 AND label = x.label)`);
+
   await pool.query(`CREATE TABLE IF NOT EXISTS imports (
     id SERIAL PRIMARY KEY,
     user_id INTEGER DEFAULT 1,
