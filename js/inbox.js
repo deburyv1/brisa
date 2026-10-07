@@ -92,6 +92,7 @@ export async function initInbox() {
         body: JSON.stringify({ status: "archived" }),
       });
       if (window.initInbox) window.initInbox();
+      if (window.renderGuidanceBanner) window.renderGuidanceBanner();
     });
   });
 }

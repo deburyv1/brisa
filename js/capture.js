@@ -70,6 +70,8 @@ async function capture(section) {
   const text = input?.value.trim();
   if (!text) return;
 
+  const saveBtn = section.querySelector("#capture-save");
+  if (saveBtn) saveBtn.disabled = true;
   try {
     const suggestion = suggestType(text);
     const res = await fetch(`${API_BASE}/entries`, {
@@ -82,9 +84,37 @@ async function capture(section) {
     selectedType = suggestion.type;
     renderSuggestion(section, pendingEntry, suggestion.reason);
     if (window.initInbox) window.initInbox();
+    if (window.renderGuidanceBanner) window.renderGuidanceBanner();
   } catch (err) {
     console.error("Error capturando:", err);
     alert("No se pudo guardar. Intenta de nuevo.");
+  } finally {
+    if (saveBtn) saveBtn.disabled = false;
+  }
+}
+
+function norm(s) {
+  return String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+}
+
+async function findSimilar(text) {
+  const needle = norm(text);
+  if (needle.length < 4) return null;
+  try {
+    const [tasksRes, entriesRes] = await Promise.all([
+      fetch(`${API_BASE}/tasks`).then(r => r.ok ? r.json() : []),
+      fetch(`${API_BASE}/entries?status=inbox`).then(r => r.ok ? r.json() : []),
+    ]);
+    const hay = [
+      ...tasksRes.filter(t => !t.is_completed).map(t => ({ kind: "tarea", title: t.title })),
+      ...entriesRes.map(e => ({ kind: "inbox", title: e.raw_text })),
+    ];
+    return hay.find(h => {
+      const hayN = norm(h.title);
+      return hayN && hayN.length >= 4 && (hayN.includes(needle) || needle.includes(hayN));
+    }) || null;
+  } catch {
+    return null;
   }
 }
 
@@ -93,6 +123,7 @@ function renderSuggestion(section, entry, reason) {
     <div class="capture-suggest">
       <div class="capture-suggest-text">💭 ${escapeHtml(entry.raw_text)}</div>
       <div class="capture-suggest-reason">${escapeHtml(reason)}</div>
+      <div class="capture-similar" id="capture-similar" style="display:none"></div>
       <div class="capture-types">
         ${TYPES.map(t => `
           <button class="capture-type ${t === selectedType ? "active" : ""}" data-type="${t}">${TYPE_LABELS[t]}</button>
@@ -135,14 +166,24 @@ function renderSuggestion(section, entry, reason) {
     }
     renderIdle(section);
     if (window.initInbox) window.initInbox();
+    if (window.renderGuidanceBanner) window.renderGuidanceBanner();
   });
 
   section.querySelector("#capture-confirm")?.addEventListener("click", () => confirmEntry(section, entry));
+
+  findSimilar(entry.raw_text).then(sim => {
+    if (!sim) return;
+    const box = section.querySelector("#capture-similar");
+    if (!box) return;
+    box.style.display = "";
+    box.innerHTML = `⚠️ Ya tienes algo parecido en ${sim.kind === "tarea" ? "tareas" : "inbox"}: <strong>${escapeHtml(sim.title)}</strong>`;
+  });
 
   section.querySelector("#capture-later")?.addEventListener("click", () => {
     // Leave it in inbox on purpose: decide later, no pressure now
     renderIdle(section);
     if (window.initInbox) window.initInbox();
+    if (window.renderGuidanceBanner) window.renderGuidanceBanner();
   });
 }
 
@@ -220,6 +261,7 @@ async function finishEntry(section, entry, targetType, targetId) {
   });
   renderIdle(section);
   if (window.initInbox) window.initInbox();
+  if (window.renderGuidanceBanner) window.renderGuidanceBanner();
   if (window.initTasks) window.initTasks();
   if (window.initToday) window.initToday();
   if (window.renderNext) window.renderNext();

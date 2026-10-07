@@ -39,6 +39,7 @@ window.initFinance = initFinance;
 window.initRelationships = initRelationships;
 window.initBirthdays = initBirthdays;
 window.initInbox = initInbox;
+window.renderGuidanceBanner = renderGuidanceBanner;
 window.initCalendar = initCalendar;
 window.initShopping = initShopping;
 window.initToday = initToday;
