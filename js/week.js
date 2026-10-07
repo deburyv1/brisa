@@ -114,6 +114,7 @@ async function renderTodayPlanner(body, events, todayKey) {
   const todayTasks = (state.tasks || []).filter(t =>
     !t.is_completed && t.scheduled_datetime && dateKey(t.scheduled_datetime) === todayKey);
   const todayEvents = (events || []).filter(ev => ev.start && dateKey(ev.start) === todayKey);
+  const dueHabits = habits.filter(h => h.due_today !== false);
 
   body.innerHTML = `
     <div class="week-header">
@@ -124,7 +125,9 @@ async function renderTodayPlanner(body, events, todayKey) {
     <div class="planner-habits">
       ${habits.length === 0
         ? `<button class="planner-empty" data-goto-habits>Sin hábitos. Crea el primero →</button>`
-        : habits.map(h => `
+        : dueHabits.length === 0
+          ? `<span class="week-free">Hoy no toca ninguno.</span>`
+          : dueHabits.map(h => `
           <button class="planner-habit ${h.done_today ? "done" : ""}" data-habit="${h.id}">
             <span class="planner-check">${h.done_today ? "✓" : ""}</span>
             <span class="planner-habit-name">${h.icon ? `${escapeHtml(h.icon)} ` : ""}${escapeHtml(h.name)}</span>

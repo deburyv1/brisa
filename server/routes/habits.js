@@ -14,6 +14,14 @@ function dateKey(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+// Due on a given date? freq_type 'daily' (default) = every day;
+// 'custom' = only the JS weekdays in freq_days (0=dom … 6=sáb).
+function isDue(freqType, freqDays, anchor) {
+  if (freqType !== 'custom' || !Array.isArray(freqDays) || freqDays.length === 0) return true;
+  const dow = new Date(anchor + 'T12:00:00').getDay();
+  return freqDays.map(Number).includes(dow);
+}
+
 // GET /api/habits?date=YYYY-MM-DD — habits with done state + neutral week
 router.get('/', async (req, res) => {
   try {
@@ -35,6 +43,7 @@ router.get('/', async (req, res) => {
     res.json(habits.rows.map(h => ({
       ...h,
       done_today: doneSet.has(`${h.id}|${anchor}`),
+      due_today: isDue(h.freq_type, h.freq_days, anchor),
       week: weekKeys.map(k => doneSet.has(`${h.id}|${k}`)),
     })));
   } catch (err) {
@@ -63,13 +72,21 @@ router.post('/', async (req, res) => {
 
 // PUT /api/habits/:id
 router.put('/:id', async (req, res) => {
-  const { name, description, icon, active } = req.body;
+  const { name, description, icon, active, freq_type, freq_days } = req.body;
+  const days = Array.isArray(freq_days)
+    ? freq_days.map(Number).filter(n => n >= 0 && n <= 6)
+    : null;
   try {
     const result = await pool.query(
       `UPDATE habits SET name = COALESCE($1, name), description = $2, icon = $3,
-        active = COALESCE($4, active) WHERE id = $5 AND user_id = 1 RETURNING *`,
+        active = COALESCE($4, active),
+        freq_type = COALESCE($5, freq_type),
+        freq_days = COALESCE($6, freq_days)
+        WHERE id = $7 AND user_id = 1 RETURNING *`,
       [name?.trim() || null, description?.trim() || null, icon?.trim().slice(0, 16) || null,
-       active == null ? null : !!active, req.params.id]
+       active == null ? null : !!active,
+       freq_type === 'daily' || freq_type === 'custom' ? freq_type : null,
+       days, req.params.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Habit not found' });
     res.json(result.rows[0]);

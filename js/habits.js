@@ -119,14 +119,28 @@ export async function initHabits() {
   });
 }
 
+const DOW_LABELS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
+const DOW_ORDER = [1, 2, 3, 4, 5, 6, 0]; // lun–dom para mostrar
+
+function freqLabel(h) {
+  if (!h || h.freq_type !== "custom" || !Array.isArray(h.freq_days) || h.freq_days.length === 0) return "";
+  const days = h.freq_days.map(Number).sort();
+  if (days.join() === "1,2,3,4,5") return "lun–vie";
+  if (days.join() === "0,6") return "finde";
+  return days.sort((a, b) => DOW_ORDER.indexOf(a) - DOW_ORDER.indexOf(b))
+    .map(d => DOW_LABELS[d]).join(" · ");
+}
+
 function habitHtml(h) {
   const dots = (h.week || []).map(d => `<span class="habit-dot ${d ? "on" : ""}"></span>`).join("");
+  const label = freqLabel(h);
+  const due = h.due_today !== false;
   return `
-  <div class="habit-row ${h.done_today ? "done" : ""}" data-habit-id="${h.id}">
-    <button class="habit-check ${h.done_today ? "done" : ""}" data-action="toggle" title="Marcar hoy">${h.done_today ? "✓" : ""}</button>
+  <div class="habit-row ${h.done_today ? "done" : ""} ${due ? "" : "off"}" data-habit-id="${h.id}">
+    <button class="habit-check ${h.done_today ? "done" : ""}" data-action="toggle" title="${due ? "Marcar hoy" : "Hoy no toca"}" ${due ? "" : "disabled"}>${h.done_today ? "✓" : ""}</button>
     <div class="habit-info">
-      <span class="habit-name">${h.icon ? `<span class="habit-icon">${escapeHtml(h.icon)}</span> ` : ""}${escapeHtml(h.name)}</span>
-      <span class="habit-week" title="Esta semana (lun–dom)">${dots}</span>
+      <span class="habit-name">${h.icon ? `<span class="habit-icon">${escapeHtml(h.icon)}</span> ` : ""}${escapeHtml(h.name)}${due ? "" : ` <span class="habit-off">· hoy no toca</span>`}</span>
+      <span class="habit-week" title="Esta semana (lun–dom)">${dots}${label ? `<span class="habit-freq">${escapeHtml(label)}</span>` : ""}</span>
     </div>
     <div class="tx-actions">
       <button class="tx-btn tx-btn-edit" data-action="edit" title="Editar">✎</button>
@@ -143,6 +157,9 @@ async function openEditor(id, habits) {
   const conditions = await fetchReadiness();
   const linked = conditions.find(c => c.source_type === "habit" && String(c.source_id) === String(id));
 
+  const initialDays = habit.freq_type === "custom" && Array.isArray(habit.freq_days)
+    ? habit.freq_days.map(Number) : [0, 1, 2, 3, 4, 5, 6];
+
   box.style.display = "";
   box.innerHTML = `
     <div class="habit-editor-title">Editar hábito</div>
@@ -153,6 +170,17 @@ async function openEditor(id, habits) {
     <div class="form-group">
       <label>Emoji</label>
       <input type="text" id="habit-edit-icon" value="${escapeAttr(habit.icon || "")}" maxlength="16">
+    </div>
+    <div class="form-group">
+      <label>¿Qué días toca?</label>
+      <div class="freq-presets">
+        <button class="freq-preset" data-preset="daily">Todos</button>
+        <button class="freq-preset" data-preset="weekdays">Lun–vie</button>
+        <button class="freq-preset" data-preset="weekend">Finde</button>
+      </div>
+      <div class="freq-days" id="habit-edit-days">
+        ${DOW_ORDER.map(d => `<button class="freq-day ${initialDays.includes(d) ? "on" : ""}" data-day="${d}">${DOW_LABELS[d]}</button>`).join("")}
+      </div>
     </div>
     <div class="form-group">
       <label>Al marcarlo, cuenta como listo <span class="optional">(opcional)</span></label>
@@ -168,16 +196,33 @@ async function openEditor(id, habits) {
   `;
   box.scrollIntoView({ behavior: "smooth", block: "nearest" });
 
+  const dayBtns = [...box.querySelectorAll(".freq-day")];
+  const getDays = () => dayBtns.filter(b => b.classList.contains("on")).map(b => Number(b.dataset.day));
+  dayBtns.forEach(b => b.addEventListener("click", () => b.classList.toggle("on")));
+  box.querySelectorAll(".freq-preset").forEach(p => {
+    p.addEventListener("click", () => {
+      const preset = p.dataset.preset;
+      const days = preset === "daily" ? [0, 1, 2, 3, 4, 5, 6]
+        : preset === "weekdays" ? [1, 2, 3, 4, 5] : [0, 6];
+      dayBtns.forEach(b => b.classList.toggle("on", days.includes(Number(b.dataset.day))));
+    });
+  });
+
   box.querySelector("#habit-edit-cancel")?.addEventListener("click", () => { box.style.display = "none"; });
   box.querySelector("#habit-edit-save")?.addEventListener("click", async () => {
     const name = box.querySelector("#habit-edit-name")?.value.trim();
     const icon = box.querySelector("#habit-edit-icon")?.value.trim() || null;
     const linkId = box.querySelector("#habit-edit-link")?.value || null;
     if (!name) return;
+    const days = getDays();
     await fetch(`${API_BASE}/habits/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, icon }),
+      body: JSON.stringify({
+        name, icon,
+        freq_type: days.length === 7 ? "daily" : "custom",
+        freq_days: days,
+      }),
     });
     try {
       if (linked && String(linked.id) !== String(linkId)) {

@@ -123,6 +123,8 @@ try {
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (habit_id, day)
   )`);
+  await pool.query(`ALTER TABLE habits ADD COLUMN IF NOT EXISTS freq_type VARCHAR(20) DEFAULT 'daily'`);
+  await pool.query(`ALTER TABLE habits ADD COLUMN IF NOT EXISTS freq_days INTEGER[]`);
 
   await pool.query(`CREATE TABLE IF NOT EXISTS readiness_state (
     day DATE NOT NULL,

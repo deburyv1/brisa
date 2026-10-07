@@ -114,6 +114,48 @@
 }
 .habit-editor-title { font-size: 12px; font-weight: 700; color: #fff; margin-bottom: 8px; }
 
+/* Frequency picker */
+.freq-presets { display: flex; gap: 6px; margin-bottom: 8px; }
+.freq-preset {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 99px;
+  padding: 5px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: inherit;
+  color: rgba(255, 255, 255, .8);
+  background: rgba(255, 255, 255, .08);
+  cursor: pointer;
+}
+.freq-days { display: flex; gap: 6px; flex-wrap: wrap; }
+.freq-day {
+  width: 38px;
+  height: 30px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  font-size: 10px;
+  font-weight: 700;
+  font-family: inherit;
+  color: rgba(255, 255, 255, .6);
+  background: rgba(255, 255, 255, .06);
+  cursor: pointer;
+}
+.freq-day.on {
+  color: #fff;
+  background: linear-gradient(145deg, #27c9eb, #087fb0);
+  border-color: transparent;
+}
+.habit-row.off { opacity: .55; }
+.habit-row.off .habit-check { cursor: not-allowed; }
+.habit-off { font-size: 10px; font-weight: 400; color: rgba(255, 255, 255, .6); }
+.habit-freq {
+  font-size: 9px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, .55);
+  margin-left: 6px;
+  letter-spacing: .03em;
+}
+
 /* Today planner habit chips */
 .today-habits { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .today-habits-label { font-size: 10px; font-weight: 700; color: rgba(255,255,255,.7); letter-spacing: .05em; width: 100%; }
