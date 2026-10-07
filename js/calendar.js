@@ -27,10 +27,17 @@ function formatDay(key) {
   });
 }
 
+function isMidnight(dt) {
+  if (!dt) return false;
+  const d = new Date(dt);
+  return d.getHours() === 0 && d.getMinutes() === 0;
+}
+
 function formatRange(ev) {
   const opts = { hour: "2-digit", minute: "2-digit" };
   const start = new Date(ev.start).toLocaleTimeString("es-ES", opts);
-  if (!ev.end) return start;
+  if (!ev.end) return isMidnight(ev.start) ? "Todo el día" : start;
+  if (isMidnight(ev.start) && isMidnight(ev.end)) return "Todo el día";
   return `${start} – ${new Date(ev.end).toLocaleTimeString("es-ES", opts)}`;
 }
 

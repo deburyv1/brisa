@@ -137,9 +137,18 @@ function formatLeave(ev) {
   return leave.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
 }
 
+function isMidnight(dt) {
+  if (!dt) return false;
+  const d = new Date(dt);
+  return d.getHours() === 0 && d.getMinutes() === 0;
+}
+
 function formatWhen(ev) {
   const opts = { weekday: "long", day: "numeric", month: "long" };
   const date = new Date(ev.start).toLocaleDateString("es-ES", opts);
+  if (isMidnight(ev.start) && (!ev.end || isMidnight(ev.end))) {
+    return `${date} · Todo el día`;
+  }
   const timeOpts = { hour: "2-digit", minute: "2-digit" };
   const start = new Date(ev.start).toLocaleTimeString("es-ES", timeOpts);
   const end = ev.end ? ` – ${new Date(ev.end).toLocaleTimeString("es-ES", timeOpts)}` : "";

@@ -42,10 +42,11 @@ export function initEventModal() {
     const data = Object.fromEntries(formData);
 
     if (!data.title || !data.title.trim()) return;
-    if (!data.start) {
-      alert("El evento necesita fecha y hora.");
+    if (!data.start_date) {
+      alert("El evento necesita al menos una fecha.");
       return;
     }
+    const at = (d, t) => (d ? `${d}T${t || "00:00"}` : null);
 
     try {
       const res = await fetch(`${API_BASE}/events`, {
@@ -53,8 +54,8 @@ export function initEventModal() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...data,
-          start: toISODateTime(data.start),
-          end: toISODateTime(data.end),
+          start: toISODateTime(at(data.start_date, data.start_time)),
+          end: toISODateTime(at(data.end_date, data.end_time)),
         }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);

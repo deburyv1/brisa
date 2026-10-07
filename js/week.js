@@ -28,9 +28,16 @@ function fmtTime(dt) {
   return new Date(dt).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
 }
 
+function isMidnight(dt) {
+  if (!dt) return false;
+  const d = new Date(dt);
+  return d.getHours() === 0 && d.getMinutes() === 0;
+}
+
 function fmtRange(ev) {
   const s = fmtTime(ev.start);
-  if (!ev.end) return s;
+  if (!ev.end) return isMidnight(ev.start) ? "Todo el día" : s;
+  if (isMidnight(ev.start) && isMidnight(ev.end)) return "Todo el día";
   return `${s} – ${fmtTime(ev.end)}`;
 }
 
