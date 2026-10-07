@@ -9,7 +9,9 @@
 </head>
 <body>
 <div class="world">
-<div id="wallpaper-night" aria-hidden="true"></div>
+<div id="wallpaper-a" class="wallpaper-layer" aria-hidden="true"></div>
+<div id="wallpaper-b" class="wallpaper-layer" aria-hidden="true"></div>
+<div id="wallpaper-night" class="wallpaper-layer" aria-hidden="true"></div>
 
   <!-- Guidance Banner (populated by JS) -->
   <div class="guidance-banner glass" style="display:none;position:fixed;top:15px;left:50%;transform:translateX(-50%);z-index:10;padding:10px 20px;border-radius:99px;font-size:9px;font-weight:700;color:#fff;background:rgba(0,198,255,.7);backdrop-filter:blur(10px);letter-spacing:.04em"></div>
@@ -449,6 +451,10 @@
       <div class="theme-checks">
         <label class="theme-check"><input type="checkbox" id="theme-sheen"> Reflejo animado</label>
         <label class="theme-check"><input type="checkbox" id="theme-night" checked> Fondo nocturno automático</label>
+      </div>
+      <div class="form-group">
+        <label>Fondo</label>
+        <div id="wallpaper-grid" class="wallpaper-grid"></div>
       </div>
       <div class="modal-actions">
         <button type="button" class="modal-btn modal-btn-primary" id="theme-done">Listo</button>

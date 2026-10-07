@@ -112,3 +112,32 @@ body.full-glass .nav.active {
   height: 16px;
   accent-color: #27c9eb;
 }
+
+/* Wallpaper picker */
+.wallpaper-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.wallpaper-thumb {
+  border: 2px solid transparent;
+  border-radius: 10px;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+  overflow: hidden;
+  aspect-ratio: 16 / 10;
+}
+
+.wallpaper-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.wallpaper-thumb.selected {
+  border-color: #fff;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
+}

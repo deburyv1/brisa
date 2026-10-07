@@ -3,8 +3,12 @@
    Preset toggle + Personalizar panel (all values live).
    ============================================ */
 import { PRESETS, loadTheme, saveTheme, applyTheme } from "./theme.js";
+import { setWallpaper } from "./wallpaper.js";
+
+const DEFAULT_WALLPAPER = "aero-background.jpg";
 
 let current = loadTheme();
+if (!current.wallpaper) current.wallpaper = DEFAULT_WALLPAPER;
 let isFull = false;
 
 export function initGlass() {
@@ -12,7 +16,8 @@ export function initGlass() {
 
   document.querySelector("#glass-toggle")?.addEventListener("click", () => {
     isFull = !document.body.classList.contains("full-glass");
-    current = { ...(isFull ? PRESETS.full : PRESETS.normal) };
+    const keep = current.wallpaper;
+    current = { ...(isFull ? PRESETS.full : PRESETS.normal), wallpaper: keep };
     saveTheme(current);
     applyTheme(current, { full: isFull });
     syncPanel();
@@ -20,6 +25,7 @@ export function initGlass() {
 
   document.querySelector("#theme-open")?.addEventListener("click", () => {
     syncPanel();
+    loadWallpapers();
     document.querySelector("#theme-modal")?.classList.add("active");
   });
 
@@ -73,19 +79,52 @@ function bindLive() {
   });
 
   document.querySelector("#theme-preset-normal")?.addEventListener("click", () => {
-    current = { ...PRESETS.normal };
+    current = { ...PRESETS.normal, wallpaper: current.wallpaper };
     isFull = false;
     saveTheme(current);
     applyTheme(current, { full: false });
     syncPanel();
   });
   document.querySelector("#theme-preset-full")?.addEventListener("click", () => {
-    current = { ...PRESETS.full };
+    current = { ...PRESETS.full, wallpaper: current.wallpaper };
     isFull = true;
     saveTheme(current);
     applyTheme(current, { full: true });
     syncPanel();
   });
+}
+
+async function loadWallpapers() {
+  const grid = document.querySelector("#wallpaper-grid");
+  if (!grid) return;
+  try {
+    const res = await fetch("/api/wallpapers");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const list = await res.json();
+    grid.innerHTML = "";
+    for (const w of list) {
+      const btn = document.createElement("button");
+      btn.className = "wallpaper-thumb" + (w.file === current.wallpaper ? " selected" : "");
+      btn.dataset.file = w.file;
+      btn.title = w.file;
+      const img = document.createElement("img");
+      img.src = w.url;
+      img.alt = "";
+      img.loading = "lazy";
+      btn.appendChild(img);
+      btn.addEventListener("click", () => {
+        current.wallpaper = w.file;
+        setWallpaper(w.file);
+      });
+      grid.appendChild(btn);
+    }
+    if (list.length === 0) {
+      grid.innerHTML = `<span style="font-size:10px;color:rgba(255,255,255,.6)">Sin fondos disponibles.</span>`;
+    }
+  } catch (e) {
+    console.warn("No se pudieron cargar fondos:", e);
+    grid.innerHTML = `<span style="font-size:10px;color:rgba(255,255,255,.6)">No se pudieron cargar.</span>`;
+  }
 }
 
 function syncLabels() {
