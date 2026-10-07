@@ -21,6 +21,14 @@ function paint() {
   if (pill) pill.textContent = fmt(remainingSec);
   const big = document.querySelector("#timer-big");
   if (big) big.textContent = fmt(remainingSec);
+  const ring = document.querySelector("#timer-ring-fill");
+  if (ring) {
+    const C = 2 * Math.PI * 44;
+    const frac = totalSec > 0 ? remainingSec / totalSec : 0;
+    ring.style.strokeDashoffset = String(C * (1 - frac));
+    ring.classList.toggle("urgent", remainingSec <= 60 && remainingSec > 0);
+    ring.classList.toggle("running", !!timerId);
+  }
 }
 
 function setMinutes(min) {
@@ -108,6 +116,78 @@ function stopAlarm() {
   document.title = originalTitle;
 }
 
+const TIMER_POS_KEY = "brisa.timerPos";
+
+function restorePos() {
+  const pill = document.querySelector("#timer-pill");
+  if (!pill) return;
+  try {
+    const raw = localStorage.getItem(TIMER_POS_KEY);
+    if (!raw) return;
+    const { x, y } = JSON.parse(raw);
+    if (typeof x !== "number" || typeof y !== "number") return;
+    pill.style.left = `${Math.max(0, Math.min(window.innerWidth - 100, x))}px`;
+    pill.style.top = `${Math.max(0, Math.min(window.innerHeight - 100, y))}px`;
+    pill.style.bottom = "auto";
+  } catch {
+    // corrupted position: keep default
+  }
+}
+
+function makeDraggable(pill, panel) {
+  let drag = null;
+
+  pill.addEventListener("pointerdown", (e) => {
+    if (e.target && typeof e.target.closest === "function" && e.target.closest(".timer-toggle-mini")) return;
+    const r = pill.getBoundingClientRect();
+    drag = { startX: e.clientX, startY: e.clientY, baseX: r.left, baseY: r.top, moved: false };
+  });
+
+  window.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    const dx = e.clientX - drag.startX;
+    const dy = e.clientY - drag.startY;
+    if (!drag.moved && Math.abs(dx) + Math.abs(dy) < 6) return;
+    drag.moved = true;
+    const x = Math.max(0, Math.min(window.innerWidth - 100, drag.baseX + dx));
+    const y = Math.max(0, Math.min(window.innerHeight - 100, drag.baseY + dy));
+    pill.style.left = `${x}px`;
+    pill.style.top = `${y}px`;
+    pill.style.bottom = "auto";
+  });
+
+  window.addEventListener("pointerup", (e) => {
+    if (!drag) return;
+    const wasDrag = drag.moved;
+    drag = null;
+    if (e.target && typeof e.target.closest === "function" && e.target.closest(".timer-toggle-mini")) return;
+    if (!wasDrag) {
+      panel.style.display = panel.style.display === "none" ? "" : "none";
+      if (panel.style.display !== "none") dockPanel(pill, panel);
+    } else {
+      try {
+        const r = pill.getBoundingClientRect();
+        localStorage.setItem(TIMER_POS_KEY, JSON.stringify({ x: r.left, y: r.top }));
+      } catch {
+        // storage unavailable: position lasts for this session
+      }
+    }
+  });
+
+  window.addEventListener("pointercancel", () => { drag = null; });
+}
+
+function dockPanel(pill, panel) {
+  const r = pill.getBoundingClientRect();
+  const w = 240, h = 260;
+  let x = Math.max(8, Math.min(window.innerWidth - w - 8, r.left + r.width / 2 - w / 2));
+  let y = r.top - h - 12;
+  if (y < 8) y = Math.min(window.innerHeight - h - 8, r.bottom + 12);
+  panel.style.left = `${x}px`;
+  panel.style.top = `${y}px`;
+  panel.style.bottom = "auto";
+}
+
 export function initTimer() {
   originalTitle = document.title;
 
@@ -116,13 +196,13 @@ export function initTimer() {
   if (!pill || !panel) return;
 
   paint();
+  restorePos();
+  makeDraggable(pill, panel);
 
-  pill.addEventListener("click", (e) => {
-    if (e.target.closest(".timer-toggle-mini")) return;
-    panel.style.display = panel.style.display === "none" ? "" : "none";
+  document.querySelector("#timer-toggle-mini")?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggle();
   });
-
-  document.querySelector("#timer-toggle-mini")?.addEventListener("click", () => toggle());
 
   document.querySelectorAll(".timer-preset").forEach(b =>
     b.addEventListener("click", () => setMinutes(Number(b.dataset.min))));

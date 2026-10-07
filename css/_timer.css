@@ -1,54 +1,96 @@
 /* ============================================
-   BRISA - Floating timer
+   BRISA - Floating timer (solid round widget)
+   No glass here on purpose: it must read well
+   over any wallpaper and while dragging.
    ============================================ */
 .timer-pill {
   position: fixed;
   left: 18px;
   bottom: 18px;
   z-index: 60;
-  border-radius: 99px;
-  padding: 10px 16px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, .35), rgba(255, 255, 255, .15));
-  backdrop-filter: blur(20px) saturate(140%);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
-  border: 1px solid rgba(255, 255, 255, 0.45);
-  box-shadow: 0 10px 30px rgba(0, 58, 94, .25), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(145deg, #0e4a6e, #082a42);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 12px 32px rgba(3, 25, 40, .55), inset 0 2px 6px rgba(255, 255, 255, 0.18), inset 0 -6px 12px rgba(0, 0, 0, 0.35);
   color: #fff;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 700;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
   font-variant-numeric: tabular-nums;
+}
+
+.timer-pill:active { cursor: grabbing; }
+
+.timer-ring {
+  position: absolute;
+  inset: 5px;
+  width: calc(100% - 10px);
+  height: calc(100% - 10px);
+  transform: rotate(-90deg);
+}
+
+.timer-ring-track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.18);
+  stroke-width: 7;
+}
+
+.timer-ring-fill {
+  fill: none;
+  stroke: #5df2ff;
+  stroke-width: 7;
+  stroke-linecap: round;
+  stroke-dasharray: 276.5;
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 1s linear, stroke .3s;
+}
+
+.timer-ring-fill.running { stroke: #5df2ff; }
+.timer-ring-fill.urgent { stroke: #ffb347; }
+
+.timer-face {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.timer-face #timer-time {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: .02em;
 }
 
 .timer-pill .timer-toggle-mini {
   border: 0;
-  background: linear-gradient(145deg, #27c9eb, #087fb0);
+  background: linear-gradient(145deg, #2ed573, #1a8a4a);
   color: #fff;
   border-radius: 50%;
-  width: 24px;
-  height: 24px;
-  font-size: 11px;
+  width: 28px;
+  height: 28px;
+  font-size: 12px;
   cursor: pointer;
   display: grid;
   place-items: center;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, .4);
 }
 
 .timer-panel {
   position: fixed;
   left: 18px;
-  bottom: 70px;
+  bottom: 126px;
   z-index: 60;
   width: 240px;
   border-radius: 18px;
   padding: 16px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, .30), rgba(255, 255, 255, .12));
-  backdrop-filter: blur(24px) saturate(150%);
-  -webkit-backdrop-filter: blur(24px) saturate(150%);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  box-shadow: 0 14px 40px rgba(0, 58, 94, .3), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  background: #0b3550;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 14px 40px rgba(3, 25, 40, .55);
   display: flex;
   flex-direction: column;
   gap: 10px;

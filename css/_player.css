@@ -1,6 +1,10 @@
 /* ============================================
    BRISA - Music Player Panel (Webamp + Spotify)
+   Hidden for now: out of scope of the calm planner.
    ============================================ */
+#player-panel {
+  display: none;
+}
 .player-panel {
   margin-top: 10px;
   border-radius: var(--radius-card);

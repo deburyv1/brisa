@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>brisa — Aero Home</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
-  <link rel="stylesheet" href="css/app.css?v=20261007b">
+  <link rel="stylesheet" href="css/app.css?v=20261007c">
 </head>
 <body>
 <div class="world">
@@ -136,12 +136,18 @@
     <div id="module-container"></div>
   </main>
 </div>
-<script type="module" src="js/app.js?v=20261007b"></script>
+<script type="module" src="js/app.js?v=20261007c"></script>
 
-<!-- Floating timer: always at hand -->
-<div class="timer-pill" id="timer-pill" title="Temporizador">
-  <span>⏱</span><span id="timer-time">10:00</span>
-  <button class="timer-toggle-mini" id="timer-toggle-mini">▶</button>
+<!-- Floating timer: round, solid, draggable -->
+<div class="timer-pill" id="timer-pill" title="Temporizador (arrástrame)">
+  <svg class="timer-ring" viewBox="0 0 100 100" aria-hidden="true">
+    <circle class="timer-ring-track" cx="50" cy="50" r="44"></circle>
+    <circle class="timer-ring-fill" id="timer-ring-fill" cx="50" cy="50" r="44"></circle>
+  </svg>
+  <div class="timer-face">
+    <span id="timer-time">10:00</span>
+    <button class="timer-toggle-mini" id="timer-toggle-mini" title="Iniciar / pausar">▶</button>
+  </div>
 </div>
 <div class="timer-panel" id="timer-panel" style="display:none">
   <div class="timer-display" id="timer-big">10:00</div>
