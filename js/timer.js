@@ -7,6 +7,10 @@
 let totalSec = 10 * 60;
 let remainingSec = totalSec;
 let timerId = null;
+// Wall-clock deadline: the timer measures against Date.now(),
+// so background-tab throttling or drift never steals time.
+let endAt = null;
+const TIMER_RUN_KEY = "brisa.timerRun";
 let alarmTimers = [];
 let originalTitle = document.title;
 
@@ -35,6 +39,7 @@ function setMinutes(min) {
   stopTick();
   totalSec = Math.max(1, Math.round(min * 60));
   remainingSec = totalSec;
+  clearRun();
   paint();
   document.querySelectorAll(".timer-preset").forEach(b =>
     b.classList.toggle("selected", Number(b.dataset.min) === min));
@@ -45,6 +50,44 @@ function stopTick() {
     clearInterval(timerId);
     timerId = null;
   }
+  endAt = null;
+}
+
+function saveRun() {
+  try {
+    if (endAt) localStorage.setItem(TIMER_RUN_KEY, JSON.stringify({ endAt, totalSec }));
+  } catch {
+    // storage unavailable: no resume across reloads
+  }
+}
+
+function clearRun() {
+  try {
+    localStorage.removeItem(TIMER_RUN_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+function tick() {
+  if (!endAt) return;
+  remainingSec = Math.max(0, Math.ceil((endAt - Date.now()) / 1000));
+  paint();
+  if (remainingSec === 0) {
+    stopTick();
+    clearRun();
+    startAlarm();
+    remainingSec = totalSec;
+    paint();
+    syncButtons(false);
+  }
+}
+
+function syncButtons(running) {
+  const btn = document.querySelector("#timer-start-pause");
+  const mini = document.querySelector("#timer-toggle-mini");
+  if (btn) btn.textContent = running ? "Pausar" : "Iniciar";
+  if (mini) mini.textContent = running ? "⏸" : "▶";
 }
 
 function beep(times = 4) {
@@ -215,7 +258,9 @@ export function initTimer() {
   document.querySelector("#timer-start-pause")?.addEventListener("click", () => toggle());
   document.querySelector("#timer-reset")?.addEventListener("click", () => {
     stopTick();
+    clearRun();
     remainingSec = totalSec;
+    syncButtons(false);
     paint();
   });
   document.querySelector("#timer-collapse")?.addEventListener("click", () => {
@@ -223,12 +268,11 @@ export function initTimer() {
   });
 
   function toggle() {
-    const btn = document.querySelector("#timer-start-pause");
-    const mini = document.querySelector("#timer-toggle-mini");
     if (timerId) {
+      tick();
       stopTick();
-      if (btn) btn.textContent = "Iniciar";
-      if (mini) mini.textContent = "▶";
+      clearRun();
+      syncButtons(false);
       paint();
       return;
     }
@@ -236,18 +280,41 @@ export function initTimer() {
     if ("Notification" in window && Notification.permission === "default") {
       Notification.requestPermission().catch(() => {});
     }
-    if (btn) btn.textContent = "Pausar";
-    if (mini) mini.textContent = "⏸";
-    timerId = setInterval(() => {
-      remainingSec = Math.max(0, remainingSec - 1);
-      paint();
-      if (remainingSec === 0) {
-        startAlarm();
-        remainingSec = totalSec;
-        paint();
-      }
-    }, 1000);
+    endAt = Date.now() + remainingSec * 1000;
+    saveRun();
+    syncButtons(true);
+    timerId = setInterval(tick, 250);
+    tick();
   }
 
+  // Coming back to the tab (or reloading) shows the true time at once.
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && timerId) tick();
+  });
+  resumeRun();
+
   window.brisaTimer = { setMinutes };
+}
+
+function resumeRun() {
+  let saved = null;
+  try {
+    saved = JSON.parse(localStorage.getItem(TIMER_RUN_KEY) || "null");
+  } catch {
+    saved = null;
+  }
+  if (!saved || typeof saved.endAt !== "number") return;
+  if (saved.endAt <= Date.now()) {
+    // It finished while away: show 00:00, no surprise alarm.
+    clearRun();
+    totalSec = saved.totalSec || totalSec;
+    remainingSec = 0;
+    paint();
+    return;
+  }
+  totalSec = saved.totalSec || totalSec;
+  endAt = saved.endAt;
+  syncButtons(true);
+  timerId = setInterval(tick, 250);
+  tick();
 }
