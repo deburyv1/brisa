@@ -46,6 +46,7 @@ window.initCalendar = initCalendar;
 window.initShopping = initShopping;
 window.initReadiness = initReadiness;
 window.initHabits = initHabits;
+window.initWeek = initWeek;
 window.initToday = initToday;
 window.loadEntryIntoCapture = loadEntryIntoCapture;
 window.renderNext = renderNext;

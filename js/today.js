@@ -119,10 +119,7 @@ export async function initToday() {
       <div class="today-legend-item"><span class="today-legend-dot event"></span> Evento</div>
     </div>
     ${summaryHtml}
-    ${isToday ? `<div class="today-habits" id="today-habits"></div>` : ""}
   `;
-
-  if (isToday) loadTodayHabits(section);
 
   section.querySelector("#today-prev")?.addEventListener("click", () => shiftToday(-1));
   section.querySelector("#today-next")?.addEventListener("click", () => shiftToday(1));
@@ -135,43 +132,6 @@ export async function initToday() {
       if (el) el.textContent = formatTime(new Date());
     }, 1000);
   }
-}
-
-async function loadTodayHabits(section) {
-  const box = section.querySelector("#today-habits");
-  if (!box) return;
-  let habits = [];
-  try {
-    const res = await fetch("/api/habits");
-    if (res.ok) habits = await res.json();
-  } catch {
-    return;
-  }
-  if (!habits.length) return;
-  box.innerHTML = `
-    <span class="today-habits-label">Hábitos de hoy</span>
-    ${habits.map(h => `
-      <button class="today-habit-chip ${h.done_today ? "on" : ""}" data-habit="${h.id}">
-        ${h.done_today ? "✓ " : ""}${h.icon ? `${escapeHtml(h.icon)} ` : ""}${escapeHtml(h.name)}
-      </button>`).join("")}
-  `;
-  box.querySelectorAll(".today-habit-chip").forEach(chip => {
-    chip.addEventListener("click", async () => {
-      const done = !chip.classList.contains("on");
-      chip.classList.toggle("on", done);
-      try {
-        await fetch(`/api/habits/${chip.dataset.habit}/check`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ done }),
-        });
-        if (window.initHabits) window.initHabits();
-        if (window.initReadiness) window.initReadiness();
-      } catch (e) {
-        console.error("Error marcando hábito:", e);
-      }
-    });
-  });
 }
 
 async function renderSummary(key) {

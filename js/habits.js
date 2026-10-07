@@ -88,7 +88,7 @@ export async function initHabits() {
       body: JSON.stringify({ name, icon: iconInput?.value.trim() || null }),
     });
     if (window.initHabits) window.initHabits();
-    if (window.initToday) window.initToday();
+    if (window.initWeek) window.initWeek();
   };
   section.querySelector("#habits-add")?.addEventListener("click", add);
   section.querySelector("#habits-input")?.addEventListener("keydown", (e) => {
@@ -107,14 +107,14 @@ export async function initHabits() {
       });
       if (window.initHabits) window.initHabits();
       if (window.initReadiness) window.initReadiness();
-      if (window.initToday) window.initToday();
+      if (window.initWeek) window.initWeek();
     });
     row.querySelector('[data-action="edit"]')?.addEventListener("click", () => openEditor(id, habits));
     row.querySelector('[data-action="delete"]')?.addEventListener("click", async () => {
       if (!confirm("¿Eliminar este hábito? Se pierde su registro.")) return;
       await fetch(`${API_BASE}/habits/${id}`, { method: "DELETE" });
       if (window.initHabits) window.initHabits();
-      if (window.initToday) window.initToday();
+      if (window.initWeek) window.initWeek();
     });
   });
 }
@@ -198,6 +198,8 @@ async function openEditor(id, habits) {
       console.error("Error vinculando condición:", e);
     }
     if (window.initHabits) window.initHabits();
+    if (window.initReadiness) window.initReadiness();
+    if (window.initWeek) window.initWeek();
   });
 }
 

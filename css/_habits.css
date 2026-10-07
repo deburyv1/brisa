@@ -1,9 +1,26 @@
 /* ============================================
    BRISA - Habits
    ============================================ */
+.habits {
+  position: relative;
+  margin-top: 11px;
+  border-radius: var(--radius-panel);
+  padding: 20px 24px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, var(--glass-a1)), rgba(255, 255, 255, var(--glass-a2)));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 10px 30px rgba(0, 58, 94, .08);
+}
 .habits-header { margin-bottom: 10px; }
-.habits-title { font-size: 15px; font-weight: 700; color: #fff; }
-.habits-sub { font-size: 10px; color: rgba(255, 255, 255, .65); }
+.habits-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+}
+.habits-sub { font-size: 10px; color: rgba(255, 255, 255, .65); margin-top: 2px; }
 
 .habits-icon-pick { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 6px; }
 .habits-emoji {
@@ -12,14 +29,59 @@
   width: 30px; height: 30px; cursor: pointer; line-height: 1;
 }
 .habits-emoji.sel { background: rgba(255,255,255,.28); border-color: #fff; }
-.habits-add-row { display: flex; gap: 6px; }
-.habits-add-row #habits-icon { width: 46px; text-align: center; }
-.habits-add-row #habits-input { flex: 1; }
-.habits-add-btn {
-  border: none; border-radius: 10px; width: 36px; cursor: pointer;
-  font-size: 17px; color: #fff;
-  background: linear-gradient(145deg, #2ed573, #1a8a4a);
+.habits-add-row { display: flex; gap: 8px; }
+.habits-add-row #habits-icon {
+  width: 46px;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 10px;
+  padding: 9px 6px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #fff;
+  background: rgba(255, 255, 255, .08);
+  outline: none;
 }
+.habits-add-row #habits-input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 10px;
+  padding: 9px 12px;
+  font-size: 12px;
+  font-family: inherit;
+  color: #fff;
+  background: rgba(255, 255, 255, .08);
+  outline: none;
+}
+.habits-add-row #habits-input::placeholder {
+  color: rgba(255, 255, 255, 0.65);
+}
+.habits-add-btn {
+  border: 0;
+  border-radius: 10px;
+  padding: 9px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(145deg, #27c9eb, #087fb0);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.habit-editor input[type="text"],
+.habit-editor select {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 10px;
+  padding: 9px 12px;
+  font-size: 12px;
+  font-family: inherit;
+  color: #fff;
+  background: rgba(255, 255, 255, .08);
+  outline: none;
+}
+.habit-editor select option { color: #123; }
 
 .habits-list { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
 .habit-row {

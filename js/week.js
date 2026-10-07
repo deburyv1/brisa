@@ -5,6 +5,7 @@
 import { state } from "./state.js";
 
 let weekOffset = 0;
+let plannerTab = "hoy";
 
 export function shiftWeek(delta) {
   weekOffset += delta;
@@ -83,6 +84,100 @@ export async function initWeek() {
   const rangeLabel = `${days[0].toLocaleDateString("es-ES", { day: "numeric", month: "short" })} – ${days[6].toLocaleDateString("es-ES", { day: "numeric", month: "short" })}`;
 
   section.innerHTML = `
+    <div class="week-tabs">
+      <button class="week-tab ${plannerTab === "hoy" ? "active" : ""}" id="week-tab-hoy">Hoy</button>
+      <button class="week-tab ${plannerTab === "semana" ? "active" : ""}" id="week-tab-semana">Semana</button>
+    </div>
+    <div id="week-body"></div>
+  `;
+
+  section.querySelector("#week-tab-hoy")?.addEventListener("click", () => { plannerTab = "hoy"; initWeek(); });
+  section.querySelector("#week-tab-semana")?.addEventListener("click", () => { plannerTab = "semana"; initWeek(); });
+
+  const body = section.querySelector("#week-body");
+  if (plannerTab === "hoy") {
+    await renderTodayPlanner(body, events, todayKey);
+  } else {
+    renderWeekRail(body, days, byDay, todayKey, rangeLabel);
+  }
+}
+
+async function renderTodayPlanner(body, events, todayKey) {
+  let habits = [];
+  try {
+    const res = await fetch("/api/habits");
+    if (res.ok) habits = await res.json();
+  } catch {
+    habits = [];
+  }
+
+  const todayTasks = (state.tasks || []).filter(t =>
+    !t.is_completed && t.scheduled_datetime && dateKey(t.scheduled_datetime) === todayKey);
+  const todayEvents = (events || []).filter(ev => ev.start && dateKey(ev.start) === todayKey);
+
+  body.innerHTML = `
+    <div class="week-header">
+      <div class="week-title">Hoy</div>
+      <div class="week-range">${new Date().toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" })}</div>
+    </div>
+    <div class="planner-label">Hábitos de hoy</div>
+    <div class="planner-habits">
+      ${habits.length === 0
+        ? `<button class="planner-empty" data-goto-habits>Sin hábitos. Crea el primero →</button>`
+        : habits.map(h => `
+          <button class="planner-habit ${h.done_today ? "done" : ""}" data-habit="${h.id}">
+            <span class="planner-check">${h.done_today ? "✓" : ""}</span>
+            <span class="planner-habit-name">${h.icon ? `${escapeHtml(h.icon)} ` : ""}${escapeHtml(h.name)}</span>
+          </button>`).join("")}
+    </div>
+    <div class="planner-label">Agenda</div>
+    <div class="week-items">
+      ${(todayTasks.length === 0 && todayEvents.length === 0)
+        ? `<span class="week-free">Día despejado.</span>`
+        : `
+          ${todayEvents.map(ev => `
+            <button class="week-item" data-open-event="${ev.id}">
+              <span class="week-dot event"></span>
+              <span class="week-item-title">${escapeHtml(ev.title)}</span>
+              <span class="week-item-time">${fmtRange(ev)}</span>
+            </button>`).join("")}
+          ${todayTasks.map(t => `
+            <button class="week-item" data-focus-task="${t.id}">
+              <span class="week-dot ${t.priority || "medium"}"></span>
+              <span class="week-item-title">${escapeHtml(t.title)}</span>
+              <span class="week-item-time">${fmtTime(t.scheduled_datetime)}</span>
+            </button>`).join("")}
+        `}
+    </div>
+  `;
+
+  body.querySelector("[data-goto-habits]")?.addEventListener("click", () => {
+    document.querySelector('.nav[data-nav="habits"]')?.click();
+  });
+  body.querySelectorAll("[data-habit]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const done = !btn.classList.contains("done");
+      btn.classList.toggle("done", done);
+      btn.querySelector(".planner-check").textContent = done ? "✓" : "";
+      try {
+        await fetch(`/api/habits/${btn.dataset.habit}/check`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ done }),
+        });
+        if (window.initReadiness) window.initReadiness();
+        if (window.initHabits) window.initHabits();
+        if (window.initToday) window.initToday();
+      } catch (e) {
+        console.error("Error marcando hábito:", e);
+      }
+    });
+  });
+  wireAgendaButtons(body);
+}
+
+function renderWeekRail(body, days, byDay, todayKey, rangeLabel) {
+  body.innerHTML = `
     <div class="week-header">
       <div class="week-title">📅 Vista de la semana</div>
       <div class="week-nav">
@@ -120,14 +215,18 @@ export async function initWeek() {
     }).join("")}
   `;
 
-  section.querySelector("#week-prev")?.addEventListener("click", () => shiftWeek(-1));
-  section.querySelector("#week-next")?.addEventListener("click", () => shiftWeek(1));
-  section.querySelectorAll("[data-focus-task]").forEach(btn => {
+  body.querySelector("#week-prev")?.addEventListener("click", () => shiftWeek(-1));
+  body.querySelector("#week-next")?.addEventListener("click", () => shiftWeek(1));
+  wireAgendaButtons(body);
+}
+
+function wireAgendaButtons(root) {
+  root.querySelectorAll("[data-focus-task]").forEach(btn => {
     btn.addEventListener("click", () => {
       if (window.openFocus) window.openFocus(btn.dataset.focusTask);
     });
   });
-  section.querySelectorAll("[data-open-event]").forEach(btn => {
+  root.querySelectorAll("[data-open-event]").forEach(btn => {
     btn.addEventListener("click", () => {
       if (window.openEventDetail) window.openEventDetail(btn.dataset.openEvent);
     });
