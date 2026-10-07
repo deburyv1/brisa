@@ -29,6 +29,7 @@ import { initEventModal } from "./eventModal.js";
 import { initEventDetail } from "./eventDetail.js";
 import { initShopping } from "./shopping.js";
 import { initReadiness } from "./readiness.js";
+import { initHabits } from "./habits.js";
 import { initTimer } from "./timer.js";
 import { initWeek } from "./week.js";
 import { initWallpaper } from "./wallpaper.js";
@@ -44,6 +45,7 @@ window.renderGuidanceBanner = renderGuidanceBanner;
 window.initCalendar = initCalendar;
 window.initShopping = initShopping;
 window.initReadiness = initReadiness;
+window.initHabits = initHabits;
 window.initToday = initToday;
 window.loadEntryIntoCapture = loadEntryIntoCapture;
 window.renderNext = renderNext;
@@ -58,6 +60,7 @@ const NAV_LABELS = {
   finance: "Finanzas",
   people: "Relaciones",
   shopping: "Compras",
+  habits: "Hábitos",
 };
 
 const NAV_SECTIONS = {
@@ -69,6 +72,7 @@ const NAV_SECTIONS = {
   finance: ["#finance-section"],
   people: ["#relationships-section"],
   shopping: ["#shopping-section"],
+  habits: ["#habits-section"],
 };
 
 const ALL_SECTIONS = [
@@ -84,6 +88,7 @@ const ALL_SECTIONS = [
   "#finance-section",
   "#relationships-section",
   "#shopping-section",
+  "#habits-section",
   "#readiness-section",
   "#week-section",
 ];
@@ -139,6 +144,7 @@ async function main() {
   initEventDetail();
   initShopping();
   initReadiness();
+  initHabits();
   initTimer();
   initPlayer();
   initNavigation();
@@ -154,6 +160,7 @@ async function main() {
     initCalendar(),
     initShopping(),
     initReadiness(),
+    initHabits(),
   ]);
   initToday();
   renderNext();

@@ -106,6 +106,24 @@ try {
     UNIQUE(user_id, label)
   )`);
 
+  await pool.query(`CREATE TABLE IF NOT EXISTS habits (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER DEFAULT 1,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    icon VARCHAR(16),
+    active BOOLEAN DEFAULT TRUE,
+    position INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
+
+  await pool.query(`CREATE TABLE IF NOT EXISTS habit_completions (
+    habit_id INTEGER REFERENCES habits(id) ON DELETE CASCADE,
+    day DATE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (habit_id, day)
+  )`);
+
   await pool.query(`CREATE TABLE IF NOT EXISTS readiness_state (
     day DATE NOT NULL,
     item_id INTEGER REFERENCES readiness_items(id) ON DELETE CASCADE,

@@ -1,0 +1,66 @@
+/* ============================================
+   BRISA - Habits
+   ============================================ */
+.habits-header { margin-bottom: 10px; }
+.habits-title { font-size: 15px; font-weight: 700; color: #fff; }
+.habits-sub { font-size: 10px; color: rgba(255, 255, 255, .65); }
+
+.habits-icon-pick { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 6px; }
+.habits-emoji {
+  border: 1px solid rgba(255,255,255,.2); border-radius: 8px;
+  background: rgba(255,255,255,.08); font-size: 15px;
+  width: 30px; height: 30px; cursor: pointer; line-height: 1;
+}
+.habits-emoji.sel { background: rgba(255,255,255,.28); border-color: #fff; }
+.habits-add-row { display: flex; gap: 6px; }
+.habits-add-row #habits-icon { width: 46px; text-align: center; }
+.habits-add-row #habits-input { flex: 1; }
+.habits-add-btn {
+  border: none; border-radius: 10px; width: 36px; cursor: pointer;
+  font-size: 17px; color: #fff;
+  background: linear-gradient(145deg, #2ed573, #1a8a4a);
+}
+
+.habits-list { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.habit-row {
+  display: flex; align-items: center; gap: 10px;
+  border-radius: 12px; padding: 8px 10px;
+  background: rgba(255,255,255,.1);
+  border: 1px solid rgba(255,255,255,.18);
+}
+.habit-check {
+  width: 26px; height: 26px; border-radius: 50%; cursor: pointer;
+  border: 2px solid rgba(255,255,255,.5); background: transparent;
+  color: #fff; font-size: 13px; display: grid; place-items: center;
+  flex-shrink: 0;
+}
+.habit-check.done { background: linear-gradient(145deg, #2ed573, #1a8a4a); border-color: transparent; }
+.habit-info { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.habit-name { font-size: 12px; font-weight: 600; color: #fff; }
+.habit-row.done .habit-name { text-decoration: line-through; opacity: .7; }
+.habit-week { display: flex; gap: 4px; }
+.habit-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: rgba(255,255,255,.22);
+}
+.habit-dot.on { background: #2ed573; }
+
+.habit-editor {
+  margin-top: 12px; border-radius: 12px; padding: 12px;
+  background: rgba(255,255,255,.1);
+  border: 1px solid rgba(255,255,255,.2);
+}
+.habit-editor-title { font-size: 12px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+
+/* Today planner habit chips */
+.today-habits { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.today-habits-label { font-size: 10px; font-weight: 700; color: rgba(255,255,255,.7); letter-spacing: .05em; width: 100%; }
+.today-habit-chip {
+  border: 1px solid rgba(255,255,255,.25); border-radius: 99px;
+  padding: 5px 12px; font-size: 11px; font-weight: 600; font-family: inherit;
+  color: rgba(255,255,255,.8); background: rgba(255,255,255,.08); cursor: pointer;
+}
+.today-habit-chip.on {
+  background: linear-gradient(145deg, #2ed573, #1a8a4a);
+  border-color: transparent; color: #fff;
+}

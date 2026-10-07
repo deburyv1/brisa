@@ -19,6 +19,7 @@ import remindersRouter from './routes/reminders.js';
 import budgetsRouter from './routes/budgets.js';
 import shoppingRouter from './routes/shopping.js';
 import readinessRouter from './routes/readiness.js';
+import habitsRouter from './routes/habits.js';
 import wallpapersRouter from './routes/wallpapers.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -48,6 +49,7 @@ app.use('/api/reminders', remindersRouter);
 app.use('/api/budgets', budgetsRouter);
 app.use('/api/shopping', shoppingRouter);
 app.use('/api/readiness', readinessRouter);
+app.use('/api/habits', habitsRouter);
 app.use('/api/wallpapers', wallpapersRouter);
 
 // Serve static files (frontend)
