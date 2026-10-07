@@ -168,6 +168,7 @@ function renderTasks(section, tasks) {
         completed_at: completing ? new Date().toISOString() : null,
       });
       if (window.initTasks) window.initTasks();
+      if (window.initReadiness) window.initReadiness();
     });
 
     item.querySelector('[data-action="edit"]')?.addEventListener("click", () => {

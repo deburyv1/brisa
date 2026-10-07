@@ -45,7 +45,27 @@ router.post('/items', async (req, res) => {
   }
 });
 
-// POST /api/readiness/check — toggle today's state {item_id, done}
+// PUT /api/readiness/items/:id — edit label/active/link source
+router.put('/items/:id', async (req, res) => {
+  const { label, active, source_type, source_id } = req.body;
+  try {
+    const result = await pool.query(
+      `UPDATE readiness_items
+       SET label = COALESCE($1, label),
+           active = COALESCE($2, active),
+           source_type = $3,
+           source_id = $4
+       WHERE id = $5 AND user_id = 1 RETURNING *`,
+      [label?.trim() || null, active == null ? null : !!active,
+       source_type || null, source_id || null, req.params.id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Item not found' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Error updating readiness item:', err);
+    res.status(500).json({ error: 'Database error' });
+  }
+});
 router.post('/check', async (req, res) => {
   const { item_id, done, date } = req.body;
   if (!item_id) return res.status(400).json({ error: 'item_id is required' });

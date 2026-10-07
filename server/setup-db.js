@@ -100,6 +100,8 @@ try {
     label VARCHAR(100) NOT NULL,
     active BOOLEAN DEFAULT TRUE,
     position INTEGER DEFAULT 0,
+    source_type VARCHAR(20),
+    source_id INTEGER,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_id, label)
   )`);
@@ -136,6 +138,8 @@ try {
   await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS linked_id INTEGER REFERENCES transactions(id) ON DELETE SET NULL`);
   await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS is_recurring BOOLEAN DEFAULT FALSE`);
   await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS alias VARCHAR(255)`);
+  await pool.query(`ALTER TABLE readiness_items ADD COLUMN IF NOT EXISTS source_type VARCHAR(20)`);
+  await pool.query(`ALTER TABLE readiness_items ADD COLUMN IF NOT EXISTS source_id INTEGER`);
   await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS owner VARCHAR(10) DEFAULT 'mine'`);
   await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS person_id INTEGER REFERENCES people(id) ON DELETE SET NULL`);
   await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS details TEXT`);

@@ -443,6 +443,7 @@ async function completeTask() {
     console.error("Error completando tarea:", e);
   }
   if (window.initTasks) await window.initTasks();
+  if (window.initReadiness) window.initReadiness();
   if (window.renderNext) window.renderNext();
   if (window.initToday) window.initToday();
 

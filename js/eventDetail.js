@@ -115,6 +115,7 @@ async function renderPrepList(overlay, eventId) {
           }),
         });
         if (window.initTasks) await window.initTasks();
+        if (window.initReadiness) window.initReadiness();
         if (window.renderNext) window.renderNext();
         if (window.initToday) window.initToday();
         await renderPrepList(overlay, eventId);

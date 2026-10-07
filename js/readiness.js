@@ -33,8 +33,8 @@ export async function initReadiness() {
     <div class="readiness-row">
       <span class="readiness-label">¿Listo para el día?</span>
       ${items.map(i => `
-        <button class="readiness-chip ${i.done ? "on" : ""}" data-item="${i.id}" title="${escapeHtml(i.label)}">
-          ${i.done ? "✓ " : ""}${escapeHtml(i.label)}
+        <button class="readiness-chip ${i.done ? "on" : ""}" data-item="${i.id}" title="${escapeHtml(i.label)}${i.source_type === "task" ? " (vinculado a tarea)" : ""}">
+          ${i.done ? "✓ " : ""}${escapeHtml(i.label)}${i.source_type === "task" ? " 🔗" : ""}
         </button>
       `).join("")}
       <button class="readiness-add" id="readiness-add" title="Agregar condición">+</button>

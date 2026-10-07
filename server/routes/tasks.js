@@ -69,6 +69,17 @@ router.put('/:id', async (req, res) => {
       values
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Task not found' });
+    // Completing a task auto-checks linked readiness conditions (today only).
+    // Manual state always wins: uncompleting never unchecks.
+    if (result.rows[0].is_completed) {
+      await pool.query(
+        `INSERT INTO readiness_state (day, item_id)
+         SELECT CURRENT_DATE, id FROM readiness_items
+         WHERE source_type = 'task' AND source_id = $1
+         ON CONFLICT DO NOTHING`,
+        [req.params.id]
+      ).catch(e => console.error('Error syncing readiness:', e));
+    }
     res.json(result.rows[0]);
   } catch (err) {
     console.error('Error updating task:', err);

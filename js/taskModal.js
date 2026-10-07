@@ -24,6 +24,52 @@ export function initTaskModal() {
   let editingId = null;
   let cleanSnapshot = null;
 
+  async function fillReadinessOptions(selectedItemId) {
+    const sel = form.querySelector("#task-readiness-select");
+    if (!sel) return;
+    sel.innerHTML = `<option value="">Nada</option>`;
+    try {
+      const res = await fetch(`${API_BASE}/readiness`);
+      if (!res.ok) return;
+      const items = await res.json();
+      for (const it of items) {
+        const opt = document.createElement("option");
+        opt.value = it.id;
+        opt.textContent = it.label;
+        if (String(it.id) === String(selectedItemId)) opt.selected = true;
+        sel.appendChild(opt);
+      }
+    } catch (e) {
+      console.error("Error cargando condiciones:", e);
+    }
+  }
+
+  async function linkedReadinessItem(taskId) {
+    try {
+      const res = await fetch(`${API_BASE}/readiness`);
+      if (!res.ok) return null;
+      const items = await res.json();
+      return items.find(i => i.source_type === "task" && String(i.source_id) === String(taskId)) || null;
+    } catch {
+      return null;
+    }
+  }
+
+  async function saveReadinessLink(taskId) {
+    const sel = form.querySelector("#task-readiness-select");
+    const itemId = sel?.value || null;
+    if (!itemId) return;
+    try {
+      await fetch(`${API_BASE}/readiness/items/${itemId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ source_type: "task", source_id: Number(taskId) }),
+      });
+    } catch (e) {
+      console.error("Error vinculando condición:", e);
+    }
+  }
+
   function open(taskId = null) {
     editingId = taskId;
     form.reset();
@@ -32,7 +78,7 @@ export function initTaskModal() {
       titleEl.textContent = "Editar tarea";
       fetch(`${API_BASE}/tasks/${taskId}`)
         .then(r => r.json())
-        .then(task => {
+        .then(async task => {
           form.title.value = task.title || "";
           form.description.value = task.description || "";
           form.first_step.value = task.first_step || "";
@@ -40,11 +86,15 @@ export function initTaskModal() {
           form.due_datetime.value = toLocalInput(task.due_datetime);
           form.priority.value = task.priority || "medium";
           form.estimated_minutes.value = task.estimated_minutes ?? "";
+          const linked = await linkedReadinessItem(taskId);
+          await fillReadinessOptions(linked?.id || "");
           cleanSnapshot = snapshotForm(form);
         });
     } else {
       titleEl.textContent = "Nueva tarea";
-      cleanSnapshot = snapshotForm(form);
+      fillReadinessOptions("").then(() => {
+        cleanSnapshot = snapshotForm(form);
+      });
     }
 
     overlay.classList.add("active");
@@ -82,6 +132,7 @@ export function initTaskModal() {
     if (!data.title || !data.title.trim()) return;
 
     try {
+      let savedId = editingId;
       if (editingId) {
         await fetch(`${API_BASE}/tasks/${editingId}`, {
           method: "PUT",
@@ -93,7 +144,7 @@ export function initTaskModal() {
           }),
         });
       } else {
-        await fetch(`${API_BASE}/tasks`, {
+        const res = await fetch(`${API_BASE}/tasks`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -102,6 +153,31 @@ export function initTaskModal() {
             due_datetime: toISODateTime(data.due_datetime),
           }),
         });
+        const created = await res.json().catch(() => null);
+        if (created?.id) savedId = created.id;
+      }
+      // Reconcile readiness link: selected item points here, previous link cleared
+      const selItemId = form.querySelector("#task-readiness-select")?.value || null;
+      if (savedId) {
+        try {
+          const prev = await linkedReadinessItem(savedId);
+          if (prev && String(prev.id) !== String(selItemId)) {
+            await fetch(`${API_BASE}/readiness/items/${prev.id}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ source_type: null, source_id: null }),
+            });
+          }
+          if (selItemId && (!prev || String(prev.id) !== String(selItemId))) {
+            await fetch(`${API_BASE}/readiness/items/${selItemId}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ source_type: "task", source_id: Number(savedId) }),
+            });
+          }
+        } catch (e) {
+          console.error("Error vinculando condición:", e);
+        }
       }
       close();
       if (window.initTasks) window.initTasks();
