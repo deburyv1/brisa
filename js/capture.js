@@ -162,7 +162,7 @@ function norm(s) {
 }
 
 async function findSimilar(text) {
-  const needle = norm(text);
+  const needle = norm(plainText(text));
   if (needle.length < 4) return null;
   try {
     const [tasksRes, entriesRes] = await Promise.all([
@@ -170,8 +170,8 @@ async function findSimilar(text) {
       fetch(`${API_BASE}/entries?status=inbox`).then(r => r.ok ? r.json() : []),
     ]);
     const hay = [
-      ...tasksRes.filter(t => !t.is_completed).map(t => ({ kind: "tarea", title: t.title })),
-      ...entriesRes.map(e => ({ kind: "inbox", title: e.raw_text })),
+      ...tasksRes.filter(t => !t.is_completed).map(t => ({ kind: "tarea", title: plainText(t.title) })),
+      ...entriesRes.map(e => ({ kind: "inbox", title: plainText(e.raw_text) })),
     ];
     return hay.find(h => {
       const hayN = norm(h.title);
