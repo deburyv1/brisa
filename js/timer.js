@@ -25,6 +25,8 @@ function paint() {
   if (pill) pill.textContent = fmt(remainingSec);
   const big = document.querySelector("#timer-big");
   if (big) big.textContent = fmt(remainingSec);
+  const chip = document.querySelector("#timer-chip-time");
+  if (chip) chip.textContent = fmt(remainingSec);
   const ring = document.querySelector("#timer-ring-fill");
   if (ring) {
     const C = 2 * Math.PI * 44;
@@ -86,8 +88,10 @@ function tick() {
 function syncButtons(running) {
   const btn = document.querySelector("#timer-start-pause");
   const mini = document.querySelector("#timer-toggle-mini");
+  const chip = document.querySelector("#timer-chip-toggle");
   if (btn) btn.textContent = running ? "Pausar" : "Iniciar";
   if (mini) mini.textContent = running ? "⏸" : "▶";
+  if (chip) chip.textContent = running ? "⏸" : "▶";
 }
 
 function beep(times = 4) {
@@ -171,33 +175,114 @@ function stopAlarm() {
 
 const TIMER_POS_KEY = "brisa.timerPos";
 const TIMER_SIZE_KEY = "brisa.timerSize";
-const TIMER_VISIBLE_KEY = "brisa.timerVisible";
-const TIMER_HOME = { left: 18, bottom: 18 };
+const TIMER_MODE_KEY = "brisa.timerMode"; // "full" | "mini"
 
-function isVisible() {
+function getMode() {
   try {
-    const raw = localStorage.getItem(TIMER_VISIBLE_KEY);
-    return raw === null ? true : raw === "1";
+    return localStorage.getItem(TIMER_MODE_KEY) === "mini" ? "mini" : "full";
   } catch {
-    return true;
+    return "full";
   }
 }
 
-function setVisible(v) {
-  const pill = document.querySelector("#timer-pill");
-  const panel = document.querySelector("#timer-panel");
-  if (!pill) return;
-  pill.style.display = v ? "" : "none";
-  if (panel && !v) panel.style.display = "none";
+function saveMode(mode) {
   try {
-    localStorage.setItem(TIMER_VISIBLE_KEY, v ? "1" : "0");
+    localStorage.setItem(TIMER_MODE_KEY, mode);
   } catch {
     // ignore
   }
 }
 
-function restoreVisibility() {
-  setVisible(isVisible());
+function applyMode(mode) {
+  const pill = document.querySelector("#timer-pill");
+  const chip = document.querySelector("#timer-chip");
+  const panel = document.querySelector("#timer-panel");
+  if (!pill || !chip) return;
+  pill.style.display = mode === "mini" ? "none" : "";
+  chip.style.display = mode === "mini" ? "" : "none";
+  if (panel && mode === "mini") panel.style.display = "none";
+}
+
+function reduceMotion() {
+  try {
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  } catch {
+    return false;
+  }
+}
+
+// Flight towards a target rect: accelerate, stretch mid-way
+// (spaghettification wink), shrink and fade into it.
+function flyTo(fromRect, toRect) {
+  return new Promise((resolve) => {
+    const pill = document.querySelector("#timer-pill");
+    if (!pill || reduceMotion()) {
+      resolve();
+      return;
+    }
+    const ghost = pill.cloneNode(true);
+    ghost.removeAttribute("id");
+    ghost.style.cssText += `;position:fixed;left:${fromRect.left}px;top:${fromRect.top}px;` +
+      `width:${fromRect.width}px;height:${fromRect.height}px;margin:0;z-index:200;pointer-events:none;`;
+    document.body.appendChild(ghost);
+    const dx = (toRect.left + toRect.width / 2) - (fromRect.left + fromRect.width / 2);
+    const dy = (toRect.top + toRect.height / 2) - (fromRect.top + fromRect.height / 2);
+    const s = Math.max(0.05, Math.min(toRect.width / fromRect.width, toRect.height / fromRect.height, 1));
+    const anim = ghost.animate([
+      { transform: "translate(0,0) scale(1,1)", opacity: 1, borderRadius: "50%" },
+      { transform: `translate(${dx * 0.55}px,${dy * 0.55}px) scale(1.5,0.55)`, opacity: 1, borderRadius: "40%", offset: 0.55 },
+      { transform: `translate(${dx}px,${dy}px) scale(${s},${s})`, opacity: 0.15, borderRadius: "12px" },
+    ], { duration: 600, easing: "cubic-bezier(.45,.05,.35,1)", fill: "forwards" });
+    let settled = false;
+    const done = () => {
+      if (settled) return;
+      settled = true;
+      ghost.remove();
+      resolve();
+    };
+    anim.onfinish = done;
+    // Hidden tabs never tick WAAPI: never hang the flow
+    setTimeout(done, 750);
+  });
+}
+
+function pulseIcon() {
+  const icon = document.querySelector("#timer-icon");
+  if (!icon) return;
+  icon.classList.remove("timer-pulse");
+  void icon.offsetWidth;
+  icon.classList.add("timer-pulse");
+  setTimeout(() => icon.classList.remove("timer-pulse"), 700);
+}
+
+export async function minimizeTimer() {
+  if (getMode() === "mini") return;
+  const pill = document.querySelector("#timer-pill");
+  const icon = document.querySelector("#timer-icon");
+  const from = pill?.getBoundingClientRect();
+  const to = icon?.getBoundingClientRect();
+  if (pill) pill.style.display = "none";
+  if (from && to) await flyTo(from, to);
+  applyMode("mini");
+  saveMode("mini");
+  pulseIcon();
+  paint();
+}
+
+export async function restoreTimer() {
+  if (getMode() === "full") return;
+  const pill = document.querySelector("#timer-pill");
+  const chip = document.querySelector("#timer-chip");
+  const from = chip?.getBoundingClientRect();
+  applyMode("full");
+  saveMode("full");
+  if (pill && from) {
+    const to = pill.getBoundingClientRect();
+    pill.style.visibility = "hidden";
+    await flyTo(from, to);
+    pill.style.visibility = "";
+  }
+  paint();
 }
 
 function pillSize() {
@@ -236,19 +321,6 @@ function restoreSize() {
     applyTimerSize(raw ? Number(raw) || 96 : 96, false);
   } catch {
     applyTimerSize(96, false);
-  }
-}
-
-function goHome() {
-  const pill = document.querySelector("#timer-pill");
-  if (!pill) return;
-  pill.style.left = `${TIMER_HOME.left}px`;
-  pill.style.top = "auto";
-  pill.style.bottom = `${TIMER_HOME.bottom}px`;
-  try {
-    localStorage.removeItem(TIMER_POS_KEY);
-  } catch {
-    // ignore
   }
 }
 
@@ -339,6 +411,24 @@ function dockPanel(pill, panel) {
   panel.style.bottom = "auto";
 }
 
+// Config panel moves by dragging any non-interactive area.
+function makePanelDraggable(panel) {
+  let drag = null;
+  panel.addEventListener("pointerdown", (e) => {
+    if (e.target.closest("button, input, select, textarea, a")) return;
+    const r = panel.getBoundingClientRect();
+    drag = { startX: e.clientX, startY: e.clientY, baseX: r.left, baseY: r.top };
+  });
+  window.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    panel.style.left = `${drag.baseX + e.clientX - drag.startX}px`;
+    panel.style.top = `${drag.baseY + e.clientY - drag.startY}px`;
+    panel.style.bottom = "auto";
+  });
+  window.addEventListener("pointerup", () => { drag = null; });
+  window.addEventListener("pointercancel", () => { drag = null; });
+}
+
 export function initTimer() {
   originalTitle = document.title;
 
@@ -349,16 +439,26 @@ export function initTimer() {
   paint();
   restorePos();
   restoreSize();
-  restoreVisibility();
+  applyMode(getMode());
   makeDraggable(pill, panel);
+  makePanelDraggable(panel);
 
-  pill.title = "Arrástrame · doble clic para guardar";
+  pill.title = "Arrástrame · doble clic para minimizar";
   pill.addEventListener("dblclick", (e) => {
     if (e.target.closest(".timer-mini")) return;
-    setVisible(false);
+    minimizeTimer();
   });
   document.querySelector("#timer-icon")?.addEventListener("click", () => {
-    setVisible(pill.style.display === "none");
+    if (getMode() === "mini") restoreTimer();
+    else minimizeTimer();
+  });
+  document.querySelector("#timer-chip")?.addEventListener("click", (e) => {
+    if (e.target.closest("#timer-chip-toggle")) return;
+    restoreTimer();
+  });
+  document.querySelector("#timer-chip-toggle")?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggle();
   });
 
   document.querySelector("#timer-toggle-mini")?.addEventListener("click", (e) => {
@@ -392,9 +492,8 @@ export function initTimer() {
   document.querySelector("#timer-size")?.addEventListener("input", (e) => {
     applyTimerSize(Number(e.target.value));
   });
-  document.querySelector("#timer-home")?.addEventListener("click", () => {
-    goHome();
-    dockPanel(pill, panel);
+  document.querySelector("#timer-minimize")?.addEventListener("click", () => {
+    minimizeTimer();
   });
   document.querySelector("#timer-center")?.addEventListener("click", () => {
     centerPill();
@@ -425,7 +524,6 @@ export function initTimer() {
 
 function startTimer() {
   if (timerId) return;
-  setVisible(true); // a fresh session always brings the circle back
   if (remainingSec <= 0) remainingSec = totalSec;
   if ("Notification" in window && Notification.permission === "default") {
     Notification.requestPermission().catch(() => {});

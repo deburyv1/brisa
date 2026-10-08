@@ -29,6 +29,44 @@
 
 .date-pill { padding: 8px 13px; }
 
+/* Minimized rectangular timer living in the navbar */
+.timer-chip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(255, 255, 255, .78);
+  background: rgba(255, 255, 255, .48);
+  color: #17617f;
+  border-radius: 99px;
+  padding: 7px 8px 7px 12px;
+  font-size: 11px;
+  font-weight: 800;
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.timer-chip-toggle {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 10px;
+  color: #fff;
+  background: linear-gradient(145deg, #2ed573, #1a8a4a);
+  cursor: pointer;
+}
+
+.timer-pulse {
+  animation: timer-pulse 0.65s ease;
+}
+
+@keyframes timer-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(93, 242, 255, 0.7); }
+  100% { box-shadow: 0 0 0 14px rgba(93, 242, 255, 0); }
+}
+
 .profile {
   width: 36px;
   height: 36px;
