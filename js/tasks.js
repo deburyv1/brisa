@@ -102,10 +102,73 @@ export async function initTasks() {
   renderTasks(section, tasks);
 }
 
+let eventsCache = null;
+
+async function eventTitle(eventId) {
+  if (!eventId) return "";
+  try {
+    if (!eventsCache) {
+      const res = await fetch(`${API_BASE}/events`);
+      eventsCache = res.ok ? await res.json() : [];
+    }
+    const ev = (eventsCache || []).find(e => String(e.id) === String(eventId));
+    return ev ? ev.title : "";
+  } catch {
+    return "";
+  }
+}
+
+async function aiContext(task) {
+  const tasks = state.tasks || [];
+  const parent = task.parent_task_id
+    ? tasks.find(x => String(x.id) === String(task.parent_task_id))
+    : null;
+  const evTitle = await eventTitle(task.event_id || parent?.event_id);
+  return {
+    parentTitle: parent ? parent.title : "",
+    eventTitle: evTitle,
+  };
+}
+
+function parentTitle(tasks, task) {
+  if (!task.parent_task_id) return "";
+  const p = (tasks || []).find(x => String(x.id) === String(task.parent_task_id));
+  return p ? p.title : "";
+}
+
+function taskRowHtml(t, tasks, isChild) {
+  const fromParent = t.parent_task_id ? parentTitle(tasks, t) : "";
+  return `
+    <div class="task-item ${t.is_completed ? "done" : ""}${!t.is_completed && t.priority === "high" ? " urgent" : ""}${isChild ? " child" : ""}" data-task-id="${t.id}">
+      <div class="task-checkbox ${t.is_completed ? "done" : ""}" data-action="toggle"></div>
+      <div class="task-info">
+        <div class="task-name">${isChild ? "↳ " : ""}${escapeHtml(t.title)}</div>
+        <div class="task-meta">
+          ${fromParent ? `<span class="task-parent">de: ${escapeHtml(fromParent)}</span>` : ""}
+          ${t.scheduled_datetime ? `📅 ${formatDateTime(t.scheduled_datetime)}` : ""}
+          ${t.due_datetime ? ` · ⏰ ${formatDateTime(t.due_datetime)}` : ""}
+          ${t.estimated_minutes ? ` · ~${t.estimated_minutes} min` : ""}
+          ${t.priority ? ` ${priorityPill(t.priority)}` : ""}
+        </div>
+      </div>
+      <div class="task-actions">
+        <button class="task-btn task-btn-ai" data-action="ai" title="Dividir con IA">✨</button>
+        <button class="task-btn task-btn-edit" data-action="edit">Editar</button>
+        <button class="task-btn task-btn-delete" data-action="delete">Eliminar</button>
+      </div>
+      <div class="task-ai-slot" id="ai-slot-${t.id}"></div>
+    </div>
+  `;
+}
 function renderTasks(section, tasks) {
   const pending = tasks.filter(t => !t.is_completed);
   const done = tasks.filter(t => t.is_completed);
   const visible = taskFilter === "done" ? done : taskFilter === "all" ? tasks : pending;
+
+  const roots = visible.filter(t =>
+    !t.parent_task_id || !visible.some(p => String(p.id) === String(t.parent_task_id)));
+  const childrenOf = (pid) => visible.filter(t =>
+    t.parent_task_id && String(t.parent_task_id) === String(pid));
 
   section.innerHTML = `
     <div class="tasks-header">
@@ -122,24 +185,9 @@ function renderTasks(section, tasks) {
         <div class="tasks-empty">
           <div class="tasks-empty-text">${taskFilter === "done" ? "Nada completado todavía." : taskFilter === "all" ? "Sin tareas." : "Nada pendiente. 🌱"}</div>
         </div>
-      ` : visible.map(t => `
-        <div class="task-item ${t.is_completed ? "done" : ""}${!t.is_completed && t.priority === "high" ? " urgent" : ""}" data-task-id="${t.id}">
-          <div class="task-checkbox ${t.is_completed ? "done" : ""}" data-action="toggle"></div>
-          <div class="task-info">
-            <div class="task-name">${t.title}</div>
-            <div class="task-meta">
-              ${t.scheduled_datetime ? `📅 ${formatDateTime(t.scheduled_datetime)}` : ""}
-              ${t.due_datetime ? ` · ⏰ ${formatDateTime(t.due_datetime)}` : ""}
-              ${t.estimated_minutes ? ` · ~${t.estimated_minutes} min` : ""}
-              ${t.priority ? ` ${priorityPill(t.priority)}` : ""}
-            </div>
-          </div>
-          <div class="task-actions">
-            <button class="task-btn task-btn-ai" data-action="ai" title="Dividir con IA">✨</button>
-            <button class="task-btn task-btn-edit" data-action="edit">Editar</button>
-            <button class="task-btn task-btn-delete" data-action="delete">Eliminar</button>
-          </div>
-        </div>
+      ` : roots.map(t => `
+        ${taskRowHtml(t, tasks, false)}
+        ${childrenOf(t.id).map(c => taskRowHtml(c, tasks, true)).join("")}
       `).join("")}
     </div>
   `;
@@ -179,10 +227,11 @@ function renderTasks(section, tasks) {
       btn.disabled = true;
       btn.textContent = "...";
       try {
+        const ctx = await aiContext(task);
         const res = await fetch(`${API_BASE}/ai/split`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title: task.title }),
+          body: JSON.stringify({ title: task.title, ...ctx }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Error");
@@ -240,8 +289,17 @@ async function showTaskDetail(id) {
   const task = (state.tasks || []).find(t => t.id == id);
   if (!task) return;
 
+  const parent = task.parent_task_id
+    ? (state.tasks || []).find(x => String(x.id) === String(task.parent_task_id))
+    : null;
+  const evTitle = await eventTitle(task.event_id || parent?.event_id);
+
   titleEl.textContent = task.title;
   body.innerHTML = `
+    <div class="task-detail-context">
+      ${parent ? `<span class="task-parent">↳ Parte de: ${escapeHtml(parent.title)}</span>` : ""}
+      ${evTitle ? `<span class="task-event">🎪 Para: ${escapeHtml(evTitle)}</span>` : ""}
+    </div>
     <div class="task-detail-meta">
       ${task.scheduled_datetime ? `<div>📅 ${formatDateTime(task.scheduled_datetime)}</div>` : ""}
       ${task.due_datetime ? `<div>⏰ ${formatDateTime(task.due_datetime)}</div>` : ""}
@@ -270,30 +328,31 @@ async function showTaskDetail(id) {
     btn.textContent = "Pensando...";
     aiBox.innerHTML = "";
     try {
+      const ctx = await aiContext(task);
       const res = await fetch(`${API_BASE}/ai/split`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: task.title }),
+        body: JSON.stringify({ title: task.title, ...ctx }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error");
       aiBox.innerHTML = `
         <div class="ai-steps">
-          <div class="ai-steps-title">La IA sugiere estos pasos:</div>
+          <div class="ai-steps-title">Pasos para «${escapeHtml(task.title)}»:</div>
           ${data.steps.map((s, i) => `
             <div class="ai-step">
               <span class="ai-step-num">${i + 1}</span>
               <span class="ai-step-text">${escapeHtml(s)}</span>
-              <button class="ai-step-add" data-step="${i}" title="Agregar como tarea">+</button>
+              <button class="ai-step-add" data-step="${i}" title="Agregar como paso de esta acción">+</button>
             </div>`).join("")}
-          <button class="modal-btn modal-btn-primary" id="ai-add-all" style="margin-top:8px">Agregar todos como tareas</button>
+          <button class="modal-btn modal-btn-primary" id="ai-add-all" style="margin-top:8px">Agregar todos como pasos</button>
         </div>
       `;
       aiBox.querySelectorAll(".ai-step-add").forEach(b => {
-        b.addEventListener("click", () => addStepAsTask(data.steps[Number(b.dataset.step)]));
+        b.addEventListener("click", () => addStepAsTask(data.steps[Number(b.dataset.step)], task));
       });
       aiBox.querySelector("#ai-add-all")?.addEventListener("click", async () => {
-        for (const s of data.steps) await addStepAsTask(s);
+        for (const s of data.steps) await addStepAsTask(s, task);
       });
     } catch (e) {
       aiBox.innerHTML = `<div class="ai-error">${escapeHtml(e.message)}</div>`;
@@ -304,12 +363,16 @@ async function showTaskDetail(id) {
   });
 }
 
-async function addStepAsTask(stepText) {
+async function addStepAsTask(stepText, parentTask = null) {
   try {
     await fetch(`${API_BASE}/tasks`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: stepText }),
+      body: JSON.stringify({
+        title: stepText,
+        parent_task_id: parentTask?.id || null,
+        event_id: parentTask?.event_id || null,
+      }),
     });
     if (window.initTasks) window.initTasks();
   } catch (e) {
@@ -318,32 +381,26 @@ async function addStepAsTask(stepText) {
 }
 
 function showAISplit(task, steps) {
-  // Inline AI result in the task list row
-  const existing = document.querySelector(`#ai-inline-${task.id}`);
-  if (existing) existing.remove();
-  const row = document.querySelector(`.task-item[data-task-id="${task.id}"]`);
-  if (!row) return;
-  const div = document.createElement("div");
-  div.id = `ai-inline-${task.id}`;
-  div.className = "ai-inline";
-  div.innerHTML = `
-    <div class="ai-steps">
-      <div class="ai-steps-title">La IA sugiere estos pasos:</div>
+  // Suggestion box attached INSIDE the task row: it belongs to it.
+  const slot = document.querySelector(`#ai-slot-${task.id}`);
+  if (!slot) return;
+  slot.innerHTML = `
+    <div class="ai-steps attached">
+      <div class="ai-steps-title">Pasos para «${escapeHtml(task.title)}»:</div>
       ${steps.map((s, i) => `
         <div class="ai-step">
           <span class="ai-step-num">${i + 1}</span>
           <span class="ai-step-text">${escapeHtml(s)}</span>
-          <button class="ai-step-add" data-step="${i}" title="Agregar como tarea">+</button>
+          <button class="ai-step-add" data-step="${i}" title="Agregar como paso de esta acción">+</button>
         </div>`).join("")}
-      <button class="modal-btn modal-btn-primary" id="ai-inline-add-all" style="margin-top:8px">Agregar todos como tareas</button>
+      <button class="modal-btn modal-btn-primary" id="ai-inline-add-all" style="margin-top:8px">Agregar todos como pasos</button>
     </div>
   `;
-  row.after(div);
-  div.querySelectorAll(".ai-step-add").forEach(b => {
-    b.addEventListener("click", () => addStepAsTask(steps[Number(b.dataset.step)]));
+  slot.querySelectorAll(".ai-step-add").forEach(b => {
+    b.addEventListener("click", () => addStepAsTask(steps[Number(b.dataset.step)], task));
   });
-  div.querySelector("#ai-inline-add-all")?.addEventListener("click", async () => {
-    for (const s of steps) await addStepAsTask(s);
+  slot.querySelector("#ai-inline-add-all")?.addEventListener("click", async () => {
+    for (const s of steps) await addStepAsTask(s, task);
   });
 }
 

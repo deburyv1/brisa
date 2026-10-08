@@ -130,7 +130,8 @@ async function renderTodayPlanner(body, events, todayKey) {
           : dueHabits.map(h => `
           <button class="planner-habit ${h.done_today ? "done" : ""}" data-habit="${h.id}">
             <span class="planner-check">${h.done_today ? "✓" : ""}</span>
-            <span class="planner-habit-name">${h.icon ? `${escapeHtml(h.icon)} ` : ""}${escapeHtml(h.name)}</span>
+            <span class="planner-icon">${h.icon ? escapeHtml(h.icon) : "·"}</span>
+            <span class="planner-habit-name">${escapeHtml(h.name)}</span>
           </button>`).join("")}
     </div>
     <div class="planner-label">Agenda</div>

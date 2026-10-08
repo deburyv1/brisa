@@ -4,16 +4,19 @@ const router = Router();
 
 const GEMINI_MODEL = 'gemini-3.5-flash-lite';
 
-function buildPrompt(taskTitle, context = '') {
+function buildPrompt(taskTitle, context = '', parentTitle = '', eventTitle = '') {
   return `Eres un asistente que ayuda a personas con dificultades ejecutivas a descomponer tareas.
 
 La tarea es: "${taskTitle}"
+${parentTitle ? `Es un paso de una tarea mayor: "${parentTitle}"` : ''}
+${eventTitle ? `Todo esto es preparación para el evento: "${eventTitle}"` : ''}
 ${context ? `Contexto adicional: ${context}` : ''}
 
 Divide esta tarea en 3 a 6 pasos concretos y accionables. Cada paso debe ser:
 - Específico y físico (algo que se pueda hacer, no un concepto)
 - Acotado en tiempo (idealmente 5-25 minutos)
 - Ordenado de menor a mayor dificultad
+${eventTitle ? '- Orientado a que el evento salga bien' : ''}
 
 Responde SOLO con un arreglo JSON de strings, sin markdown, sin texto adicional.
 Ejemplo: ["Paso 1", "Paso 2", "Paso 3"]`;
@@ -74,15 +77,15 @@ function parseSteps(raw) {
     .slice(0, 8);
 }
 
-// POST /api/ai/split { title, context? } → { steps: string[] }
+// POST /api/ai/split { title, context?, parentTitle?, eventTitle? } → { steps: string[] }
 router.post('/split', async (req, res) => {
-  const { title, context } = req.body;
+  const { title, context, parentTitle, eventTitle } = req.body;
   if (!title || !title.trim()) {
     return res.status(400).json({ error: 'Title is required' });
   }
 
   try {
-    const prompt = buildPrompt(title.trim(), context || '');
+    const prompt = buildPrompt(title.trim(), context || '', parentTitle || '', eventTitle || '');
     const raw = await callGemini(prompt);
     const steps = parseSteps(raw);
     if (steps.length === 0) throw new Error('Empty steps');

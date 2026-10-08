@@ -28,14 +28,14 @@ router.get('/:id', async (req, res) => {
 
 // POST /api/tasks
 router.post('/', async (req, res) => {
-  const { title, description, priority, scheduled_datetime, due_datetime, first_step, estimated_minutes } = req.body;
+  const { title, description, priority, scheduled_datetime, due_datetime, first_step, estimated_minutes, event_id, parent_task_id } = req.body;
   if (!title || !title.trim()) {
     return res.status(400).json({ error: 'Title is required' });
   }
   try {
     const result = await pool.query(
-      'INSERT INTO tasks (user_id, title, description, priority, scheduled_datetime, due_datetime, first_step, estimated_minutes) VALUES (1, $1, $2, $3, $4, $5, $6, $7) RETURNING *',
-      [title.trim(), description || null, priority || 'medium', scheduled_datetime || null, due_datetime || null, first_step || null, estimated_minutes || null]
+      'INSERT INTO tasks (user_id, title, description, priority, scheduled_datetime, due_datetime, first_step, estimated_minutes, event_id, parent_task_id) VALUES (1, $1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
+      [title.trim(), description || null, priority || 'medium', scheduled_datetime || null, due_datetime || null, first_step || null, estimated_minutes || null, Number(event_id) || null, Number(parent_task_id) || null]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -46,7 +46,7 @@ router.post('/', async (req, res) => {
 
 // PUT /api/tasks/:id — partial merge: only provided keys are updated
 router.put('/:id', async (req, res) => {
-  const allowed = ['title', 'description', 'priority', 'scheduled_datetime', 'due_datetime', 'is_completed', 'first_step', 'estimated_minutes', 'completed_at'];
+  const allowed = ['title', 'description', 'priority', 'scheduled_datetime', 'due_datetime', 'is_completed', 'first_step', 'estimated_minutes', 'completed_at', 'event_id', 'parent_task_id'];
   const sets = [];
   const values = [];
   for (const key of allowed) {

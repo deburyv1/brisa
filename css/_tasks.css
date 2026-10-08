@@ -87,12 +87,62 @@
 .task-item {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
   padding: 10px 14px;
   border-radius: 12px;
   background: linear-gradient(135deg, rgba(255, 255, 255, .15), rgba(255, 255, 255, .05));
   border: 1px solid rgba(255, 255, 255, 0.2);
   transition: var(--transition-speed);
+}
+
+.task-item.child {
+  margin-left: 28px;
+  border-left: 2px solid rgba(93, 242, 255, 0.5);
+}
+
+.task-ai-slot {
+  flex-basis: 100%;
+  min-width: 0;
+}
+
+.task-ai-slot:empty {
+  display: none;
+}
+
+.task-parent,
+.task-event {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: rgba(93, 242, 255, 0.15);
+  border: 1px solid rgba(93, 242, 255, 0.35);
+  color: #bff3ff;
+  margin-right: 4px;
+}
+
+.task-event {
+  background: rgba(244, 195, 46, 0.15);
+  border-color: rgba(244, 195, 46, 0.4);
+  color: #ffe9a8;
+}
+
+.task-detail-context {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.task-detail-context .task-parent,
+.task-detail-context .task-event {
+  font-size: 10px;
+}
+
+.ai-steps.attached {
+  border-left: 2px solid rgba(138, 43, 226, 0.6);
 }
 
 .task-item:hover {
