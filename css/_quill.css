@@ -1,0 +1,50 @@
+/* ============================================
+   BRISA - Quill Snow dressed in glass
+   Vendor CSS loads first; these overrides win.
+   ============================================ */
+.ql-toolbar.ql-snow {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 10px 10px 0 0;
+  background: rgba(255, 255, 255, .08);
+  padding: 6px;
+}
+
+.ql-toolbar.ql-snow .ql-stroke { stroke: rgba(255, 255, 255, 0.85); }
+.ql-toolbar.ql-snow .ql-fill { fill: rgba(255, 255, 255, 0.85); }
+.ql-toolbar.ql-snow .ql-picker-label { color: rgba(255, 255, 255, 0.85); }
+.ql-toolbar.ql-snow button:hover .ql-stroke { stroke: #fff; }
+.ql-toolbar.ql-snow button.ql-active .ql-stroke { stroke: #5df2ff; }
+.ql-toolbar.ql-snow button.ql-active .ql-fill { fill: #5df2ff; }
+
+.ql-container.ql-snow {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-top: 0;
+  border-radius: 0 0 10px 10px;
+  background: rgba(255, 255, 255, .08);
+  font-family: inherit;
+  font-size: 13px;
+  color: #fff;
+}
+
+.ql-container.ql-snow .ql-editor {
+  min-height: 180px;
+  line-height: 1.6;
+}
+
+.ql-container.ql-snow .ql-editor.ql-blank::before {
+  color: rgba(255, 255, 255, 0.55);
+  font-style: normal;
+}
+
+.ql-snow .ql-editor blockquote {
+  border-left: 3px solid rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.ql-snow .ql-editor pre.ql-syntax {
+  background: rgba(0, 0, 0, 0.3);
+  color: #d9f6ff;
+  border-radius: 8px;
+}
+
+.ql-snow .ql-editor a { color: #5df2ff; }

@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>brisa — Aero Home</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
-  <link rel="stylesheet" href="css/app.css?v=20261008c">
+  <link rel="stylesheet" href="css/app.css?v=20261008d">
+  <link rel="stylesheet" href="vendor/quill.snow.css">
 </head>
 <body>
 <div class="world">
@@ -136,7 +137,8 @@
     <div id="module-container"></div>
   </main>
 </div>
-<script type="module" src="js/app.js?v=20261008c"></script>
+<script src="vendor/quill.min.js"></script>
+<script type="module" src="js/app.js?v=20261008d"></script>
 
 <!-- Floating timer: round, solid, draggable -->
 <div class="timer-pill" id="timer-pill" title="Temporizador (arrástrame)">
@@ -251,7 +253,8 @@
       </div>
       <div class="form-group">
         <label>Contenido<span class="optional">(opcional)</span></label>
-        <textarea name="content" rows="5" placeholder="Escribí lo que quieras recordar..." style="border:1px solid rgba(255,255,255,0.25);border-radius:10px;padding:9px 12px;font-size:12px;font-family:inherit;color:#fff;background:rgba(255,255,255,.08);outline:none;resize:vertical;"></textarea>
+        <div id="journal-quill"></div>
+        <textarea name="content" rows="5" style="display:none"></textarea>
       </div>
       <div class="form-group">
         <label>Ánimo<span class="optional">(opcional)</span></label>
@@ -280,11 +283,8 @@
       <button class="modal-close" id="editor-close">✕</button>
     </div>
     <div class="modal-form">
-      <div id="editor-fmt"></div>
       <div class="form-group">
-        <textarea id="editor-text" rows="12" maxlength="5000"
-          placeholder="Desarróllalo acá, sin apuro. Ctrl+Enter para guardar."
-          style="border:1px solid rgba(255,255,255,0.25);border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.6;font-family:inherit;color:#fff;background:rgba(255,255,255,.08);outline:none;resize:vertical;width:100%;box-sizing:border-box;"></textarea>
+        <div id="editor-text"></div>
       </div>
       <div class="editor-foot">
         <span class="capture-count" id="editor-count"></span>

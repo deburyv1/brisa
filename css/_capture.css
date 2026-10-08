@@ -179,36 +179,6 @@
   color: #fff;
 }
 
-/* ---- Format bar (lives inside editors, not in the quick input) ---- */
-.fmt-bar {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-  margin-bottom: 8px;
-}
-
-.fmt-btn {
-  min-width: 28px;
-  height: 28px;
-  padding: 0 7px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  background: rgba(255, 255, 255, .08);
-  color: rgba(255, 255, 255, 0.85);
-  font-size: 12px;
-  font-family: inherit;
-  cursor: pointer;
-}
-
-.fmt-btn:hover {
-  background: rgba(255, 255, 255, 0.18);
-  color: #fff;
-}
-
-.fmt-btn.b { font-weight: 800; }
-.fmt-btn.i { font-style: italic; }
-.fmt-btn.s { text-decoration: line-through; }
-
 /* ---- Editor modal ---- */
 .editor-foot {
   display: flex;

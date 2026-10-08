@@ -4,7 +4,8 @@
    ============================================ */
 const API_BASE = "/api";
 import { snapshotForm, isDirty, confirmDiscard } from "./modalGuard.js";
-import { attachFormatbar } from "./formatbar.js";
+import { createEditor, editorHTML, isHTML, sanitizeHTML } from "./richtext.js";
+import { renderMarkdown } from "./markdown.js";
 
 export function initJournalModal() {
   const overlay = document.querySelector("#journal-modal");
@@ -15,19 +16,28 @@ export function initJournalModal() {
 
   if (!overlay || !closeBtn || !cancelBtn || !form || !titleEl) return;
 
-  // Format toolbar above the content field (keyboard-first, same as editor)
+  // Rich editor for the content field (hidden textarea keeps
+  // FormData + dirty-guard working untouched)
   const contentField = form.querySelector("textarea[name='content']");
-  if (contentField && !document.querySelector("#journal-fmt")) {
-    const bar = document.createElement("div");
-    bar.id = "journal-fmt";
-    contentField.before(bar);
-    attachFormatbar(contentField, bar);
-    contentField.addEventListener("keydown", (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-        e.preventDefault();
-        form.requestSubmit();
-      }
+  const quill = createEditor(document.querySelector("#journal-quill"), {
+    placeholder: "Escribe lo que quieras recordar...",
+  });
+  if (quill && contentField) {
+    quill.on("text-change", () => {
+      contentField.value = editorHTML(quill);
     });
+    quill.keyboard.addBinding({ key: "Enter", ctrlKey: true, handler: () => {
+      form.requestSubmit();
+    }});
+  }
+
+  function fillContent(htmlOrMd) {
+    if (!quill || !contentField) return;
+    const src = isHTML(htmlOrMd) ? htmlOrMd : renderMarkdown(htmlOrMd || "");
+    // clipboard.convert normalizes synchronously, so the hidden
+    // field matches the snapshot taken right after
+    quill.setContents(quill.clipboard.convert(src));
+    contentField.value = editorHTML(quill);
   }
 
   let editingId = null;
@@ -43,13 +53,14 @@ export function initJournalModal() {
         .then(r => r.json())
         .then(note => {
           form.title.value = note.title || "";
-          form.content.value = note.content || "";
           form.mood.value = note.mood || "";
+          fillContent(note.content || "");
           cleanSnapshot = snapshotForm(form);
         })
         .catch(e => console.error("Error cargando nota:", e));
     } else {
       titleEl.textContent = "Nueva nota";
+      fillContent("");
       cleanSnapshot = snapshotForm(form);
     }
 
@@ -61,6 +72,7 @@ export function initJournalModal() {
   function close() {
     overlay.classList.remove("active");
     form.reset();
+    if (quill) quill.setText("");
     editingId = null;
   }
 

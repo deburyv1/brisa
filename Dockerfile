@@ -13,6 +13,7 @@ COPY server/ ./server/
 COPY index.html ./server/public/
 COPY css/ ./server/public/css/
 COPY js/ ./server/public/js/
+COPY vendor/ ./server/public/vendor/
 COPY icons/ ./server/public/icons/
 COPY aero-backgrounds/ ./server/public/aero-backgrounds/
 COPY brisa-icons/ ./server/public/brisa-icons/

@@ -3,6 +3,7 @@
    CRUD for notes via /api/journal
    ============================================ */
 import { state } from "./state.js";
+import { renderRich } from "./richtext.js";
 
 const API_BASE = "/api";
 
@@ -88,7 +89,7 @@ function renderNotes(section, notes) {
             <div class="note-title">${escapeHtml(n.title)}</div>
             <div class="note-date">${formatNoteDate(n.updated_at || n.created_at)}</div>
           </div>
-          <p class="note-preview md">${renderMarkdown(n.content || "Sin contenido")}</p>
+          <div class="note-preview md">${renderRich(n.content || "Sin contenido")}</div>
           <div class="note-card-foot">
             <div class="note-mood">${n.mood ? `· ${escapeHtml(n.mood)}` : ""}</div>
             <button class="note-delete" data-action="delete">Eliminar</button>

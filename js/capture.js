@@ -3,14 +3,15 @@
    Fast inbox capture with reversible suggestion
    ============================================ */
 import { suggestType, TYPE_LABELS } from "./suggest.js";
-import { attachFormatbar } from "./formatbar.js";
-import { renderMarkdown } from "./markdown.js";
+import { createEditor, editorHTML, plainText, renderRich } from "./richtext.js";
 
 const API_BASE = "/api";
 const TYPES = ["action", "event", "note", "idea", "reminder"];
 
 let pendingEntry = null;
 let selectedType = null;
+// Rich HTML waiting to be captured (quick input shows its plain version)
+let pendingHTML = null;
 
 function needsDate(type) {
   return type === "action" || type === "event" || type === "reminder";
@@ -36,7 +37,7 @@ export async function loadEntryIntoCapture(entryId) {
     const entry = entries.find(e => e.id == entryId);
     if (!entry) return;
     pendingEntry = entry;
-    selectedType = entry.suggested_type || suggestType(entry.raw_text).type;
+    selectedType = entry.suggested_type || suggestType(plainText(entry.raw_text)).type;
     renderSuggestion(section, entry, "Revísala y confirma el tipo.");
   } catch (e) {
     console.error("Error cargando entrada:", e);
@@ -73,45 +74,48 @@ function renderIdle(section) {
 
 function openEditor(section) {
   const overlay = document.querySelector("#editor-modal");
-  const text = document.querySelector("#editor-text");
+  const holder = document.querySelector("#editor-text");
   const count = document.querySelector("#editor-count");
-  if (!overlay || !text) return;
+  if (!overlay || !holder) return;
+  const quill = createEditor(holder, {
+    placeholder: "Desarróllalo acá, sin apuro. Ctrl+Enter para guardar.",
+  });
+  if (!quill) return;
   const quick = section.querySelector("#capture-input")?.value || "";
-  if (quick && !text.value) text.value = quick;
-  attachFormatbar(text, document.querySelector("#editor-fmt"));
+  if (quick && !quill.getText().trim()) quill.setText(quick);
   const update = () => {
-    const words = text.value.trim().split(/\s+/).filter(Boolean).length;
-    count.textContent = words > 1 ? `${words} palabras` : "";
+    const words = quill.getText().trim().split(/\s+/).filter(Boolean).length;
+    if (count) count.textContent = words > 1 ? `${words} palabras` : "";
   };
-  text.oninput = update;
+  quill.off("text-change", update);
+  quill.on("text-change", update);
   update();
   overlay.classList.add("active");
-  text.focus();
-  text.onkeydown = (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-      e.preventDefault();
-      document.querySelector("#editor-save")?.click();
-    } else if (e.key === "Escape") {
-      e.preventDefault();
-      document.querySelector("#editor-cancel")?.click();
-    }
-  };
+  quill.focus();
+  quill.keyboard.addBinding({ key: "Enter", ctrlKey: true, handler: () => {
+    document.querySelector("#editor-save")?.click();
+  }});
+  quill.keyboard.addBinding({ key: "Escape", handler: () => {
+    document.querySelector("#editor-cancel")?.click();
+  }});
 
   const save = () => {
-    if (!text.value.trim()) {
+    const html = editorHTML(quill);
+    if (!html) {
       closeEditor();
       return;
     }
     const input = section.querySelector("#capture-input");
-    if (input) input.value = text.value.trim().slice(0, 2000);
-    text.value = "";
+    if (input) input.value = plainText(html).slice(0, 255);
+    pendingHTML = html;
+    quill.setText("");
     closeEditor();
     capture(section);
   };
   document.querySelector("#editor-save").onclick = save;
   const cancel = () => {
-    if (text.value.trim() && !confirm("¿Descartar este texto?")) return;
-    text.value = "";
+    if (quill.getText().trim() && !confirm("¿Descartar este texto?")) return;
+    quill.setText("");
     closeEditor();
   };
   document.querySelector("#editor-cancel").onclick = cancel;
@@ -125,17 +129,19 @@ function closeEditor() {
 
 async function capture(section) {
   const input = section.querySelector("#capture-input");
-  const text = input?.value.trim();
-  if (!text) return;
+  const raw = (pendingHTML || input?.value || "").trim();
+  pendingHTML = null;
+  if (!raw) return;
+  const plain = plainText(raw);
 
   const saveBtn = section.querySelector("#capture-save");
   if (saveBtn) saveBtn.disabled = true;
   try {
-    const suggestion = suggestType(text);
+    const suggestion = suggestType(plain);
     const res = await fetch(`${API_BASE}/entries`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ raw_text: text, suggested_type: suggestion.type }),
+      body: JSON.stringify({ raw_text: raw, suggested_type: suggestion.type }),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     pendingEntry = await res.json();
@@ -179,7 +185,7 @@ async function findSimilar(text) {
 function renderSuggestion(section, entry, reason) {
   section.innerHTML = `
     <div class="capture-suggest">
-      <div class="capture-suggest-text"><span class="capture-suggest-icon">💭</span><span class="md">${renderMarkdown(entry.raw_text)}</span></div>
+      <div class="capture-suggest-text"><span class="capture-suggest-icon">💭</span><div class="md">${renderRich(entry.raw_text)}</div></div>
       <div class="capture-suggest-reason">${escapeHtml(reason)}</div>
       <div class="capture-similar" id="capture-similar" style="display:none"></div>
       <div class="capture-types">
@@ -261,7 +267,10 @@ async function confirmEntry(section, entry) {
   const when = whenBtn?.dataset.when;
   const at = dateFor(when, datetimeValue);
   const iso = at ? at.toISOString() : null;
-  const text = entry.raw_text;
+  // Titles are always plain text (one line, no tags); the full
+  // rich content only survives into notes.
+  const rich = entry.raw_text;
+  const text = plainText(rich).slice(0, 255) || rich;
 
   // Actions pass through the readiness gate first
   if (selectedType === "action") {
@@ -283,7 +292,7 @@ async function confirmEntry(section, entry) {
     } else if (selectedType === "note") {
       const note = await postJson("/api/journal", {
         title: text.length > 60 ? text.slice(0, 60) + "…" : text,
-        content: text,
+        content: rich,
       });
       targetId = note.id;
     } else if (selectedType === "idea") {
@@ -304,6 +313,7 @@ async function confirmEntry(section, entry) {
     if (window.initInbox) window.initInbox();
     if (window.initTasks) window.initTasks();
     if (window.initToday) window.initToday();
+    if (window.initJournal) window.initJournal();
     if (window.renderNext) window.renderNext();
   } catch (err) {
     console.error("Error procesando entrada:", err);
@@ -322,6 +332,7 @@ async function finishEntry(section, entry, targetType, targetId) {
   if (window.renderGuidanceBanner) window.renderGuidanceBanner();
   if (window.initTasks) window.initTasks();
   if (window.initToday) window.initToday();
+  if (window.initJournal) window.initJournal();
   if (window.renderNext) window.renderNext();
 }
 

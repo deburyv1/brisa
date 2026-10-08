@@ -4,6 +4,7 @@
    ============================================ */
 import { TYPE_LABELS } from "./suggest.js";
 import { state } from "./state.js";
+import { renderRich } from "./richtext.js";
 
 const API_BASE = "/api";
 
@@ -62,7 +63,7 @@ export async function initInbox() {
       ${entries.map(e => `
         <div class="inbox-item" data-entry-id="${e.id}">
           <div class="inbox-info">
-            <div class="inbox-text">${escapeHtml(e.raw_text)}</div>
+            <div class="inbox-text md">${renderRich(e.raw_text)}</div>
             <div class="inbox-meta">Sugerencia: ${TYPE_LABELS[e.suggested_type] || e.suggested_type || "—"}</div>
           </div>
           <div class="inbox-actions">
