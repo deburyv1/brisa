@@ -38,7 +38,7 @@ export async function initIdeas() {
   section.innerHTML = `
     <div class="ideas-header">
       <div class="ideas-title">Ideas</div>
-      <div class="ideas-sub">Semillero: maduran acá hasta que una se vuelve acción.</div>
+      <div class="ideas-sub">Semillero: de aquí nacen acciones, pero la idea queda.</div>
     </div>
     <div class="ideas-list">
       ${open.length === 0
@@ -57,20 +57,15 @@ export async function initIdeas() {
     const id = row.dataset.ideaId;
     const title = row.dataset.ideaTitle || "";
 
-    row.querySelector('[data-action="convert"]')?.addEventListener("click", async () => {
+    row.querySelector('[data-action="derive"]')?.addEventListener("click", async () => {
       try {
-        const task = await fetch(`${API_BASE}/tasks`, {
+        await fetch(`${API_BASE}/tasks`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ title }),
-        }).then(r => r.json());
-        await fetch(`${API_BASE}/ideas/${id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: "done", task_id: task.id }),
         });
       } catch (e) {
-        console.error("Error convirtiendo idea:", e);
+        console.error("Error derivando acción:", e);
       }
       if (window.initIdeas) window.initIdeas();
       if (window.initTasks) window.initTasks();
@@ -115,7 +110,7 @@ function ideaHtml(i, isDone) {
     <div class="tx-actions">
       ${isDone
         ? `<button class="tx-btn tx-btn-edit" data-action="revert" title="Devolver al semillero (borra la tarea)">↩ devolver</button>`
-        : `<button class="tx-btn tx-btn-edit" data-action="convert" title="Volverla acción (reversible)">→ acción</button>`}
+        : `<button class="tx-btn tx-btn-edit" data-action="derive" title="Crear una acción desde esta idea (la idea queda)">→ acción</button>`}
       <button class="tx-btn tx-btn-delete" data-action="delete" title="Descartar">✕</button>
     </div>
   </div>`;
