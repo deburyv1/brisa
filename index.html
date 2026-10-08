@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>brisa — Aero Home</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
-  <link rel="stylesheet" href="css/app.css?v=20261007c">
+  <link rel="stylesheet" href="css/app.css?v=20261008">
 </head>
 <body>
 <div class="world">
@@ -136,7 +136,7 @@
     <div id="module-container"></div>
   </main>
 </div>
-<script type="module" src="js/app.js?v=20261007c"></script>
+<script type="module" src="js/app.js?v=20261008"></script>
 
 <!-- Floating timer: round, solid, draggable -->
 <div class="timer-pill" id="timer-pill" title="Temporizador (arrástrame)">
@@ -150,7 +150,10 @@
   </div>
 </div>
 <div class="timer-panel" id="timer-panel" style="display:none">
-  <div class="timer-display" id="timer-big">10:00</div>
+  <div class="timer-panel-head">
+    <div class="timer-display" id="timer-big">10:00</div>
+    <button class="timer-close" id="timer-close" title="Cerrar">✕</button>
+  </div>
   <div class="timer-presets">
     <button class="focus-time-btn timer-preset" data-min="5">5</button>
     <button class="focus-time-btn timer-preset selected" data-min="10">10</button>
@@ -164,8 +167,12 @@
   <div class="timer-row">
     <button class="modal-btn modal-btn-primary" id="timer-start-pause">Iniciar</button>
     <button class="modal-btn modal-btn-secondary" id="timer-reset">Reset</button>
-    <button class="modal-btn modal-btn-secondary" id="timer-collapse">–</button>
   </div>
+  <div class="timer-size-row">
+    <span class="timer-size-label">Tamaño</span>
+    <input type="range" id="timer-size" min="72" max="140" step="4" value="96" title="Tamaño del círculo">
+  </div>
+  <button class="timer-home" id="timer-home" title="Volver a la esquina inferior izquierda">⌂ Volver a su lugar</button>
 </div>
 
 <!-- Modal: Crear/Editar Tarea -->

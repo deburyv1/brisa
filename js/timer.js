@@ -170,6 +170,61 @@ function stopAlarm() {
 }
 
 const TIMER_POS_KEY = "brisa.timerPos";
+const TIMER_SIZE_KEY = "brisa.timerSize";
+const TIMER_HOME = { left: 18, bottom: 18 };
+
+function pillSize() {
+  const pill = document.querySelector("#timer-pill");
+  return pill?.offsetWidth || 96;
+}
+
+function applyTimerSize(px, save = true) {
+  const pill = document.querySelector("#timer-pill");
+  if (!pill) return;
+  const size = Math.max(64, Math.min(150, Math.round(px)));
+  pill.style.width = `${size}px`;
+  pill.style.height = `${size}px`;
+  const time = pill.querySelector("#timer-time");
+  if (time) time.style.fontSize = `${Math.round(size * 0.17)}px`;
+  const btn = pill.querySelector("#timer-toggle-mini");
+  if (btn) {
+    const b = Math.round(size * 0.3);
+    btn.style.width = `${b}px`;
+    btn.style.height = `${b}px`;
+    btn.style.fontSize = `${Math.round(size * 0.125)}px`;
+  }
+  const slider = document.querySelector("#timer-size");
+  if (slider) slider.value = String(size);
+  if (save) {
+    try {
+      localStorage.setItem(TIMER_SIZE_KEY, String(size));
+    } catch {
+      // ignore
+    }
+  }
+}
+
+function restoreSize() {
+  try {
+    const raw = localStorage.getItem(TIMER_SIZE_KEY);
+    applyTimerSize(raw ? Number(raw) || 96 : 96, false);
+  } catch {
+    applyTimerSize(96, false);
+  }
+}
+
+function goHome() {
+  const pill = document.querySelector("#timer-pill");
+  if (!pill) return;
+  pill.style.left = `${TIMER_HOME.left}px`;
+  pill.style.top = "auto";
+  pill.style.bottom = `${TIMER_HOME.bottom}px`;
+  try {
+    localStorage.removeItem(TIMER_POS_KEY);
+  } catch {
+    // ignore
+  }
+}
 
 function restorePos() {
   const pill = document.querySelector("#timer-pill");
@@ -179,8 +234,9 @@ function restorePos() {
     if (!raw) return;
     const { x, y } = JSON.parse(raw);
     if (typeof x !== "number" || typeof y !== "number") return;
-    pill.style.left = `${Math.max(0, Math.min(window.innerWidth - 100, x))}px`;
-    pill.style.top = `${Math.max(0, Math.min(window.innerHeight - 100, y))}px`;
+    const s = pillSize();
+    pill.style.left = `${Math.max(0, Math.min(window.innerWidth - s, x))}px`;
+    pill.style.top = `${Math.max(0, Math.min(window.innerHeight - s, y))}px`;
     pill.style.bottom = "auto";
   } catch {
     // corrupted position: keep default
@@ -202,8 +258,9 @@ function makeDraggable(pill, panel) {
     const dy = e.clientY - drag.startY;
     if (!drag.moved && Math.abs(dx) + Math.abs(dy) < 6) return;
     drag.moved = true;
-    const x = Math.max(0, Math.min(window.innerWidth - 100, drag.baseX + dx));
-    const y = Math.max(0, Math.min(window.innerHeight - 100, drag.baseY + dy));
+    const s = pillSize();
+    const x = Math.max(0, Math.min(window.innerWidth - s, drag.baseX + dx));
+    const y = Math.max(0, Math.min(window.innerHeight - s, drag.baseY + dy));
     pill.style.left = `${x}px`;
     pill.style.top = `${y}px`;
     pill.style.bottom = "auto";
@@ -250,6 +307,7 @@ export function initTimer() {
 
   paint();
   restorePos();
+  restoreSize();
   makeDraggable(pill, panel);
 
   document.querySelector("#timer-toggle-mini")?.addEventListener("click", (e) => {
@@ -273,8 +331,20 @@ export function initTimer() {
     syncButtons(false);
     paint();
   });
-  document.querySelector("#timer-collapse")?.addEventListener("click", () => {
+  document.querySelector("#timer-close")?.addEventListener("click", () => {
     panel.style.display = "none";
+  });
+  document.querySelector("#timer-size")?.addEventListener("input", (e) => {
+    applyTimerSize(Number(e.target.value));
+  });
+  document.querySelector("#timer-home")?.addEventListener("click", () => {
+    goHome();
+    dockPanel(pill, panel);
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && panel.style.display !== "none" && !document.querySelector("#timer-alarm")) {
+      panel.style.display = "none";
+    }
   });
 
   function toggle() {
