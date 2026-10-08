@@ -233,28 +233,43 @@ button.week-item:hover .week-item-title {
 
 .day-hour {
   display: grid;
-  grid-template-columns: 34px 1fr;
+  grid-template-columns: 40px 1fr;
   gap: 6px;
   align-items: start;
-  padding: 3px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 4px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.28);
+}
+
+.day-hour:nth-child(even of .day-hour) {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.day-hour.now {
+  background: rgba(93, 242, 255, 0.1);
+  border-top-color: rgba(93, 242, 255, 0.6);
+}
+
+.day-hour.now .day-hour-label {
+  color: #5df2ff;
 }
 
 .day-hour-label {
-  font-size: 9px;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: 10px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.9);
   font-variant-numeric: tabular-nums;
   padding-top: 8px;
+  text-shadow: 0 1px 4px rgba(0, 40, 70, 0.6);
 }
 
 .day-hour-slot {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  min-height: 26px;
+  min-height: 30px;
   border-radius: 8px;
   padding: 2px;
+  border: 1px dashed transparent;
 }
 
 .day-hour-slot.drop-hint {
@@ -262,16 +277,29 @@ button.week-item:hover .week-item-title {
   outline: 1px dashed rgba(93, 242, 255, 0.6);
 }
 
+/* While dragging: reveal every drop target */
+.day-grid.dragging-on .day-hour-slot {
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.05);
+  min-height: 34px;
+}
+
+.day-grid.dragging-on .day-pool-slot {
+  outline: 1px dashed rgba(255, 255, 255, 0.4);
+}
+
 .day-hour-empty {
-  font-size: 9px;
-  color: rgba(255, 255, 255, 0.2);
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.45);
   padding: 6px 8px;
 }
 
 .day-pool {
-  margin-top: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.15);
-  padding-top: 4px;
+  margin-bottom: 8px;
+  border-radius: 12px;
+  padding: 8px;
+  background: rgba(0, 40, 70, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
 .day-pool-slot {

@@ -185,7 +185,7 @@ async function renderTodayPlanner(body, events, dayKey, offset) {
   const readonly = offset < 0;
   if (readonly) board.classList.add("day-readonly");
   if (dayMode === "hora") {
-    renderHourGrid(board, dayKey, timedTasks, dayEvents, timedHabits, untimedTasks, untimedHabits, habits, readonly);
+    renderHourGrid(board, dayKey, timedTasks, dayEvents, timedHabits, untimedTasks, untimedHabits, habits, readonly, offset === 0);
   } else {
     await renderOrderList(board, dayKey, dayTasks, dayEvents, dueHabits, readonly);
   }
@@ -249,9 +249,10 @@ function collectDayItems(dayKey, dayTasks, dayEvents, dueHabits) {
 const GRID_START = 6;
 const GRID_END = 23;
 
-function renderHourGrid(board, dayKey, timedTasks, dayEvents, timedHabits, untimedTasks, untimedHabits, habits, readonly = false) {
+function renderHourGrid(board, dayKey, timedTasks, dayEvents, timedHabits, untimedTasks, untimedHabits, habits, readonly = false, isToday = false) {
   const byHour = {};
   for (let h = GRID_START; h <= GRID_END; h++) byHour[h] = [];
+  const nowHour = new Date().getHours();
   const place = (item) => {
     const hr = Number(String(item.at).slice(11, 13));
     if (byHour[hr]) byHour[hr].push(item);
@@ -267,19 +268,19 @@ function renderHourGrid(board, dayKey, timedTasks, dayEvents, timedHabits, untim
 
   board.innerHTML = `
     <div class="day-grid" id="day-grid">
-      ${Object.keys(byHour).map(hr => `
-        <div class="day-hour" data-hour="${hr}">
-          <span class="day-hour-label">${String(hr).padStart(2, "0")}:00</span>
-          <div class="day-hour-slot" data-hour="${hr}">
-            ${byHour[hr].map(item => dayCard(item, readonly)).join("") || `<span class="day-hour-empty">—</span>`}
-          </div>
-        </div>`).join("")}
       <div class="day-pool" id="day-pool">
         <div class="planner-label">Sin hora${readonly ? "" : " · arrastra a una hora para agendar"}</div>
         <div class="day-pool-slot" id="day-pool-slot">
           ${pool.length === 0 ? `<span class="week-free">Nada sin hora.</span>` : pool.map(item => dayCard(item, readonly)).join("")}
         </div>
       </div>
+      ${Object.keys(byHour).map(hr => `
+        <div class="day-hour${isToday && Number(hr) === nowHour ? " now" : ""}" data-hour="${hr}">
+          <span class="day-hour-label">${String(hr).padStart(2, "0")}:00${isToday && Number(hr) === nowHour ? " · ahora" : ""}</span>
+          <div class="day-hour-slot" data-hour="${hr}">
+            ${byHour[hr].map(item => dayCard(item, readonly)).join("") || `<span class="day-hour-empty">—</span>`}
+          </div>
+        </div>`).join("")}
     </div>
   `;
   if (!readonly) wireHourDrop(board, dayKey);
@@ -379,11 +380,13 @@ function wireHourDrop(board, dayKey) {
     el.addEventListener("dragstart", () => {
       dragged = { kind: el.dataset.kind, id: el.dataset.id, at: el.dataset.at || null };
       el.classList.add("dragging");
+      board.querySelector("#day-grid")?.classList.add("dragging-on");
       lastDragEnd = 0;
     });
     el.addEventListener("dragend", () => {
       el.classList.remove("dragging");
       lastDragEnd = Date.now();
+      board.querySelector("#day-grid")?.classList.remove("dragging-on");
       board.querySelectorAll(".drop-hint").forEach(x => x.classList.remove("drop-hint"));
     });
   });
