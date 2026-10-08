@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>brisa — Aero Home</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
-  <link rel="stylesheet" href="css/app.css?v=20261008s">
+  <link rel="stylesheet" href="css/app.css?v=20261008t">
   <link rel="stylesheet" href="vendor/quill.snow.css">
 </head>
 <body>
@@ -143,7 +143,7 @@
   </main>
 </div>
 <script src="vendor/quill.min.js"></script>
-<script type="module" src="js/app.js?v=20261008s"></script>
+<script type="module" src="js/app.js?v=20261008t"></script>
 
 <!-- Floating timer: round, solid, draggable -->
 <div class="timer-pill" id="timer-pill" title="Temporizador (arrástrame)">
@@ -155,7 +155,7 @@
     <span id="timer-time">10:00</span>
     <div class="timer-face-row">
       <button class="timer-toggle-mini timer-mini" id="timer-toggle-mini" title="Iniciar / pausar">▶</button>
-      <button class="timer-mini" id="timer-center-mini" title="Centrar en pantalla">⌖</button>
+      <button class="timer-mini" id="timer-pause-mini" title="Pausar">⏸</button>
     </div>
   </div>
 </div>
@@ -183,6 +183,7 @@
     <input type="range" id="timer-size" min="72" max="1100" step="4" value="96" title="Tamaño del círculo">
   </div>
   <button class="timer-home" id="timer-home" title="Volver a la esquina inferior izquierda">⌂ Volver a su lugar</button>
+  <button class="timer-home" id="timer-center" title="Centrar el círculo en pantalla">⌖ Centrar</button>
 </div>
 
 <!-- Modal: Detalle de tarea -->

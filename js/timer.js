@@ -365,9 +365,9 @@ export function initTimer() {
     e.stopPropagation();
     toggle();
   });
-  document.querySelector("#timer-center-mini")?.addEventListener("click", (e) => {
+  document.querySelector("#timer-pause-mini")?.addEventListener("click", (e) => {
     e.stopPropagation();
-    centerPill();
+    pauseTimer();
   });
 
   document.querySelectorAll(".timer-preset").forEach(b =>
@@ -394,6 +394,10 @@ export function initTimer() {
   });
   document.querySelector("#timer-home")?.addEventListener("click", () => {
     goHome();
+    dockPanel(pill, panel);
+  });
+  document.querySelector("#timer-center")?.addEventListener("click", () => {
+    centerPill();
     dockPanel(pill, panel);
   });
   document.addEventListener("keydown", (e) => {
