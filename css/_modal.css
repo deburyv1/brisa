@@ -45,6 +45,10 @@
   transform: scale(1) translateY(0);
 }
 
+.modal-wide {
+  max-width: 560px;
+}
+
 .modal-header {
   display: flex;
   align-items: center;

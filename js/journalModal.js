@@ -4,6 +4,7 @@
    ============================================ */
 const API_BASE = "/api";
 import { snapshotForm, isDirty, confirmDiscard } from "./modalGuard.js";
+import { attachFormatbar } from "./formatbar.js";
 
 export function initJournalModal() {
   const overlay = document.querySelector("#journal-modal");
@@ -13,6 +14,21 @@ export function initJournalModal() {
   const titleEl = document.querySelector("#journal-modal-title");
 
   if (!overlay || !closeBtn || !cancelBtn || !form || !titleEl) return;
+
+  // Format toolbar above the content field (keyboard-first, same as editor)
+  const contentField = form.querySelector("textarea[name='content']");
+  if (contentField && !document.querySelector("#journal-fmt")) {
+    const bar = document.createElement("div");
+    bar.id = "journal-fmt";
+    contentField.before(bar);
+    attachFormatbar(contentField, bar);
+    contentField.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        e.preventDefault();
+        form.requestSubmit();
+      }
+    });
+  }
 
   let editingId = null;
   let cleanSnapshot = null;

@@ -21,6 +21,11 @@ export function initCapture() {
   if (!section) return;
 
   renderIdle(section);
+
+  // Click on the dimmed backdrop closes the editor (asks first if dirty)
+  document.querySelector("#editor-modal")?.addEventListener("click", (e) => {
+    if (e.target.id === "editor-modal") document.querySelector("#editor-cancel")?.click();
+  });
 }
 
 export async function loadEntryIntoCapture(entryId) {
@@ -44,37 +49,78 @@ function renderIdle(section) {
   section.innerHTML = `
     <div class="capture-row">
       <span class="capture-icon">💭</span>
-      <textarea id="capture-input" class="capture-input" rows="1"
-        placeholder="¿Qué tienes en mente?" autocomplete="off" maxlength="2000"></textarea>
+      <input id="capture-input" class="capture-input" type="text"
+        placeholder="¿Qué tienes en mente?" autocomplete="off" maxlength="255">
+      <button class="capture-expand" id="capture-expand" title="Escribir más elaborado (Ctrl+E)">⤢</button>
       <button class="capture-btn" id="capture-save">Guardar</button>
-    </div>
-    <div class="capture-under">
-      <div id="capture-fmt"></div>
-      <span class="capture-count" id="capture-count"></span>
     </div>
   `;
   const input = section.querySelector("#capture-input");
-  attachFormatbar(input, section.querySelector("#capture-fmt"));
-  const count = section.querySelector("#capture-count");
-  const update = () => {
-    autogrow(input);
-    const words = input.value.trim().split(/\s+/).filter(Boolean).length;
-    count.textContent = words > 1 ? `${words} palabras` : "";
-  };
-  input?.addEventListener("input", update);
   input?.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === "Enter") {
       e.preventDefault();
       capture(section);
+    } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "e") {
+      e.preventDefault();
+      openEditor(section);
     }
   });
+  section.querySelector("#capture-expand")?.addEventListener("click", () => openEditor(section));
   section.querySelector("#capture-save")?.addEventListener("click", () => capture(section));
 }
 
-function autogrow(el) {
-  if (!el) return;
-  el.style.height = "auto";
-  el.style.height = Math.min(el.scrollHeight, 160) + "px";
+// ---- Elaborate editor (modal) ----
+
+function openEditor(section) {
+  const overlay = document.querySelector("#editor-modal");
+  const text = document.querySelector("#editor-text");
+  const count = document.querySelector("#editor-count");
+  if (!overlay || !text) return;
+  const quick = section.querySelector("#capture-input")?.value || "";
+  if (quick && !text.value) text.value = quick;
+  attachFormatbar(text, document.querySelector("#editor-fmt"));
+  const update = () => {
+    const words = text.value.trim().split(/\s+/).filter(Boolean).length;
+    count.textContent = words > 1 ? `${words} palabras` : "";
+  };
+  text.oninput = update;
+  update();
+  overlay.classList.add("active");
+  text.focus();
+  text.onkeydown = (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+      e.preventDefault();
+      document.querySelector("#editor-save")?.click();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      document.querySelector("#editor-cancel")?.click();
+    }
+  };
+
+  const save = () => {
+    if (!text.value.trim()) {
+      closeEditor();
+      return;
+    }
+    const input = section.querySelector("#capture-input");
+    if (input) input.value = text.value.trim().slice(0, 2000);
+    text.value = "";
+    closeEditor();
+    capture(section);
+  };
+  document.querySelector("#editor-save").onclick = save;
+  const cancel = () => {
+    if (text.value.trim() && !confirm("¿Descartar este texto?")) return;
+    text.value = "";
+    closeEditor();
+  };
+  document.querySelector("#editor-cancel").onclick = cancel;
+  document.querySelector("#editor-close").onclick = cancel;
+}
+
+function closeEditor() {
+  document.querySelector("#editor-modal")?.classList.remove("active");
+  document.querySelector("#capture-input")?.focus();
 }
 
 async function capture(section) {

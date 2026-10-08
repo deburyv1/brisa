@@ -161,3 +161,92 @@
   display: flex;
   gap: 8px;
 }
+
+.capture-expand {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, .08);
+  cursor: pointer;
+  transition: var(--transition-speed);
+  flex-shrink: 0;
+}
+
+.capture-expand:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+/* ---- Format bar (lives inside editors, not in the quick input) ---- */
+.fmt-bar {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.fmt-btn {
+  min-width: 28px;
+  height: 28px;
+  padding: 0 7px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, .08);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.fmt-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
+.fmt-btn.b { font-weight: 800; }
+.fmt-btn.i { font-style: italic; }
+.fmt-btn.s { text-decoration: line-through; }
+
+/* ---- Editor modal ---- */
+.editor-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.editor-foot .modal-actions {
+  margin: 0;
+}
+
+.capture-count {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.55);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.capture-suggest-icon {
+  margin-right: 6px;
+}
+
+/* ---- Rendered markdown (notes, suggestions) ---- */
+.md p { margin: 0 0 6px; }
+.md p:last-child { margin-bottom: 0; }
+.md ul { margin: 4px 0 6px; padding-left: 18px; }
+.md li { margin-bottom: 2px; }
+.md blockquote {
+  margin: 4px 0 6px;
+  padding: 4px 10px;
+  border-left: 2px solid rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.85);
+}
+.md code {
+  font-family: ui-monospace, monospace;
+  font-size: .92em;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 5px;
+  padding: 1px 5px;
+}
