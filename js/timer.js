@@ -116,7 +116,10 @@ function beep(times = 4) {
 }
 
 function startAlarm() {
+  stopAlarm();
   stopTick();
+  // Any key proves presence and stops the alarm.
+  window.addEventListener("keydown", stopAlarmOnKey);
   // Sound loop
   beep(4);
   alarmTimers.push(setInterval(() => beep(4), 5000));
@@ -152,7 +155,14 @@ function startAlarm() {
   }
 }
 
+function stopAlarmOnKey(e) {
+  if (e.key === " " || e.key === "Spacebar") e.preventDefault();
+  stopAlarm();
+}
+
 function stopAlarm() {
+  if (!alarmTimers.length && !document.querySelector("#timer-alarm")) return;
+  window.removeEventListener("keydown", stopAlarmOnKey);
   alarmTimers.forEach(clearInterval);
   alarmTimers = [];
   document.querySelector("#timer-alarm")?.remove();
