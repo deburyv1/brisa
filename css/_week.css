@@ -288,11 +288,27 @@ button.week-item:hover .week-item-title {
   outline: 1px dashed rgba(93, 242, 255, 0.6);
 }
 
-/* Order mode */
+/* Order mode: no hours shown, only sequence */
 .day-order {
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.day-order .week-item-time {
+  display: none;
+}
+
+/* Read-only past days: gray tone, no drag */
+.day-readonly .day-card {
+  cursor: default;
+  filter: grayscale(0.55);
+  opacity: 0.75;
+}
+
+.day-readonly .day-hour-slot,
+.day-readonly .day-pool-slot {
+  pointer-events: none;
 }
 
 .week-item-time.unscheduled {

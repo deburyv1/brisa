@@ -182,10 +182,12 @@ async function renderTodayPlanner(body, events, dayKey, offset) {
   body.querySelector("#mode-orden")?.addEventListener("click", () => setDayMode("orden"));
 
   const board = body.querySelector("#day-board");
+  const readonly = offset < 0;
+  if (readonly) board.classList.add("day-readonly");
   if (dayMode === "hora") {
-    renderHourGrid(board, dayKey, timedTasks, dayEvents, timedHabits, untimedTasks, untimedHabits, habits);
+    renderHourGrid(board, dayKey, timedTasks, dayEvents, timedHabits, untimedTasks, untimedHabits, habits, readonly);
   } else {
-    await renderOrderList(board, dayKey, dayTasks, dayEvents, dueHabits);
+    await renderOrderList(board, dayKey, dayTasks, dayEvents, dueHabits, readonly);
   }
   wireAgendaButtons(body);
   await renderDayClose(body, dayKey, offset, dayTasks, habits);
@@ -210,16 +212,18 @@ function setDayMode(mode) {
 
 // Unified card for every kind: same look, no checks (planning board).
 // Marking happens in Hábitos / Acciones.
-function dayCard(item) {
+function dayCard(item, readonly = false) {
   const { kind, data, at } = item;
   const time = at ? String(at).slice(11, 16) : "sin hora";
   const mark = kind === "habit"
     ? `<span class="planner-icon">${data.icon ? escapeHtml(data.icon) : "·"}</span>`
     : `<span class="week-dot ${kind === "event" ? "event" : (data.priority || "medium")}"></span>`;
   const done = kind === "habit" && data.done_today ? " done" : "";
-  const hint = kind === "habit" ? "Arrastra para mover · se marca en Hábitos" : "Arrastra para mover · clic para abrir";
+  const hint = readonly
+    ? "Día pasado: solo lectura"
+    : kind === "habit" ? "Arrastra para mover · se marca en Hábitos" : "Arrastra para mover · clic para abrir";
   return `
-    <div class="day-card${done}" draggable="true" data-kind="${kind}" data-id="${data.id}" data-at="${at ? escapeHtml(at) : ""}" role="button" tabindex="0" title="${hint}">
+    <div class="day-card${done}" ${readonly ? "" : 'draggable="true"'} data-kind="${kind}" data-id="${data.id}" data-at="${at ? escapeHtml(at) : ""}" role="button" tabindex="0" title="${hint}">
       ${mark}
       <span class="week-item-title">${escapeHtml(kind === "habit" ? data.name : data.title)}</span>
       <span class="week-item-time${at ? "" : " unscheduled"}">${time}</span>
@@ -245,7 +249,7 @@ function collectDayItems(dayKey, dayTasks, dayEvents, dueHabits) {
 const GRID_START = 6;
 const GRID_END = 23;
 
-function renderHourGrid(board, dayKey, timedTasks, dayEvents, timedHabits, untimedTasks, untimedHabits, habits) {
+function renderHourGrid(board, dayKey, timedTasks, dayEvents, timedHabits, untimedTasks, untimedHabits, habits, readonly = false) {
   const byHour = {};
   for (let h = GRID_START; h <= GRID_END; h++) byHour[h] = [];
   const place = (item) => {
@@ -267,18 +271,18 @@ function renderHourGrid(board, dayKey, timedTasks, dayEvents, timedHabits, untim
         <div class="day-hour" data-hour="${hr}">
           <span class="day-hour-label">${String(hr).padStart(2, "0")}:00</span>
           <div class="day-hour-slot" data-hour="${hr}">
-            ${byHour[hr].map(dayCard).join("") || `<span class="day-hour-empty">—</span>`}
+            ${byHour[hr].map(item => dayCard(item, readonly)).join("") || `<span class="day-hour-empty">—</span>`}
           </div>
         </div>`).join("")}
       <div class="day-pool" id="day-pool">
-        <div class="planner-label">Sin hora · arrastra a una hora para agendar</div>
+        <div class="planner-label">Sin hora${readonly ? "" : " · arrastra a una hora para agendar"}</div>
         <div class="day-pool-slot" id="day-pool-slot">
-          ${pool.length === 0 ? `<span class="week-free">Nada sin hora.</span>` : pool.map(dayCard).join("")}
+          ${pool.length === 0 ? `<span class="week-free">Nada sin hora.</span>` : pool.map(item => dayCard(item, readonly)).join("")}
         </div>
       </div>
     </div>
   `;
-  wireHourDrop(board, dayKey);
+  if (!readonly) wireHourDrop(board, dayKey);
   wireDayCards(board);
   if (habits.length === 0) {
     const poolSlot = board.querySelector("#day-pool-slot");
@@ -362,6 +366,15 @@ async function refreshDay() {
 
 function wireHourDrop(board, dayKey) {
   let dragged = null;
+  const grid = board.querySelector("#day-grid");
+  // Auto-scroll: dragging near the top/bottom edge scrolls the grid
+  grid?.addEventListener("dragover", (e) => {
+    if (!dragged) return;
+    const r = grid.getBoundingClientRect();
+    const margin = 70;
+    if (e.clientY < r.top + margin) grid.scrollTop -= 14;
+    else if (e.clientY > r.bottom - margin) grid.scrollTop += 14;
+  });
   board.querySelectorAll(".day-card").forEach(el => {
     el.addEventListener("dragstart", () => {
       dragged = { kind: el.dataset.kind, id: el.dataset.id, at: el.dataset.at || null };
@@ -410,7 +423,7 @@ function wireHourDrop(board, dayKey) {
 }
 
 // ---- Por orden: secuencia sin horas, el orden se guarda ----
-async function renderOrderList(board, dayKey, dayTasks, dayEvents, dueHabits) {
+async function renderOrderList(board, dayKey, dayTasks, dayEvents, dueHabits, readonly = false) {
   const items = [
     ...dayTasks.map(t => ({ kind: "task", data: t, at: t.scheduled_datetime })),
     ...dayEvents.map(ev => ({ kind: "event", data: ev, at: ev.start })),
@@ -443,11 +456,11 @@ async function renderOrderList(board, dayKey, dayTasks, dayEvents, dueHabits) {
   board.innerHTML = `
     <div class="planner-label">El orden lo defines tú · se guarda solo</div>
     <div class="day-order" id="day-order">
-      ${all.length === 0 ? `<span class="week-free">Día despejado.</span>` : all.map(dayCard).join("")}
+      ${all.length === 0 ? `<span class="week-free">Día despejado.</span>` : all.map(item => dayCard(item, readonly)).join("")}
     </div>
   `;
   wireDayCards(board);
-  wireOrderDrop(board, dayKey);
+  if (!readonly) wireOrderDrop(board, dayKey);
 }
 
 async function saveDayOrder(board, dayKey) {
