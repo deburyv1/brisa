@@ -178,31 +178,121 @@ button.week-item:hover .week-item-title {
   background: rgba(255, 255, 255, 0.12);
 }
 
-/* Day agenda: draggable items */
-.day-item {
+/* Day board modes */
+.day-modes {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, .1);
+  border: 1px solid rgba(255, 255, 255, .18);
+  margin-bottom: 8px;
+}
+
+.day-modes .week-tab {
+  padding: 5px 0;
+  font-size: 9px;
+}
+
+/* Unified day card: same look for habits, tasks, events. No checks. */
+.day-card {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 9px;
-  color: rgba(255, 255, 255, 0.9);
-  border-radius: 8px;
-  padding: 4px 6px;
-  cursor: grab;
+  gap: 8px;
+  border-radius: 12px;
+  padding: 8px 10px;
   font-family: inherit;
-  border: 1px solid transparent;
+  text-align: left;
+  cursor: grab;
+  background: linear-gradient(135deg, rgba(255, 255, 255, .12), rgba(255, 255, 255, .04));
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
 }
 
-.day-item:hover {
-  background: rgba(255, 255, 255, 0.08);
-}
+.day-card:active { cursor: grabbing; }
 
-.day-item.dragging {
-  opacity: 0.4;
-}
+.day-card.done { opacity: .6; }
+.day-card.done .week-item-title { text-decoration: line-through; }
 
-.day-item.drop-hint {
+.day-card.dragging { opacity: 0.4; }
+.day-card.drop-hint {
   border-color: #5df2ff;
   background: rgba(93, 242, 255, 0.1);
+}
+
+/* Hour grid */
+.day-grid {
+  display: flex;
+  flex-direction: column;
+  max-height: 420px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.day-hour {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 6px;
+  align-items: start;
+  padding: 3px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.day-hour-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.5);
+  font-variant-numeric: tabular-nums;
+  padding-top: 8px;
+}
+
+.day-hour-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 26px;
+  border-radius: 8px;
+  padding: 2px;
+}
+
+.day-hour-slot.drop-hint {
+  background: rgba(93, 242, 255, 0.12);
+  outline: 1px dashed rgba(93, 242, 255, 0.6);
+}
+
+.day-hour-empty {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.2);
+  padding: 6px 8px;
+}
+
+.day-pool {
+  margin-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  padding-top: 4px;
+}
+
+.day-pool-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 40px;
+  border-radius: 8px;
+  padding: 2px;
+}
+
+.day-pool-slot.drop-hint {
+  background: rgba(93, 242, 255, 0.12);
+  outline: 1px dashed rgba(93, 242, 255, 0.6);
+}
+
+/* Order mode */
+.day-order {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .week-item-time.unscheduled {

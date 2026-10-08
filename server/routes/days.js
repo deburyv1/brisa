@@ -3,16 +3,17 @@ import pool from '../db.js';
 
 const router = Router();
 
-// GET /api/days?date=YYYY-MM-DD → { misses, closed }
+// GET /api/days?date=YYYY-MM-DD → { misses, closed, order }
 router.get('/', async (req, res) => {
   const day = req.query.date;
   if (!day) return res.status(400).json({ error: 'date is required' });
   try {
-    const [misses, closed] = await Promise.all([
+    const [misses, closed, order] = await Promise.all([
       pool.query('SELECT kind, ref_id FROM day_misses WHERE day = $1', [day]),
       pool.query('SELECT day FROM day_closures WHERE day = $1', [day]),
+      pool.query('SELECT kind, ref_id FROM day_order WHERE day = $1 ORDER BY position ASC', [day]),
     ]);
-    res.json({ misses: misses.rows, closed: closed.rows.length > 0 });
+    res.json({ misses: misses.rows, closed: closed.rows.length > 0, order: order.rows });
   } catch (err) {
     console.error('Error fetching day state:', err);
     res.status(500).json({ error: 'Database error' });
@@ -62,6 +63,36 @@ router.post('/close', async (req, res) => {
   } catch (err) {
     console.error('Error closing day:', err);
     res.status(500).json({ error: 'Database error' });
+  }
+});
+
+// POST /api/days/order { day, items: [{ kind, ref_id }] } — replace manual order
+router.post('/order', async (req, res) => {
+  const { day, items } = req.body;
+  if (!day || !Array.isArray(items)) {
+    return res.status(400).json({ error: 'day and items are required' });
+  }
+  const clean = items
+    .filter(x => x && ['task', 'habit', 'event'].includes(x.kind) && Number(x.ref_id))
+    .slice(0, 200);
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('DELETE FROM day_order WHERE day = $1', [day]);
+    for (let i = 0; i < clean.length; i++) {
+      await client.query(
+        'INSERT INTO day_order (day, kind, ref_id, position) VALUES ($1, $2, $3, $4)',
+        [day, clean[i].kind, Number(clean[i].ref_id), i]
+      );
+    }
+    await client.query('COMMIT');
+    res.json({ success: true, count: clean.length });
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('Error saving day order:', err);
+    res.status(500).json({ error: 'Database error' });
+  } finally {
+    client.release();
   }
 });
 

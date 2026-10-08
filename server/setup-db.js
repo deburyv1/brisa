@@ -148,6 +148,15 @@ try {
     PRIMARY KEY (day, kind, ref_id)
   )`);
 
+  // Manual per-day order for "por orden" planning mode.
+  await pool.query(`CREATE TABLE IF NOT EXISTS day_order (
+    day DATE NOT NULL,
+    kind VARCHAR(10) NOT NULL,
+    ref_id INTEGER NOT NULL,
+    position INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (day, kind, ref_id)
+  )`);
+
   await pool.query(`INSERT INTO readiness_items (user_id, label, position)
     SELECT 1, x.label, x.pos FROM (VALUES
       ('Ducha', 1),
