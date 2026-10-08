@@ -69,6 +69,7 @@
   white-space: nowrap;
 }
 .habit-editor input[type="text"],
+.habit-editor input[type="time"],
 .habit-editor select {
   width: 100%;
   box-sizing: border-box;
@@ -80,6 +81,7 @@
   color: #fff;
   background: rgba(255, 255, 255, .08);
   outline: none;
+  color-scheme: dark;
 }
 .habit-editor select option { color: #123; }
 

@@ -7,6 +7,7 @@ import { state } from "./state.js";
 let weekOffset = 0;
 let plannerTab = "hoy";
 let plannerDayOffset = 0;
+let lastDragEnd = 0;
 
 export function shiftDay(delta) {
   plannerDayOffset += delta;
@@ -148,6 +149,11 @@ async function renderTodayPlanner(body, events, dayKey, offset) {
     .filter(ev => ev.start && dateKey(ev.start) === dayKey)
     .sort((a, b) => String(a.start) > String(b.start) ? 1 : -1);
   const dueHabits = habits.filter(h => h.due_today !== false);
+  const habitAt = (h) => h.default_time ? `${dayKey}T${String(h.default_time).slice(0, 5)}:00` : null;
+  const timedHabits = dueHabits
+    .filter(h => habitAt(h))
+    .sort((a, b) => String(a.default_time) > String(b.default_time) ? 1 : -1);
+  const untimedHabits = dueHabits.filter(h => !habitAt(h));
 
   body.innerHTML = `
     <div class="week-header">
@@ -159,26 +165,16 @@ async function renderTodayPlanner(body, events, dayKey, offset) {
       </div>
     </div>
     <div class="week-range" style="margin-bottom:2px">${dateStr}</div>
-    <div class="planner-label">Hábitos</div>
-    <div class="planner-habits">
-      ${habits.length === 0
-        ? `<button class="planner-empty" data-goto-habits>Sin hábitos. Crea el primero →</button>`
-        : dueHabits.length === 0
-          ? `<span class="week-free">Este día no toca ninguno.</span>`
-          : dueHabits.map(h => `
-          <button class="planner-habit ${h.done_today ? "done" : ""}" data-habit="${h.id}">
-            <span class="planner-check">${h.done_today ? "✓" : ""}</span>
-            <span class="planner-icon">${h.icon ? escapeHtml(h.icon) : "·"}</span>
-            <span class="planner-habit-name">${escapeHtml(h.name)}</span>
-          </button>`).join("")}
-    </div>
-    <div class="planner-label">Agenda · arrastra para reordenar</div>
+    <div class="planner-label">El día · arrastra para reordenar</div>
     <div class="week-items" id="day-agenda">
-      ${(timedTasks.length === 0 && dayEvents.length === 0 && untimedTasks.length === 0)
-        ? `<span class="week-free">Día despejado.</span>`
+      ${(timedTasks.length === 0 && dayEvents.length === 0 && timedHabits.length === 0 && untimedTasks.length === 0 && untimedHabits.length === 0)
+        ? (habits.length === 0
+          ? `<button class="planner-empty" data-goto-habits>Sin hábitos. Crea el primero →</button>`
+          : `<span class="week-free">Día despejado.</span>`)
         : `
-          ${mergeAgenda(timedTasks, dayEvents).map(item => agendaHtml(item)).join("")}
-          ${untimedTasks.length > 0 ? `<div class="planner-label">Sin hora</div>` : ""}
+          ${mergeAgenda(timedTasks, dayEvents, timedHabits, habitAt).map(item => agendaHtml(item)).join("")}
+          ${(untimedTasks.length > 0 || untimedHabits.length > 0) ? `<div class="planner-label">Sin hora</div>` : ""}
+          ${untimedHabits.map(h => habitHtml(h, null)).join("")}
           ${untimedTasks.map(t => agendaHtml({ kind: "task", data: t, at: null })).join("")}
         `}
     </div>
@@ -193,7 +189,14 @@ async function renderTodayPlanner(body, events, dayKey, offset) {
     document.querySelector('.nav[data-nav="habits"]')?.click();
   });
   body.querySelectorAll("[data-habit]").forEach(btn => {
+    btn.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        btn.click();
+      }
+    });
     btn.addEventListener("click", async () => {
+      if (Date.now() - lastDragEnd < 400) return;
       const done = !btn.classList.contains("done");
       btn.classList.toggle("done", done);
       btn.querySelector(".planner-check").textContent = done ? "✓" : "";
@@ -216,16 +219,28 @@ async function renderTodayPlanner(body, events, dayKey, offset) {
   await renderDayClose(body, dayKey, offset, dayTasks, habits);
 }
 
-function mergeAgenda(tasks, events) {
+function mergeAgenda(tasks, events, habits, habitAt) {
   const items = [
     ...tasks.map(t => ({ kind: "task", data: t, at: t.scheduled_datetime })),
     ...events.map(ev => ({ kind: "event", data: ev, at: ev.start })),
+    ...(habits || []).map(h => ({ kind: "habit", data: h, at: habitAt(h) })),
   ];
   items.sort((a, b) => String(a.at) > String(b.at) ? 1 : -1);
   return items;
 }
 
+function habitHtml(h, at) {
+  return `
+    <div class="planner-habit ${h.done_today ? "done" : ""}" draggable="true" data-habit="${h.id}" data-kind="habit" data-at="${at ? escapeHtml(at) : ""}" role="button" tabindex="0" title="Arrastra para mover · clic para marcar">
+      <span class="planner-check">${h.done_today ? "✓" : ""}</span>
+      <span class="planner-icon">${h.icon ? escapeHtml(h.icon) : "·"}</span>
+      <span class="planner-habit-name">${escapeHtml(h.name)}</span>
+      ${at ? `<span class="week-item-time">${escapeHtml(String(at).slice(11, 16))}</span>` : `<span class="week-item-time unscheduled">sin hora</span>`}
+    </div>`;
+}
+
 function agendaHtml(item) {
+  if (item.kind === "habit") return habitHtml(item.data, item.at);
   if (item.kind === "event") {
     const ev = item.data;
     return `
@@ -246,20 +261,36 @@ function agendaHtml(item) {
     </div>`;
 }
 
+const hhmm = (at) => at ? String(at).slice(11, 16) : null;
+const dayOf = (at) => at ? String(at).slice(0, 10) : null;
+
 async function swapAgendaTimes(a, b) {
+  const putTaskTime = (id, dt) => fetch(`/api/tasks/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ scheduled_datetime: dt }),
+  });
+  const putHabitTime = (id, time) => fetch(`/api/habits/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ default_time: time }),
+  });
   try {
     if (a.kind === "task" && b.kind === "task") {
+      await Promise.all([putTaskTime(a.id, b.at || null), putTaskTime(b.id, a.at || null)]);
+    } else if (a.kind === "habit" && b.kind === "habit") {
+      await Promise.all([putHabitTime(a.id, hhmm(b.at)), putHabitTime(b.id, hhmm(a.at))]);
+    } else if ((a.kind === "habit" && b.kind === "task") || (a.kind === "task" && b.kind === "habit")) {
+      const habit = a.kind === "habit" ? a : b;
+      const task = a.kind === "task" ? a : b;
+      const timedAt = task.at || habit.at;
+      if (!timedAt) return; // both untimed: nothing to exchange
+      const day = dayOf(timedAt);
+      const habitTime = hhmm(habit.at);
+      const taskTime = hhmm(task.at);
       await Promise.all([
-        fetch(`/api/tasks/${a.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ scheduled_datetime: b.at || null }),
-        }),
-        fetch(`/api/tasks/${b.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ scheduled_datetime: a.at || null }),
-        }),
+        putHabitTime(habit.id, taskTime),
+        putTaskTime(task.id, habitTime ? `${day}T${habitTime}:00` : null),
       ]);
     } else {
       // Event involved: both sides need times (events can't be unscheduled)
@@ -267,11 +298,10 @@ async function swapAgendaTimes(a, b) {
       const evs = await fetch("/api/events").then(r => r.ok ? r.json() : []);
       const move = (x, otherAt) => {
         if (x.kind === "task") {
-          return fetch(`/api/tasks/${x.id}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ scheduled_datetime: otherAt }),
-          });
+          return putTaskTime(x.id, otherAt);
+        }
+        if (x.kind === "habit") {
+          return putHabitTime(x.id, hhmm(otherAt));
         }
         const ev = evs.find(e => String(e.id) === String(x.id));
         if (!ev) return Promise.resolve();
@@ -292,6 +322,7 @@ async function swapAgendaTimes(a, b) {
   if (window.initCalendar) window.initCalendar();
   if (window.initToday) window.initToday();
   if (window.initWeek) window.initWeek();
+  if (window.initHabits) window.initHabits();
 }
 
 function wireDayDrag(body) {
@@ -300,19 +331,22 @@ function wireDayDrag(body) {
   let dragged = null;
   let justDragged = false;
 
-  agenda.querySelectorAll(".day-item").forEach(el => {
+  agenda.querySelectorAll(".day-item, .planner-habit[data-kind]").forEach(el => {
     el.addEventListener("dragstart", () => {
-      dragged = { kind: el.dataset.kind, id: el.dataset.id, at: el.dataset.at || null };
+      dragged = { kind: el.dataset.kind, id: el.dataset.id || el.dataset.habit, at: el.dataset.at || null };
       el.classList.add("dragging");
     });
     el.addEventListener("dragend", () => {
       el.classList.remove("dragging");
       justDragged = true;
+      lastDragEnd = Date.now();
       setTimeout(() => { justDragged = false; }, 300);
       agenda.querySelectorAll(".drop-hint").forEach(x => x.classList.remove("drop-hint"));
     });
     el.addEventListener("dragover", (e) => {
-      if (!dragged || String(dragged.id) === String(el.dataset.id)) return;
+      if (!dragged) return;
+      const otherId = el.dataset.id || el.dataset.habit;
+      if (String(dragged.id) === String(otherId)) return;
       e.preventDefault();
       el.classList.add("drop-hint");
     });
@@ -322,8 +356,8 @@ function wireDayDrag(body) {
       el.classList.remove("drop-hint");
       const source = dragged;
       dragged = null;
-      if (!source || String(source.id) === String(el.dataset.id)) return;
-      const target = { kind: el.dataset.kind, id: el.dataset.id, at: el.dataset.at || null };
+      const target = { kind: el.dataset.kind, id: el.dataset.id || el.dataset.habit, at: el.dataset.at || null };
+      if (!source || String(source.id) === String(target.id)) return;
       if ((source.kind === "event" || target.kind === "event") && (!source.at || !target.at)) return;
       await swapAgendaTimes(source, target);
     });

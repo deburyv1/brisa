@@ -125,6 +125,7 @@ try {
   )`);
   await pool.query(`ALTER TABLE habits ADD COLUMN IF NOT EXISTS freq_type VARCHAR(20) DEFAULT 'daily'`);
   await pool.query(`ALTER TABLE habits ADD COLUMN IF NOT EXISTS freq_days INTEGER[]`);
+  await pool.query(`ALTER TABLE habits ADD COLUMN IF NOT EXISTS default_time TIME`);
 
   await pool.query(`CREATE TABLE IF NOT EXISTS readiness_state (
     day DATE NOT NULL,

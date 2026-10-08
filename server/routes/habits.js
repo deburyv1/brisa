@@ -72,21 +72,34 @@ router.post('/', async (req, res) => {
 
 // PUT /api/habits/:id
 router.put('/:id', async (req, res) => {
-  const { name, description, icon, active, freq_type, freq_days } = req.body;
+  const { name, description, icon, active, freq_type, freq_days, default_time } = req.body;
   const days = Array.isArray(freq_days)
     ? freq_days.map(Number).filter(n => n >= 0 && n <= 6)
     : null;
+  const timeProvided = 'default_time' in req.body;
+  const time = default_time === null || default_time === ''
+    ? null
+    : /^\d{2}:\d{2}(:\d{2})?$/.test(String(default_time || '')) ? String(default_time).slice(0, 5) : undefined;
+  if (timeProvided && time === undefined) {
+    return res.status(400).json({ error: 'Invalid time (HH:MM)' });
+  }
+  // explicit null clears the preferred time; omitted keeps it
   try {
+    const sets = [`name = COALESCE($1, name)`, `description = $2`, `icon = $3`,
+      `active = COALESCE($4, active)`, `freq_type = COALESCE($5, freq_type)`,
+      `freq_days = COALESCE($6, freq_days)`];
+    const params = [name?.trim() || null, description?.trim() || null, icon?.trim().slice(0, 16) || null,
+     active == null ? null : !!active,
+     freq_type === 'daily' || freq_type === 'custom' ? freq_type : null,
+     days];
+    if (timeProvided) {
+      params.push(time);
+      sets.push(`default_time = $${params.length}`);
+    }
+    params.push(req.params.id);
     const result = await pool.query(
-      `UPDATE habits SET name = COALESCE($1, name), description = $2, icon = $3,
-        active = COALESCE($4, active),
-        freq_type = COALESCE($5, freq_type),
-        freq_days = COALESCE($6, freq_days)
-        WHERE id = $7 AND user_id = 1 RETURNING *`,
-      [name?.trim() || null, description?.trim() || null, icon?.trim().slice(0, 16) || null,
-       active == null ? null : !!active,
-       freq_type === 'daily' || freq_type === 'custom' ? freq_type : null,
-       days, req.params.id]
+      `UPDATE habits SET ${sets.join(', ')} WHERE id = $${params.length} AND user_id = 1 RETURNING *`,
+      params
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Habit not found' });
     res.json(result.rows[0]);

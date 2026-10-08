@@ -183,6 +183,10 @@ async function openEditor(id, habits) {
       </div>
     </div>
     <div class="form-group">
+      <label>Hora preferida en el día <span class="optional">(opcional, para verlo en la agenda)</span></label>
+      <input type="time" id="habit-edit-time" value="${escapeAttr(habit.default_time ? String(habit.default_time).slice(0, 5) : "")}">
+    </div>
+    <div class="form-group">
       <label>Al marcarlo, cuenta como listo <span class="optional">(opcional)</span></label>
       <select id="habit-edit-link">
         <option value="">Nada</option>
@@ -215,6 +219,7 @@ async function openEditor(id, habits) {
     const linkId = box.querySelector("#habit-edit-link")?.value || null;
     if (!name) return;
     const days = getDays();
+    const timeVal = box.querySelector("#habit-edit-time")?.value || null;
     await fetch(`${API_BASE}/habits/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -222,6 +227,7 @@ async function openEditor(id, habits) {
         name, icon,
         freq_type: days.length === 7 ? "daily" : "custom",
         freq_days: days,
+        default_time: timeVal,
       }),
     });
     try {
