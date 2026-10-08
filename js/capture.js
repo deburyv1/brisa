@@ -3,6 +3,8 @@
    Fast inbox capture with reversible suggestion
    ============================================ */
 import { suggestType, TYPE_LABELS } from "./suggest.js";
+import { attachFormatbar } from "./formatbar.js";
+import { renderMarkdown } from "./markdown.js";
 
 const API_BASE = "/api";
 const TYPES = ["action", "event", "note", "idea", "reminder"];
@@ -19,15 +21,6 @@ export function initCapture() {
   if (!section) return;
 
   renderIdle(section);
-
-  section.querySelector("#capture-input")?.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      capture(section);
-    }
-  });
-
-  section.querySelector("#capture-save")?.addEventListener("click", () => capture(section));
 }
 
 export async function loadEntryIntoCapture(entryId) {
@@ -51,18 +44,37 @@ function renderIdle(section) {
   section.innerHTML = `
     <div class="capture-row">
       <span class="capture-icon">💭</span>
-      <input id="capture-input" class="capture-input" type="text"
-        placeholder="¿Qué tienes en mente?" autocomplete="off" maxlength="255">
+      <textarea id="capture-input" class="capture-input" rows="1"
+        placeholder="¿Qué tienes en mente?" autocomplete="off" maxlength="2000"></textarea>
       <button class="capture-btn" id="capture-save">Guardar</button>
     </div>
+    <div class="capture-under">
+      <div id="capture-fmt"></div>
+      <span class="capture-count" id="capture-count"></span>
+    </div>
   `;
-  section.querySelector("#capture-input")?.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
+  const input = section.querySelector("#capture-input");
+  attachFormatbar(input, section.querySelector("#capture-fmt"));
+  const count = section.querySelector("#capture-count");
+  const update = () => {
+    autogrow(input);
+    const words = input.value.trim().split(/\s+/).filter(Boolean).length;
+    count.textContent = words > 1 ? `${words} palabras` : "";
+  };
+  input?.addEventListener("input", update);
+  input?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       capture(section);
     }
   });
   section.querySelector("#capture-save")?.addEventListener("click", () => capture(section));
+}
+
+function autogrow(el) {
+  if (!el) return;
+  el.style.height = "auto";
+  el.style.height = Math.min(el.scrollHeight, 160) + "px";
 }
 
 async function capture(section) {
@@ -121,7 +133,7 @@ async function findSimilar(text) {
 function renderSuggestion(section, entry, reason) {
   section.innerHTML = `
     <div class="capture-suggest">
-      <div class="capture-suggest-text">💭 ${escapeHtml(entry.raw_text)}</div>
+      <div class="capture-suggest-text"><span class="capture-suggest-icon">💭</span><span class="md">${renderMarkdown(entry.raw_text)}</span></div>
       <div class="capture-suggest-reason">${escapeHtml(reason)}</div>
       <div class="capture-similar" id="capture-similar" style="display:none"></div>
       <div class="capture-types">

@@ -349,22 +349,10 @@ export function initTimer() {
 
   function toggle() {
     if (timerId) {
-      tick();
-      stopTick();
-      clearRun();
-      syncButtons(false);
-      paint();
+      pauseTimer();
       return;
     }
-    if (remainingSec <= 0) remainingSec = totalSec;
-    if ("Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission().catch(() => {});
-    }
-    endAt = Date.now() + remainingSec * 1000;
-    saveRun();
-    syncButtons(true);
-    timerId = setInterval(tick, 250);
-    tick();
+    startTimer();
   }
 
   // Coming back to the tab (or reloading) shows the true time at once.
@@ -373,7 +361,29 @@ export function initTimer() {
   });
   resumeRun();
 
-  window.brisaTimer = { setMinutes };
+  window.brisaTimer = { setMinutes, start: startTimer, stop: pauseTimer, isRunning: () => !!timerId };
+}
+
+function startTimer() {
+  if (timerId) return;
+  if (remainingSec <= 0) remainingSec = totalSec;
+  if ("Notification" in window && Notification.permission === "default") {
+    Notification.requestPermission().catch(() => {});
+  }
+  endAt = Date.now() + remainingSec * 1000;
+  saveRun();
+  syncButtons(true);
+  timerId = setInterval(tick, 250);
+  tick();
+}
+
+function pauseTimer() {
+  if (!timerId) return;
+  tick();
+  stopTick();
+  clearRun();
+  syncButtons(false);
+  paint();
 }
 
 function resumeRun() {

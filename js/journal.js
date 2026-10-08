@@ -88,7 +88,7 @@ function renderNotes(section, notes) {
             <div class="note-title">${escapeHtml(n.title)}</div>
             <div class="note-date">${formatNoteDate(n.updated_at || n.created_at)}</div>
           </div>
-          <p class="note-preview">${escapeHtml(n.content || "Sin contenido")}</p>
+          <p class="note-preview md">${renderMarkdown(n.content || "Sin contenido")}</p>
           <div class="note-card-foot">
             <div class="note-mood">${n.mood ? `· ${escapeHtml(n.mood)}` : ""}</div>
             <button class="note-delete" data-action="delete">Eliminar</button>

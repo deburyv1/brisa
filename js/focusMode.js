@@ -10,8 +10,6 @@ const API_BASE = "/api";
 const LINKS_KEY = "brisa.focusLinks";
 
 let currentTask = null;
-let timerId = null;
-let remainingSec = 10 * 60;
 
 function getLinks() {
   try {
@@ -86,53 +84,6 @@ function body() {
   return document.querySelector("#focus-body");
 }
 
-function setTimer(minutes) {
-  stopTimer();
-  remainingSec = minutes * 60;
-  paintTimer();
-  document.querySelectorAll(".focus-time-btn").forEach(b =>
-    b.classList.toggle("selected", Number(b.dataset.min) === minutes));
-}
-
-function paintTimer() {
-  const el = document.querySelector("#focus-timer");
-  if (!el) return;
-  const m = Math.floor(remainingSec / 60);
-  const s = remainingSec % 60;
-  el.textContent = `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-}
-
-function stopTimer() {
-  if (timerId) {
-    clearInterval(timerId);
-    timerId = null;
-  }
-  const btn = document.querySelector("#focus-timer-toggle");
-  if (btn) btn.textContent = "Iniciar";
-}
-
-function bindTimer() {
-  document.querySelectorAll(".focus-time-btn").forEach(b =>
-    b.addEventListener("click", () => setTimer(Number(b.dataset.min))));
-
-  document.querySelector("#focus-timer-toggle")?.addEventListener("click", () => {
-    if (timerId) {
-      stopTimer();
-      return;
-    }
-    document.querySelector("#focus-timer-toggle").textContent = "Pausar";
-    timerId = setInterval(() => {
-      remainingSec = Math.max(0, remainingSec - 1);
-      paintTimer();
-      if (remainingSec === 0) {
-        stopTimer();
-        const msg = document.querySelector("#focus-message");
-        if (msg) msg.textContent = "Tiempo cumplido. Bien. ¿Sigues un poco más o lo dejas hasta acá?";
-      }
-    }, 1000);
-  });
-}
-
 // ---- Views ----
 
 async function renderFriction(task) {
@@ -194,8 +145,7 @@ function renderStep(task, { presetMin = 10, note = null } = {}) {
         <button class="focus-time-btn" data-min="15">15</button>
         <button class="focus-time-btn" data-min="25">25</button>
       </div>
-      <div id="focus-timer" class="focus-timer">10:00</div>
-      <button class="modal-btn modal-btn-secondary" id="focus-timer-toggle">Iniciar</button>
+      <button class="modal-btn modal-btn-primary" id="focus-start">Empezar</button>
     </div>
     <p id="focus-message" class="focus-message"></p>
     <div class="modal-actions">
@@ -204,8 +154,22 @@ function renderStep(task, { presetMin = 10, note = null } = {}) {
       <button type="button" class="modal-btn modal-btn-primary" id="focus-done">Listo ✓</button>
     </div>
   `;
-  setTimer(presetMin);
-  bindTimer();
+  let minutes = presetMin;
+  const startBtn = body().querySelector("#focus-start");
+  const paintStart = () => {
+    if (startBtn) startBtn.textContent = `Empezar (${minutes}:00)`;
+  };
+  body().querySelectorAll(".focus-time-btn").forEach(b => {
+    b.classList.toggle("selected", Number(b.dataset.min) === minutes);
+    b.addEventListener("click", () => {
+      minutes = Number(b.dataset.min);
+      body().querySelectorAll(".focus-time-btn").forEach(x =>
+        x.classList.toggle("selected", x === b));
+      paintStart();
+    });
+  });
+  paintStart();
+  startBtn?.addEventListener("click", () => handoffToTimer(minutes));
   body().querySelector("#focus-later")?.addEventListener("click", closeFocus);
   body().querySelector("#focus-stuck")?.addEventListener("click", () => {
     if (currentTask) renderFriction(currentTask);
@@ -409,6 +373,24 @@ function renderNewStep(parent) {
   });
 }
 
+// Hands the timing over to the floating circle: the modal fades,
+// the circle pulses once so the eye follows it, and it starts counting.
+function handoffToTimer(minutes) {
+  if (window.brisaTimer) {
+    window.brisaTimer.setMinutes(minutes);
+  }
+  closeFocus();
+  requestAnimationFrame(() => {
+    const pill = document.querySelector("#timer-pill");
+    if (!pill) return;
+    pill.classList.remove("timer-handoff");
+    void pill.offsetWidth;
+    pill.classList.add("timer-handoff");
+    setTimeout(() => pill.classList.remove("timer-handoff"), 1300);
+  });
+  if (window.brisaTimer) window.brisaTimer.start();
+}
+
 // ---- Shell ----
 
 export function initFocus() {
@@ -424,7 +406,6 @@ export function initFocus() {
 }
 
 function closeFocus() {
-  stopTimer();
   document.querySelector("#focus-modal")?.classList.remove("active");
   currentTask = null;
 }

@@ -26,6 +26,17 @@
 
 .timer-pill:active { cursor: grabbing; }
 
+/* Handoff pulse: the eye follows the modal into the circle */
+.timer-handoff {
+  animation: timer-handoff 1.2s ease;
+}
+
+@keyframes timer-handoff {
+  0% { transform: scale(1); box-shadow: 0 12px 32px rgba(3, 25, 40, .55), inset 0 2px 6px rgba(255, 255, 255, 0.18), inset 0 -6px 12px rgba(0, 0, 0, 0.35); }
+  30% { transform: scale(1.22); box-shadow: 0 0 0 10px rgba(93, 242, 255, .35), 0 12px 40px rgba(93, 242, 255, .5); }
+  100% { transform: scale(1); box-shadow: 0 12px 32px rgba(3, 25, 40, .55), inset 0 2px 6px rgba(255, 255, 255, 0.18), inset 0 -6px 12px rgba(0, 0, 0, 0.35); }
+}
+
 .timer-ring {
   position: absolute;
   inset: 5px;
