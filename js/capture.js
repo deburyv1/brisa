@@ -161,7 +161,7 @@ function norm(s) {
   return String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
 }
 
-async function findSimilar(text) {
+async function findSimilar(text, excludeId = null) {
   const needle = norm(plainText(text));
   if (needle.length < 4) return null;
   try {
@@ -171,7 +171,9 @@ async function findSimilar(text) {
     ]);
     const hay = [
       ...tasksRes.filter(t => !t.is_completed).map(t => ({ kind: "tarea", title: plainText(t.title) })),
-      ...entriesRes.map(e => ({ kind: "inbox", title: plainText(e.raw_text) })),
+      ...entriesRes
+        .filter(e => String(e.id) !== String(excludeId))
+        .map(e => ({ kind: "inbox", title: plainText(e.raw_text) })),
     ];
     return hay.find(h => {
       const hayN = norm(h.title);
@@ -235,7 +237,7 @@ function renderSuggestion(section, entry, reason) {
 
   section.querySelector("#capture-confirm")?.addEventListener("click", () => confirmEntry(section, entry));
 
-  findSimilar(entry.raw_text).then(sim => {
+  findSimilar(entry.raw_text, entry.id).then(sim => {
     if (!sim) return;
     const box = section.querySelector("#capture-similar");
     if (!box) return;
