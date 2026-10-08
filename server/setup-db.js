@@ -132,6 +132,21 @@ try {
     PRIMARY KEY (day, item_id)
   )`);
 
+  // Day close: explicit record of what was NOT done (inverted streak).
+  // No scores, no chains: just an honest log per day.
+  await pool.query(`CREATE TABLE IF NOT EXISTS day_closures (
+    day DATE PRIMARY KEY,
+    closed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
+
+  await pool.query(`CREATE TABLE IF NOT EXISTS day_misses (
+    day DATE NOT NULL,
+    kind VARCHAR(10) NOT NULL,
+    ref_id INTEGER NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (day, kind, ref_id)
+  )`);
+
   await pool.query(`INSERT INTO readiness_items (user_id, label, position)
     SELECT 1, x.label, x.pos FROM (VALUES
       ('Ducha', 1),

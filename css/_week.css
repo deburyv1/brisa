@@ -161,6 +161,111 @@ button.week-item:hover .week-item-title {
   font-style: italic;
 }
 
+.week-daylabel {
+  border: 0;
+  background: transparent;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: inherit;
+  color: #fff;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 8px;
+  text-transform: capitalize;
+}
+
+.week-daylabel:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Day agenda: draggable items */
+.day-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  padding: 4px 6px;
+  cursor: grab;
+  font-family: inherit;
+  border: 1px solid transparent;
+}
+
+.day-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.day-item.dragging {
+  opacity: 0.4;
+}
+
+.day-item.drop-hint {
+  border-color: #5df2ff;
+  background: rgba(93, 242, 255, 0.1);
+}
+
+.week-item-time.unscheduled {
+  font-style: italic;
+  opacity: 0.7;
+}
+
+/* Day close: inverted streak, honest log */
+.day-close {
+  margin-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  padding-top: 4px;
+}
+
+.miss-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+}
+
+.miss-btn {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 99px;
+  padding: 3px 10px;
+  font-size: 9px;
+  font-weight: 600;
+  font-family: inherit;
+  color: rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.miss-btn.on {
+  color: #fff;
+  background: linear-gradient(145deg, #8a6d3b, #5c4a1f);
+  border-color: transparent;
+}
+
+.day-closed {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.6);
+  font-style: italic;
+}
+
+.week-btn-text {
+  border: 0;
+  background: transparent;
+  font-size: 9px;
+  font-family: inherit;
+  color: #7bedff;
+  cursor: pointer;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+
 /* Planner tabs: Hoy / Semana */
 .week-tabs {
   display: flex;

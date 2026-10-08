@@ -6,6 +6,17 @@ import { state } from "./state.js";
 
 let weekOffset = 0;
 let plannerTab = "hoy";
+let plannerDayOffset = 0;
+
+export function shiftDay(delta) {
+  plannerDayOffset += delta;
+  initWeek();
+}
+
+export function resetDay() {
+  plannerDayOffset = 0;
+  initWeek();
+}
 
 export function shiftWeek(delta) {
   weekOffset += delta;
@@ -96,37 +107,64 @@ export async function initWeek() {
 
   const body = section.querySelector("#week-body");
   if (plannerTab === "hoy") {
-    await renderTodayPlanner(body, events, todayKey);
+    const target = new Date();
+    target.setDate(target.getDate() + plannerDayOffset);
+    await renderTodayPlanner(body, events, dateKey(target), plannerDayOffset);
   } else {
     renderWeekRail(body, days, byDay, todayKey, rangeLabel);
   }
 }
 
-async function renderTodayPlanner(body, events, todayKey) {
+function dayLabel(date, offset) {
+  if (offset === 0) return "Hoy";
+  if (offset === 1) return "Mañana";
+  if (offset === -1) return "Ayer";
+  return date.toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" });
+}
+
+async function renderTodayPlanner(body, events, dayKey, offset) {
+  const target = new Date();
+  target.setDate(target.getDate() + offset);
+  const dateStr = target.toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" });
+
   let habits = [];
   try {
-    const res = await fetch("/api/habits");
+    const res = await fetch(`/api/habits?date=${dayKey}`);
     if (res.ok) habits = await res.json();
   } catch {
     habits = [];
   }
 
-  const todayTasks = (state.tasks || []).filter(t =>
-    !t.is_completed && t.scheduled_datetime && dateKey(t.scheduled_datetime) === todayKey);
-  const todayEvents = (events || []).filter(ev => ev.start && dateKey(ev.start) === todayKey);
+  const dayTasks = (state.tasks || []).filter(t =>
+    !t.is_completed && (
+      (t.scheduled_datetime && dateKey(t.scheduled_datetime) === dayKey) ||
+      (!t.scheduled_datetime && t.due_datetime && dateKey(t.due_datetime) === dayKey)
+    ));
+  const timedTasks = dayTasks
+    .filter(t => t.scheduled_datetime)
+    .sort((a, b) => String(a.scheduled_datetime) > String(b.scheduled_datetime) ? 1 : -1);
+  const untimedTasks = dayTasks.filter(t => !t.scheduled_datetime);
+  const dayEvents = (events || [])
+    .filter(ev => ev.start && dateKey(ev.start) === dayKey)
+    .sort((a, b) => String(a.start) > String(b.start) ? 1 : -1);
   const dueHabits = habits.filter(h => h.due_today !== false);
 
   body.innerHTML = `
     <div class="week-header">
-      <div class="week-title">Hoy</div>
-      <div class="week-range">${new Date().toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" })}</div>
+      <div class="week-title">Día</div>
+      <div class="week-nav">
+        <button class="week-btn" id="day-prev" title="Día anterior">‹</button>
+        <button class="week-daylabel" id="day-reset" title="Volver a hoy">${dayLabel(target, offset)}</button>
+        <button class="week-btn" id="day-next" title="Día siguiente">›</button>
+      </div>
     </div>
-    <div class="planner-label">Hábitos de hoy</div>
+    <div class="week-range" style="margin-bottom:2px">${dateStr}</div>
+    <div class="planner-label">Hábitos</div>
     <div class="planner-habits">
       ${habits.length === 0
         ? `<button class="planner-empty" data-goto-habits>Sin hábitos. Crea el primero →</button>`
         : dueHabits.length === 0
-          ? `<span class="week-free">Hoy no toca ninguno.</span>`
+          ? `<span class="week-free">Este día no toca ninguno.</span>`
           : dueHabits.map(h => `
           <button class="planner-habit ${h.done_today ? "done" : ""}" data-habit="${h.id}">
             <span class="planner-check">${h.done_today ? "✓" : ""}</span>
@@ -134,26 +172,22 @@ async function renderTodayPlanner(body, events, todayKey) {
             <span class="planner-habit-name">${escapeHtml(h.name)}</span>
           </button>`).join("")}
     </div>
-    <div class="planner-label">Agenda</div>
-    <div class="week-items">
-      ${(todayTasks.length === 0 && todayEvents.length === 0)
+    <div class="planner-label">Agenda · arrastra para reordenar</div>
+    <div class="week-items" id="day-agenda">
+      ${(timedTasks.length === 0 && dayEvents.length === 0 && untimedTasks.length === 0)
         ? `<span class="week-free">Día despejado.</span>`
         : `
-          ${todayEvents.map(ev => `
-            <button class="week-item" data-open-event="${ev.id}">
-              <span class="week-dot event"></span>
-              <span class="week-item-title">${escapeHtml(ev.title)}</span>
-              <span class="week-item-time">${fmtRange(ev)}</span>
-            </button>`).join("")}
-          ${todayTasks.map(t => `
-            <button class="week-item" data-focus-task="${t.id}">
-              <span class="week-dot ${t.priority || "medium"}"></span>
-              <span class="week-item-title">${escapeHtml(t.title)}</span>
-              <span class="week-item-time">${fmtTime(t.scheduled_datetime)}</span>
-            </button>`).join("")}
+          ${mergeAgenda(timedTasks, dayEvents).map(item => agendaHtml(item)).join("")}
+          ${untimedTasks.length > 0 ? `<div class="planner-label">Sin hora</div>` : ""}
+          ${untimedTasks.map(t => agendaHtml({ kind: "task", data: t, at: null })).join("")}
         `}
     </div>
+    <div id="day-close-slot"></div>
   `;
+
+  body.querySelector("#day-prev")?.addEventListener("click", () => shiftDay(-1));
+  body.querySelector("#day-next")?.addEventListener("click", () => shiftDay(1));
+  body.querySelector("#day-reset")?.addEventListener("click", () => resetDay());
 
   body.querySelector("[data-goto-habits]")?.addEventListener("click", () => {
     document.querySelector('.nav[data-nav="habits"]')?.click();
@@ -167,7 +201,7 @@ async function renderTodayPlanner(body, events, todayKey) {
         await fetch(`/api/habits/${btn.dataset.habit}/check`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ done }),
+          body: JSON.stringify({ done, date: dayKey }),
         });
         if (window.initReadiness) window.initReadiness();
         if (window.initHabits) window.initHabits();
@@ -178,6 +212,232 @@ async function renderTodayPlanner(body, events, todayKey) {
     });
   });
   wireAgendaButtons(body);
+  wireDayDrag(body);
+  await renderDayClose(body, dayKey, offset, dayTasks, habits);
+}
+
+function mergeAgenda(tasks, events) {
+  const items = [
+    ...tasks.map(t => ({ kind: "task", data: t, at: t.scheduled_datetime })),
+    ...events.map(ev => ({ kind: "event", data: ev, at: ev.start })),
+  ];
+  items.sort((a, b) => String(a.at) > String(b.at) ? 1 : -1);
+  return items;
+}
+
+function agendaHtml(item) {
+  if (item.kind === "event") {
+    const ev = item.data;
+    return `
+      <div class="day-item" draggable="true" data-kind="event" data-id="${ev.id}" data-at="${escapeHtml(ev.start)}">
+        <span class="week-dot event"></span>
+        <span class="week-item-title">${escapeHtml(ev.title)}</span>
+        <span class="week-item-time">${fmtRange(ev)}</span>
+      </div>`;
+  }
+  const t = item.data;
+  return `
+    <div class="day-item" draggable="true" data-kind="task" data-id="${t.id}" data-at="${escapeHtml(t.scheduled_datetime || "")}">
+      <span class="week-dot ${t.priority || "medium"}"></span>
+      <span class="week-item-title">${escapeHtml(t.title)}</span>
+      ${t.scheduled_datetime
+        ? `<span class="week-item-time">${fmtTime(t.scheduled_datetime)}</span>`
+        : `<span class="week-item-time unscheduled">sin hora</span>`}
+    </div>`;
+}
+
+async function swapAgendaTimes(a, b) {
+  try {
+    if (a.kind === "task" && b.kind === "task") {
+      await Promise.all([
+        fetch(`/api/tasks/${a.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ scheduled_datetime: b.at || null }),
+        }),
+        fetch(`/api/tasks/${b.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ scheduled_datetime: a.at || null }),
+        }),
+      ]);
+    } else {
+      // Event involved: both sides need times (events can't be unscheduled)
+      if (!a.at || !b.at) return;
+      const evs = await fetch("/api/events").then(r => r.ok ? r.json() : []);
+      const move = (x, otherAt) => {
+        if (x.kind === "task") {
+          return fetch(`/api/tasks/${x.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ scheduled_datetime: otherAt }),
+          });
+        }
+        const ev = evs.find(e => String(e.id) === String(x.id));
+        if (!ev) return Promise.resolve();
+        const delta = new Date(otherAt).getTime() - new Date(ev.start).getTime();
+        const end = ev.end ? new Date(new Date(ev.end).getTime() + delta).toISOString() : null;
+        return fetch(`/api/events/${x.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ start: otherAt, end }),
+        });
+      };
+      await Promise.all([move(a, b.at), move(b, a.at)]);
+    }
+  } catch (e) {
+    console.error("Error reordenando agenda:", e);
+  }
+  if (window.initTasks) await window.initTasks();
+  if (window.initCalendar) window.initCalendar();
+  if (window.initToday) window.initToday();
+  if (window.initWeek) window.initWeek();
+}
+
+function wireDayDrag(body) {
+  const agenda = body.querySelector("#day-agenda");
+  if (!agenda) return;
+  let dragged = null;
+  let justDragged = false;
+
+  agenda.querySelectorAll(".day-item").forEach(el => {
+    el.addEventListener("dragstart", () => {
+      dragged = { kind: el.dataset.kind, id: el.dataset.id, at: el.dataset.at || null };
+      el.classList.add("dragging");
+    });
+    el.addEventListener("dragend", () => {
+      el.classList.remove("dragging");
+      justDragged = true;
+      setTimeout(() => { justDragged = false; }, 300);
+      agenda.querySelectorAll(".drop-hint").forEach(x => x.classList.remove("drop-hint"));
+    });
+    el.addEventListener("dragover", (e) => {
+      if (!dragged || String(dragged.id) === String(el.dataset.id)) return;
+      e.preventDefault();
+      el.classList.add("drop-hint");
+    });
+    el.addEventListener("dragleave", () => el.classList.remove("drop-hint"));
+    el.addEventListener("drop", async (e) => {
+      e.preventDefault();
+      el.classList.remove("drop-hint");
+      const source = dragged;
+      dragged = null;
+      if (!source || String(source.id) === String(el.dataset.id)) return;
+      const target = { kind: el.dataset.kind, id: el.dataset.id, at: el.dataset.at || null };
+      if ((source.kind === "event" || target.kind === "event") && (!source.at || !target.at)) return;
+      await swapAgendaTimes(source, target);
+    });
+    el.addEventListener("click", () => {
+      if (justDragged) return;
+      if (el.dataset.kind === "task" && window.openFocus) window.openFocus(el.dataset.id);
+      if (el.dataset.kind === "event" && window.openEventDetail) window.openEventDetail(el.dataset.id);
+    });
+  });
+}
+
+async function renderDayClose(body, dayKey, offset, dayTasks, habits) {
+  const slot = body.querySelector("#day-close-slot");
+  if (!slot) return;
+  if (offset > 0) return; // future: nothing to review
+
+  let info = { misses: [], closed: false };
+  try {
+    const res = await fetch(`/api/days?date=${dayKey}`);
+    if (res.ok) info = await res.json();
+  } catch {
+    return;
+  }
+  const missed = new Set((info.misses || []).map(m => `${m.kind}:${m.ref_id}`));
+
+  if (info.closed) {
+    const n = (info.misses || []).length;
+    slot.innerHTML = `
+      <div class="day-closed">
+        <span>Cierre hecho${n > 0 ? ` · ${n} registrado${n === 1 ? "" : "s"} como no hecho` : " · nada pendiente"}. Sin culpa, es solo registro.</span>
+        <button class="week-btn-text" id="day-reopen">Reabrir</button>
+      </div>
+    `;
+    slot.querySelector("#day-reopen")?.addEventListener("click", async () => {
+      await fetch("/api/days/close", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ day: dayKey }),
+      });
+      if (window.initWeek) window.initWeek();
+    });
+    return;
+  }
+
+  const pendingHabits = (habits || []).filter(h => h.due_today !== false && !h.done_today);
+  const pendingTasks = (dayTasks || []).filter(t => !missed.has(`task:${t.id}`));
+  const openHabits = pendingHabits.filter(h => !missed.has(`habit:${h.id}`));
+
+  slot.innerHTML = `
+    <div class="day-close">
+      <div class="planner-label">Cierre del día</div>
+      ${(pendingTasks.length === 0 && openHabits.length === 0)
+        ? `<span class="week-free">Nada pendiente. Puedes cerrar.</span>`
+        : `
+          ${pendingTasks.map(t => `
+            <div class="miss-row" data-kind="task" data-id="${t.id}">
+              <span class="week-item-title">${escapeHtml(t.title)}</span>
+              <button class="miss-btn" data-miss="${t.id}">No lo hice</button>
+            </div>`).join("")}
+          ${openHabits.map(h => `
+            <div class="miss-row" data-kind="habit" data-id="${h.id}">
+              <span class="week-item-title">${h.icon ? `${escapeHtml(h.icon)} ` : ""}${escapeHtml(h.name)}</span>
+              <button class="miss-btn" data-miss="${h.id}">No lo hice</button>
+            </div>`).join("")}
+        `}
+      <button class="modal-btn modal-btn-secondary" id="day-close-btn" style="margin-top:8px">Terminar cierre</button>
+    </div>
+  `;
+
+  slot.querySelectorAll(".miss-btn").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const row = btn.closest(".miss-row");
+      const kind = row.dataset.kind;
+      const ref = row.dataset.id;
+      const marked = btn.classList.contains("on");
+      btn.classList.toggle("on", !marked);
+      btn.textContent = marked ? "No lo hice" : "Registrado ✓";
+      try {
+        if (marked) {
+          await fetch("/api/days/miss", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ day: dayKey, kind, ref_id: Number(ref) }),
+          });
+        } else {
+          await fetch("/api/days/miss", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ day: dayKey, kind, ref_id: Number(ref) }),
+          });
+        }
+      } catch (e) {
+        console.error("Error registrando:", e);
+      }
+    });
+  });
+
+  // Pre-mark already registered ones
+  slot.querySelectorAll(".miss-row").forEach(row => {
+    if (missed.has(`${row.dataset.kind}:${row.dataset.id}`)) {
+      const btn = row.querySelector(".miss-btn");
+      btn?.classList.add("on");
+      if (btn) btn.textContent = "Registrado ✓";
+    }
+  });
+
+  slot.querySelector("#day-close-btn")?.addEventListener("click", async () => {
+    await fetch("/api/days/close", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ day: dayKey }),
+    });
+    if (window.initWeek) window.initWeek();
+  });
 }
 
 function renderWeekRail(body, days, byDay, todayKey, rangeLabel) {

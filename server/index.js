@@ -22,6 +22,7 @@ import readinessRouter from './routes/readiness.js';
 import habitsRouter from './routes/habits.js';
 import wallpapersRouter from './routes/wallpapers.js';
 import aiRouter from './routes/ai.js';
+import daysRouter from './routes/days.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -53,6 +54,7 @@ app.use('/api/readiness', readinessRouter);
 app.use('/api/habits', habitsRouter);
 app.use('/api/wallpapers', wallpapersRouter);
 app.use('/api/ai', aiRouter);
+app.use('/api/days', daysRouter);
 
 // Serve static files (frontend)
 // Docker: server/public | Local dev: repo root
