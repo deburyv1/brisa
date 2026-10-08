@@ -67,6 +67,19 @@
   white-space: nowrap;
 }
 
+.ideas-subtitle {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+  margin: 14px 0 8px;
+}
+
+.idea-row.done .idea-name {
+  opacity: 0.65;
+}
+
 .ideas-empty,
 .ideas-empty-note {
   text-align: center;

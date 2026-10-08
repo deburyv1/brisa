@@ -32,6 +32,48 @@ router.post('/', async (req, res) => {
   }
 });
 
+// PUT /api/ideas/:id — partial merge: only provided keys are updated
+router.put('/:id', async (req, res) => {
+  const sets = [];
+  const values = [];
+  if ('title' in req.body) {
+    const t = String(req.body.title || '').trim();
+    if (!t) return res.status(400).json({ error: 'Title is required' });
+    values.push(t.slice(0, 255));
+    sets.push(`title = $${values.length}`);
+  }
+  if ('description' in req.body) {
+    values.push(req.body.description?.trim() || null);
+    sets.push(`description = $${values.length}`);
+  }
+  if ('status' in req.body) {
+    if (!['open', 'done'].includes(req.body.status)) {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
+    values.push(req.body.status);
+    sets.push(`status = $${values.length}`);
+  }
+  if ('task_id' in req.body) {
+    values.push(req.body.task_id == null ? null : Number(req.body.task_id) || null);
+    sets.push(`task_id = $${values.length}`);
+  }
+  if (sets.length === 0) {
+    return res.status(400).json({ error: 'Nothing to update' });
+  }
+  try {
+    values.push(req.params.id);
+    const result = await pool.query(
+      `UPDATE ideas SET ${sets.join(', ')} WHERE id = $${values.length} RETURNING *`,
+      values
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Idea not found' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Error updating idea:', err);
+    res.status(500).json({ error: 'Database error' });
+  }
+});
+
 // DELETE /api/ideas/:id
 router.delete('/:id', async (req, res) => {
   try {

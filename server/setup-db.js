@@ -216,6 +216,8 @@ try {
     entry_id INTEGER REFERENCES entries(id) ON DELETE SET NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`);
+  await pool.query(`ALTER TABLE ideas ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'open'`);
+  await pool.query(`ALTER TABLE ideas ADD COLUMN IF NOT EXISTS task_id INTEGER REFERENCES tasks(id) ON DELETE SET NULL`);
 
   await pool.query(`CREATE TABLE IF NOT EXISTS reminders (
     id SERIAL PRIMARY KEY,
