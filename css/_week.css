@@ -324,11 +324,32 @@ button.week-item:hover .week-item-title {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  padding: 4px 2px;
 }
 
 .day-order .week-item-time {
   display: none;
 }
+
+.day-order .day-card {
+  position: relative;
+}
+
+/* Insertion line: shows exactly where the card lands */
+.day-order .day-card.drop-before::before,
+.day-order .day-card.drop-after::after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  height: 3px;
+  border-radius: 3px;
+  background: #5df2ff;
+  box-shadow: 0 0 8px rgba(93, 242, 255, 0.8);
+}
+
+.day-order .day-card.drop-before::before { top: -4px; }
+.day-order .day-card.drop-after::after { bottom: -4px; }
 
 /* Read-only past days: gray tone, no drag */
 .day-readonly .day-card {

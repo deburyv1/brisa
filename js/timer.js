@@ -171,7 +171,34 @@ function stopAlarm() {
 
 const TIMER_POS_KEY = "brisa.timerPos";
 const TIMER_SIZE_KEY = "brisa.timerSize";
+const TIMER_VISIBLE_KEY = "brisa.timerVisible";
 const TIMER_HOME = { left: 18, bottom: 18 };
+
+function isVisible() {
+  try {
+    const raw = localStorage.getItem(TIMER_VISIBLE_KEY);
+    return raw === null ? true : raw === "1";
+  } catch {
+    return true;
+  }
+}
+
+function setVisible(v) {
+  const pill = document.querySelector("#timer-pill");
+  const panel = document.querySelector("#timer-panel");
+  if (!pill) return;
+  pill.style.display = v ? "" : "none";
+  if (panel && !v) panel.style.display = "none";
+  try {
+    localStorage.setItem(TIMER_VISIBLE_KEY, v ? "1" : "0");
+  } catch {
+    // ignore
+  }
+}
+
+function restoreVisibility() {
+  setVisible(isVisible());
+}
 
 function pillSize() {
   const pill = document.querySelector("#timer-pill");
@@ -181,7 +208,7 @@ function pillSize() {
 function applyTimerSize(px, save = true) {
   const pill = document.querySelector("#timer-pill");
   if (!pill) return;
-  const size = Math.max(64, Math.min(150, Math.round(px)));
+  const size = Math.max(64, Math.min(240, Math.round(px)));
   pill.style.width = `${size}px`;
   pill.style.height = `${size}px`;
   const time = pill.querySelector("#timer-time");
@@ -308,7 +335,17 @@ export function initTimer() {
   paint();
   restorePos();
   restoreSize();
+  restoreVisibility();
   makeDraggable(pill, panel);
+
+  pill.title = "Arrástrame · doble clic para guardar";
+  pill.addEventListener("dblclick", (e) => {
+    if (e.target.closest(".timer-toggle-mini")) return;
+    setVisible(false);
+  });
+  document.querySelector("#timer-icon")?.addEventListener("click", () => {
+    setVisible(pill.style.display === "none");
+  });
 
   document.querySelector("#timer-toggle-mini")?.addEventListener("click", (e) => {
     e.stopPropagation();
@@ -366,6 +403,7 @@ export function initTimer() {
 
 function startTimer() {
   if (timerId) return;
+  setVisible(true); // a fresh session always brings the circle back
   if (remainingSec <= 0) remainingSec = totalSec;
   if ("Notification" in window && Notification.permission === "default") {
     Notification.requestPermission().catch(() => {});

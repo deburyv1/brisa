@@ -496,22 +496,40 @@ function wireOrderDrop(board, dayKey) {
     el.addEventListener("dragend", () => {
       el.classList.remove("dragging");
       lastDragEnd = Date.now();
-      list.querySelectorAll(".drop-hint").forEach(x => x.classList.remove("drop-hint"));
+      list.querySelectorAll(".drop-before, .drop-after").forEach(x =>
+        x.classList.remove("drop-before", "drop-after"));
     });
     el.addEventListener("dragover", (e) => {
       if (!dragged || dragged === el) return;
       e.preventDefault();
-      el.classList.add("drop-hint");
+      const r = el.getBoundingClientRect();
+      const after = e.clientY > r.top + r.height / 2;
+      el.classList.toggle("drop-before", !after);
+      el.classList.toggle("drop-after", after);
     });
-    el.addEventListener("dragleave", () => el.classList.remove("drop-hint"));
+    el.addEventListener("dragleave", () => el.classList.remove("drop-before", "drop-after"));
     el.addEventListener("drop", async (e) => {
       e.preventDefault();
-      el.classList.remove("drop-hint");
+      const after = el.classList.contains("drop-after");
+      el.classList.remove("drop-before", "drop-after");
       if (!dragged || dragged === el) return;
-      list.insertBefore(dragged, el);
+      list.insertBefore(dragged, after ? el.nextSibling : el);
       dragged = null;
       await saveDayOrder(board, dayKey);
     });
+  });
+  // Gaps and empty space: dropping appends at the end (never blocked)
+  list.addEventListener("dragover", (e) => {
+    if (!dragged) return;
+    e.preventDefault();
+  });
+  list.addEventListener("drop", async (e) => {
+    if (e.target.closest(".day-card")) return; // handled by the card
+    e.preventDefault();
+    if (!dragged) return;
+    list.appendChild(dragged);
+    dragged = null;
+    await saveDayOrder(board, dayKey);
   });
 }
 
