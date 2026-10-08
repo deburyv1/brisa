@@ -181,6 +181,17 @@
   <button class="timer-home" id="timer-home" title="Volver a la esquina inferior izquierda">⌂ Volver a su lugar</button>
 </div>
 
+<!-- Modal: Detalle de tarea -->
+<div class="modal-overlay" id="task-detail-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="task-detail-title">Detalle</div>
+      <button class="modal-close" id="task-detail-close">✕</button>
+    </div>
+    <div class="modal-form" id="task-detail-body"></div>
+  </div>
+</div>
+
 <!-- Modal: Crear/Editar Tarea -->
 <div class="modal-overlay" id="task-modal">
   <div class="modal">
@@ -235,13 +246,6 @@
           <option value="">Nada</option>
         </select>
       </div>
-      <div class="ai-split-row">
-        <button type="button" class="ai-split-btn" id="ai-split-btn" title="Dividir esta tarea en pasos con IA">
-          ✨ Dividir con IA
-        </button>
-        <span class="ai-split-hint">La IA sugiere pasos; tú decides</span>
-      </div>
-      <div class="ai-split-result" id="ai-split-result" style="display:none"></div>
       <div class="modal-actions">
         <button type="button" class="modal-btn modal-btn-secondary" id="task-modal-cancel">Cancelar</button>
         <button type="submit" class="modal-btn modal-btn-primary">Guardar</button>

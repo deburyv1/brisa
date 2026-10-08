@@ -12,6 +12,7 @@ import { initRelationships } from "./relationships.js";
 import { initToday } from "./today.js";
 import { initTasks } from "./tasks.js";
 import { initTaskModal } from "./taskModal.js";
+import { initTaskDetail } from "./tasks.js";
 import { initCapture, loadEntryIntoCapture } from "./capture.js";
 import { initInbox } from "./inbox.js";
 import { initNext, renderNext } from "./nextAction.js";
@@ -138,6 +139,7 @@ async function main() {
   initGlass();
   initModal();
   initTaskModal();
+  initTaskDetail();
   initJournalModal();
   initTransactionModal();
   initAccountModal();

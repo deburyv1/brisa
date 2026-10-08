@@ -135,6 +135,7 @@ function renderTasks(section, tasks) {
             </div>
           </div>
           <div class="task-actions">
+            <button class="task-btn task-btn-ai" data-action="ai" title="Dividir con IA">✨</button>
             <button class="task-btn task-btn-edit" data-action="edit">Editar</button>
             <button class="task-btn task-btn-delete" data-action="delete">Eliminar</button>
           </div>
@@ -171,8 +172,36 @@ function renderTasks(section, tasks) {
       if (window.initReadiness) window.initReadiness();
     });
 
+    item.querySelector('[data-action="ai"]')?.addEventListener("click", async () => {
+      const task = state.tasks.find(t => t.id == id);
+      if (!task) return;
+      const btn = item.querySelector('[data-action="ai"]');
+      btn.disabled = true;
+      btn.textContent = "...";
+      try {
+        const res = await fetch(`${API_BASE}/ai/split`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: task.title }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Error");
+        showAISplit(task, data.steps);
+      } catch (e) {
+        alert(e.message || "No se pudo dividir. Intenta de nuevo.");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "✨";
+      }
+    });
+
     item.querySelector('[data-action="edit"]')?.addEventListener("click", () => {
       if (window.openTaskModal) window.openTaskModal(id);
+    });
+
+    item.addEventListener("click", (e) => {
+      if (e.target.closest('[data-action]')) return;
+      showTaskDetail(id);
     });
 
     item.querySelector('[data-action="delete"]')?.addEventListener("click", async () => {
@@ -182,4 +211,146 @@ function renderTasks(section, tasks) {
       }
     });
   });
+}
+
+// ---- Task detail modal ----
+
+export function initTaskDetail() {
+  const overlay = document.querySelector("#task-detail-modal");
+  const closeBtn = document.querySelector("#task-detail-close");
+  if (!overlay || !closeBtn) return;
+
+  closeBtn.addEventListener("click", () => overlay.classList.remove("active"));
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) overlay.classList.remove("active");
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && overlay.classList.contains("active")) {
+      overlay.classList.remove("active");
+    }
+  });
+}
+
+async function showTaskDetail(id) {
+  const overlay = document.querySelector("#task-detail-modal");
+  const titleEl = document.querySelector("#task-detail-title");
+  const body = document.querySelector("#task-detail-body");
+  if (!overlay || !body) return;
+
+  const task = (state.tasks || []).find(t => t.id == id);
+  if (!task) return;
+
+  titleEl.textContent = task.title;
+  body.innerHTML = `
+    <div class="task-detail-meta">
+      ${task.scheduled_datetime ? `<div>📅 ${formatDateTime(task.scheduled_datetime)}</div>` : ""}
+      ${task.due_datetime ? `<div>⏰ ${formatDateTime(task.due_datetime)}</div>` : ""}
+      ${task.estimated_minutes ? `<div>~${task.estimated_minutes} min</div>` : ""}
+      ${task.priority ? `<div>Prioridad: ${PRIORITY_LABELS[task.priority] || task.priority}</div>` : ""}
+      ${task.first_step ? `<div class="task-detail-step">Primer paso: ${escapeHtml(task.first_step)}</div>` : ""}
+    </div>
+    ${task.description ? `<div class="task-detail-desc">${escapeHtml(task.description)}</div>` : ""}
+    <div class="task-detail-ai" id="task-detail-ai"></div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-secondary" id="task-detail-edit">Editar</button>
+      <button class="modal-btn modal-btn-primary" id="task-detail-ai-btn">✨ Dividir con IA</button>
+    </div>
+  `;
+  overlay.classList.add("active");
+
+  body.querySelector("#task-detail-edit")?.addEventListener("click", () => {
+    overlay.classList.remove("active");
+    if (window.openTaskModal) window.openTaskModal(id);
+  });
+
+  body.querySelector("#task-detail-ai-btn")?.addEventListener("click", async () => {
+    const btn = body.querySelector("#task-detail-ai-btn");
+    const aiBox = body.querySelector("#task-detail-ai");
+    btn.disabled = true;
+    btn.textContent = "Pensando...";
+    aiBox.innerHTML = "";
+    try {
+      const res = await fetch(`${API_BASE}/ai/split`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: task.title }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error");
+      aiBox.innerHTML = `
+        <div class="ai-steps">
+          <div class="ai-steps-title">La IA sugiere estos pasos:</div>
+          ${data.steps.map((s, i) => `
+            <div class="ai-step">
+              <span class="ai-step-num">${i + 1}</span>
+              <span class="ai-step-text">${escapeHtml(s)}</span>
+              <button class="ai-step-add" data-step="${i}" title="Agregar como tarea">+</button>
+            </div>`).join("")}
+          <button class="modal-btn modal-btn-primary" id="ai-add-all" style="margin-top:8px">Agregar todos como tareas</button>
+        </div>
+      `;
+      aiBox.querySelectorAll(".ai-step-add").forEach(b => {
+        b.addEventListener("click", () => addStepAsTask(data.steps[Number(b.dataset.step)]));
+      });
+      aiBox.querySelector("#ai-add-all")?.addEventListener("click", async () => {
+        for (const s of data.steps) await addStepAsTask(s);
+      });
+    } catch (e) {
+      aiBox.innerHTML = `<div class="ai-error">${escapeHtml(e.message)}</div>`;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "✨ Dividir con IA";
+    }
+  });
+}
+
+async function addStepAsTask(stepText) {
+  try {
+    await fetch(`${API_BASE}/tasks`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: stepText }),
+    });
+    if (window.initTasks) window.initTasks();
+  } catch (e) {
+    console.error("Error creando paso:", e);
+  }
+}
+
+function showAISplit(task, steps) {
+  // Inline AI result in the task list row
+  const existing = document.querySelector(`#ai-inline-${task.id}`);
+  if (existing) existing.remove();
+  const row = document.querySelector(`.task-item[data-task-id="${task.id}"]`);
+  if (!row) return;
+  const div = document.createElement("div");
+  div.id = `ai-inline-${task.id}`;
+  div.className = "ai-inline";
+  div.innerHTML = `
+    <div class="ai-steps">
+      <div class="ai-steps-title">La IA sugiere estos pasos:</div>
+      ${steps.map((s, i) => `
+        <div class="ai-step">
+          <span class="ai-step-num">${i + 1}</span>
+          <span class="ai-step-text">${escapeHtml(s)}</span>
+          <button class="ai-step-add" data-step="${i}" title="Agregar como tarea">+</button>
+        </div>`).join("")}
+      <button class="modal-btn modal-btn-primary" id="ai-inline-add-all" style="margin-top:8px">Agregar todos como tareas</button>
+    </div>
+  `;
+  row.after(div);
+  div.querySelectorAll(".ai-step-add").forEach(b => {
+    b.addEventListener("click", () => addStepAsTask(steps[Number(b.dataset.step)]));
+  });
+  div.querySelector("#ai-inline-add-all")?.addEventListener("click", async () => {
+    for (const s of steps) await addStepAsTask(s);
+  });
+}
+
+function escapeHtml(str) {
+  return String(str ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }

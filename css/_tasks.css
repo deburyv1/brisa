@@ -213,6 +213,64 @@
   background: rgba(255, 255, 255, 0.25);
 }
 
+.task-btn-ai {
+  background: linear-gradient(145deg, rgba(138, 43, 226, 0.35), rgba(75, 0, 130, 0.25));
+  border: 1px solid rgba(138, 43, 226, 0.4);
+}
+
+.task-btn-ai:hover:not(:disabled) {
+  background: linear-gradient(145deg, rgba(138, 43, 226, 0.55), rgba(75, 0, 130, 0.4));
+}
+
+.task-btn-ai:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+/* ---- Task detail modal ---- */
+.task-detail-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.75);
+  margin-bottom: 12px;
+}
+
+.task-detail-step {
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.task-detail-desc {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #fff;
+  margin-bottom: 12px;
+  white-space: pre-wrap;
+}
+
+.task-detail-ai {
+  margin-bottom: 12px;
+}
+
+.ai-inline {
+  grid-column: 1 / -1;
+  margin-top: 4px;
+}
+
+.ai-error {
+  font-size: 11px;
+  color: #ff9f9f;
+  padding: 8px;
+  border-radius: 8px;
+  background: rgba(255, 0, 0, 0.1);
+  border: 1px solid rgba(255, 0, 0, 0.2);
+}
+
 .task-btn-delete {
   background: rgba(255, 107, 107, 0.2);
   border: 1px solid rgba(255, 107, 107, 0.3);
