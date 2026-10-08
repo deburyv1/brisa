@@ -30,6 +30,7 @@ import { initEventDetail } from "./eventDetail.js";
 import { initShopping } from "./shopping.js";
 import { initReadiness } from "./readiness.js";
 import { initHabits } from "./habits.js";
+import { initIdeas } from "./ideas.js";
 import { initTimer } from "./timer.js";
 import { initWeek } from "./week.js";
 import { initWallpaper } from "./wallpaper.js";
@@ -46,6 +47,7 @@ window.initCalendar = initCalendar;
 window.initShopping = initShopping;
 window.initReadiness = initReadiness;
 window.initHabits = initHabits;
+window.initIdeas = initIdeas;
 window.initWeek = initWeek;
 window.initToday = initToday;
 window.loadEntryIntoCapture = loadEntryIntoCapture;
@@ -62,6 +64,7 @@ const NAV_LABELS = {
   people: "Relaciones",
   shopping: "Compras",
   habits: "Hábitos",
+  ideas: "Ideas",
 };
 
 const NAV_SECTIONS = {
@@ -74,6 +77,7 @@ const NAV_SECTIONS = {
   people: ["#relationships-section"],
   shopping: ["#shopping-section"],
   habits: ["#habits-section"],
+  ideas: ["#ideas-section"],
 };
 
 const ALL_SECTIONS = [
@@ -90,6 +94,7 @@ const ALL_SECTIONS = [
   "#relationships-section",
   "#shopping-section",
   "#habits-section",
+  "#ideas-section",
   "#readiness-section",
   "#week-section",
 ];
@@ -146,6 +151,7 @@ async function main() {
   initShopping();
   initReadiness();
   initHabits();
+  initIdeas();
   initTimer();
   initPlayer();
   initNavigation();
@@ -162,6 +168,7 @@ async function main() {
     initShopping(),
     initReadiness(),
     initHabits(),
+    initIdeas(),
   ]);
   initToday();
   renderNext();

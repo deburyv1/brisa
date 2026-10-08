@@ -316,6 +316,7 @@ async function confirmEntry(section, entry) {
     if (window.initTasks) window.initTasks();
     if (window.initToday) window.initToday();
     if (window.initJournal) window.initJournal();
+    if (window.initIdeas) window.initIdeas();
     if (window.renderNext) window.renderNext();
   } catch (err) {
     console.error("Error procesando entrada:", err);
@@ -335,6 +336,7 @@ async function finishEntry(section, entry, targetType, targetId) {
   if (window.initTasks) window.initTasks();
   if (window.initToday) window.initToday();
   if (window.initJournal) window.initJournal();
+  if (window.initIdeas) window.initIdeas();
   if (window.renderNext) window.renderNext();
 }
 
