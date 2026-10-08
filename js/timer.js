@@ -208,18 +208,17 @@ function pillSize() {
 function applyTimerSize(px, save = true) {
   const pill = document.querySelector("#timer-pill");
   if (!pill) return;
-  const size = Math.max(64, Math.min(240, Math.round(px)));
+  const size = Math.max(64, Math.min(1100, Math.round(px)));
   pill.style.width = `${size}px`;
   pill.style.height = `${size}px`;
   const time = pill.querySelector("#timer-time");
   if (time) time.style.fontSize = `${Math.round(size * 0.17)}px`;
-  const btn = pill.querySelector("#timer-toggle-mini");
-  if (btn) {
-    const b = Math.round(size * 0.3);
+  pill.querySelectorAll(".timer-mini").forEach(btn => {
+    const b = Math.round(size * 0.22);
     btn.style.width = `${b}px`;
     btn.style.height = `${b}px`;
-    btn.style.fontSize = `${Math.round(size * 0.125)}px`;
-  }
+    btn.style.fontSize = `${Math.round(size * 0.1)}px`;
+  });
   const slider = document.querySelector("#timer-size");
   if (slider) slider.value = String(size);
   if (save) {
@@ -253,6 +252,21 @@ function goHome() {
   }
 }
 
+function centerPill() {
+  const pill = document.querySelector("#timer-pill");
+  if (!pill) return;
+  const s = pill.offsetWidth || 96;
+  pill.style.left = `${Math.max(0, (window.innerWidth - s) / 2)}px`;
+  pill.style.top = `${Math.max(0, (window.innerHeight - s) / 2)}px`;
+  pill.style.bottom = "auto";
+  try {
+    const r = pill.getBoundingClientRect();
+    localStorage.setItem(TIMER_POS_KEY, JSON.stringify({ x: r.left, y: r.top }));
+  } catch {
+    // ignore
+  }
+}
+
 function restorePos() {
   const pill = document.querySelector("#timer-pill");
   if (!pill) return;
@@ -274,7 +288,7 @@ function makeDraggable(pill, panel) {
   let drag = null;
 
   pill.addEventListener("pointerdown", (e) => {
-    if (e.target && typeof e.target.closest === "function" && e.target.closest(".timer-toggle-mini")) return;
+    if (e.target && typeof e.target.closest === "function" && e.target.closest(".timer-mini")) return;
     const r = pill.getBoundingClientRect();
     drag = { startX: e.clientX, startY: e.clientY, baseX: r.left, baseY: r.top, moved: false };
   });
@@ -297,7 +311,7 @@ function makeDraggable(pill, panel) {
     if (!drag) return;
     const wasDrag = drag.moved;
     drag = null;
-    if (e.target && typeof e.target.closest === "function" && e.target.closest(".timer-toggle-mini")) return;
+    if (e.target && typeof e.target.closest === "function" && e.target.closest(".timer-mini")) return;
     if (!wasDrag) {
       panel.style.display = panel.style.display === "none" ? "" : "none";
       if (panel.style.display !== "none") dockPanel(pill, panel);
@@ -340,7 +354,7 @@ export function initTimer() {
 
   pill.title = "Arrástrame · doble clic para guardar";
   pill.addEventListener("dblclick", (e) => {
-    if (e.target.closest(".timer-toggle-mini")) return;
+    if (e.target.closest(".timer-mini")) return;
     setVisible(false);
   });
   document.querySelector("#timer-icon")?.addEventListener("click", () => {
@@ -350,6 +364,10 @@ export function initTimer() {
   document.querySelector("#timer-toggle-mini")?.addEventListener("click", (e) => {
     e.stopPropagation();
     toggle();
+  });
+  document.querySelector("#timer-center-mini")?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    centerPill();
   });
 
   document.querySelectorAll(".timer-preset").forEach(b =>

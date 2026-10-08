@@ -68,7 +68,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
 }
 
 .timer-face #timer-time {
@@ -77,9 +77,14 @@
   letter-spacing: .02em;
 }
 
-.timer-pill .timer-toggle-mini {
+.timer-face-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.timer-pill .timer-mini {
   border: 0;
-  background: linear-gradient(145deg, #2ed573, #1a8a4a);
   color: #fff;
   border-radius: 50%;
   width: 28px;
@@ -89,6 +94,14 @@
   display: grid;
   place-items: center;
   box-shadow: 0 3px 10px rgba(0, 0, 0, .4);
+}
+
+.timer-pill .timer-toggle-mini {
+  background: linear-gradient(145deg, #2ed573, #1a8a4a);
+}
+
+.timer-pill #timer-center-mini {
+  background: linear-gradient(145deg, #27c9eb, #087fb0);
 }
 
 .timer-panel {
