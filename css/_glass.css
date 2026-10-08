@@ -1,6 +1,16 @@
 /* ============================================
    BRISA - Glassmorphism Base
+   Legibility the Aero way: heavy frost behind,
+   halo on text, sheen on top. Never darkening.
    ============================================ */
+
+/* Halo inherits into every text node: white text
+   keeps a soft dark edge on bright wallpapers */
+body {
+  text-shadow: var(--text-halo);
+}
+
+/* Frosted surfaces keep their own crisp shadows */
 .aero-panel,
 .aero-bar,
 .aero-inset {

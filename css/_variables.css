@@ -14,8 +14,11 @@
   --radius-card: 18px;
   --transition-speed: .16s;
   /* Glass theme (overridden live by Personalizar) */
-  --glass-blur: 24px;
+  --glass-blur: 28px;
   --glass-sat: 140%;
   --glass-a1: .40;
   --glass-a2: .20;
+  /* Aero-style text halo: dark soft shadow + faint glow,
+     so white text reads on any wallpaper without darkening */
+  --text-halo: 0 1px 3px rgba(0, 55, 95, .55), 0 0 16px rgba(0, 90, 140, .28);
 }
