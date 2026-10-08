@@ -211,8 +211,9 @@ function reduceMotion() {
   }
 }
 
-// Flight towards a target rect: accelerate, stretch mid-way
-// (spaghettification wink), shrink and fade into it.
+// Flight towards a target rect: curved arc, rotating into the
+// direction of travel, stretching mid-way (spaghettification
+// wink), then shrinking and fading into the target.
 function flyTo(fromRect, toRect) {
   return new Promise((resolve) => {
     const pill = document.querySelector("#timer-pill");
@@ -227,12 +228,17 @@ function flyTo(fromRect, toRect) {
     document.body.appendChild(ghost);
     const dx = (toRect.left + toRect.width / 2) - (fromRect.left + fromRect.width / 2);
     const dy = (toRect.top + toRect.height / 2) - (fromRect.top + fromRect.height / 2);
+    const dist = Math.max(1, Math.hypot(dx, dy));
+    const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+    const lift = Math.min(140, dist * 0.3);
+    const mx = dx * 0.5, my = dy * 0.5 - lift;
     const s = Math.max(0.05, Math.min(toRect.width / fromRect.width, toRect.height / fromRect.height, 1));
     const anim = ghost.animate([
-      { transform: "translate(0,0) scale(1,1)", opacity: 1, borderRadius: "50%" },
-      { transform: `translate(${dx * 0.55}px,${dy * 0.55}px) scale(1.5,0.55)`, opacity: 1, borderRadius: "40%", offset: 0.55 },
-      { transform: `translate(${dx}px,${dy}px) scale(${s},${s})`, opacity: 0.15, borderRadius: "12px" },
-    ], { duration: 600, easing: "cubic-bezier(.45,.05,.35,1)", fill: "forwards" });
+      { transform: "translate(0,0) rotate(0deg) scale(1,1)", opacity: 1, borderRadius: "50%" },
+      { transform: `translate(${dx * 0.3}px,${dy * 0.3 - lift * 0.5}px) rotate(${angle * 0.4}deg) scale(1.2,0.85)`, opacity: 1, borderRadius: "46%", offset: 0.35 },
+      { transform: `translate(${mx}px,${my}px) rotate(${angle}deg) scale(1.7,0.45)`, opacity: 0.95, borderRadius: "40%", offset: 0.62 },
+      { transform: `translate(${dx}px,${dy}px) rotate(0deg) scale(${s},${s})`, opacity: 0.15, borderRadius: "12px" },
+    ], { duration: 750, easing: "cubic-bezier(.45,.05,.35,1)", fill: "forwards" });
     let settled = false;
     const done = () => {
       if (settled) return;
@@ -242,7 +248,7 @@ function flyTo(fromRect, toRect) {
     };
     anim.onfinish = done;
     // Hidden tabs never tick WAAPI: never hang the flow
-    setTimeout(done, 750);
+    setTimeout(done, 900);
   });
 }
 
