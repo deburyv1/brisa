@@ -4,49 +4,50 @@
 .focus-title {
   font-size: 16px;
   font-weight: 700;
-  color: #fff;
+  color: var(--ink);
   margin: 0 0 4px;
+  text-shadow: var(--text-glow);
 }
 
 .focus-permission {
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(22, 75, 105, 0.72);
   margin: 0 0 12px;
 }
 
 .focus-step-box {
   border-radius: 14px;
   padding: 14px 16px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, .16), rgba(255, 255, 255, .06));
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: linear-gradient(135deg, rgba(255, 255, 255, .5), rgba(255, 255, 255, .3));
+  border: 1px solid rgba(255, 255, 255, 0.6);
   margin-bottom: 10px;
 }
 
 .focus-step-label {
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: .1em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(22, 75, 105, 0.62);
   margin-bottom: 4px;
 }
 
 .focus-step {
   font-size: 15px;
   font-weight: 600;
-  color: #fff;
+  color: var(--ink);
   line-height: 1.4;
 }
 
 .focus-staging {
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(22, 75, 105, 0.72);
   line-height: 1.5;
   margin: 0 0 12px;
 }
 
 .focus-staging strong {
-  color: #fff;
+  color: var(--ink);
 }
 
 .focus-timer-row {
@@ -62,13 +63,13 @@
 }
 
 .focus-time-btn {
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(22, 75, 105, 0.3);
   border-radius: 99px;
   padding: 4px 10px;
   font-size: 10px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.75);
-  background: rgba(255, 255, 255, 0.08);
+  color: rgba(22, 75, 105, 0.8);
+  background: rgba(255, 255, 255, 0.35);
   cursor: pointer;
 }
 
@@ -81,14 +82,14 @@
 .focus-timer {
   font-size: 22px;
   font-weight: 300;
-  color: #fff;
+  color: var(--ink);
   font-variant-numeric: tabular-nums;
   margin-left: auto;
 }
 
 .focus-message {
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(22, 75, 105, 0.8);
   min-height: 14px;
   margin: 0 0 8px;
 }
@@ -106,12 +107,12 @@
   align-items: center;
   gap: 8px;
   font-size: 11px;
-  color: #fff;
+  color: var(--ink);
   cursor: pointer;
   border-radius: 10px;
   padding: 7px 10px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, .12), rgba(255, 255, 255, .04));
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: linear-gradient(135deg, rgba(255, 255, 255, .45), rgba(255, 255, 255, .25));
+  border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
 .prep-row input[type="checkbox"] {
@@ -124,18 +125,18 @@
 .prep-input {
   flex: 1;
   min-width: 0;
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(22, 75, 105, 0.3);
   border-radius: 10px;
   padding: 9px 12px;
   font-size: 12px;
   font-family: inherit;
-  color: #fff;
-  background: rgba(255, 255, 255, .08);
+  color: var(--ink);
+  background: rgba(255, 255, 255, .5);
   outline: none;
 }
 
 .prep-input::placeholder {
-  color: rgba(255, 255, 255, 0.65);
+  color: rgba(22, 75, 105, 0.55);
 }
 
 .prep-done {
@@ -146,13 +147,14 @@
 .focus-question {
   font-size: 13px;
   font-weight: 600;
-  color: #fff;
+  color: var(--ink);
   margin: 0 0 10px;
+  text-shadow: var(--text-glow);
 }
 
 .focus-note {
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(22, 75, 105, 0.75);
   margin: 0 0 10px;
   line-height: 1.5;
 }
@@ -165,22 +167,22 @@
 }
 
 .focus-option {
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(22, 75, 105, 0.28);
   border-radius: 12px;
   padding: 9px 12px;
   font-size: 11px;
   font-weight: 600;
   font-family: inherit;
   text-align: left;
-  color: rgba(255, 255, 255, 0.9);
-  background: rgba(255, 255, 255, 0.08);
+  color: rgba(22, 75, 105, 0.92);
+  background: rgba(255, 255, 255, 0.35);
   cursor: pointer;
   transition: var(--transition-speed);
 }
 
 .focus-option:hover {
-  background: rgba(255, 255, 255, 0.16);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--ink);
   transform: translateX(2px);
 }
 
@@ -202,13 +204,13 @@
   max-width: 320px;
   border-radius: 99px;
   padding: 10px 8px 10px 16px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, .35), rgba(255, 255, 255, .15));
+  background: linear-gradient(135deg, rgba(255, 255, 255, .75), rgba(255, 255, 255, .55));
   backdrop-filter: blur(20px) saturate(140%);
   -webkit-backdrop-filter: blur(20px) saturate(140%);
-  border: 1px solid rgba(255, 255, 255, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.6);
   box-shadow: 0 10px 30px rgba(0, 58, 94, .25), inset 0 1px 0 rgba(255, 255, 255, 0.5);
   font-size: 11px;
-  color: #fff;
+  color: var(--ink);
   cursor: pointer;
 }
 
@@ -224,8 +226,8 @@
 
 .upcoming-dismiss {
   border: 0;
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
+  background: rgba(22, 75, 105, 0.12);
+  color: var(--ink);
   width: 22px;
   height: 22px;
   border-radius: 50%;

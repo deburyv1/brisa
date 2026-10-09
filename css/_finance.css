@@ -24,7 +24,7 @@
   font-size: 10px;
   font-weight: 700;
   letter-spacing: .1em;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(22, 75, 105, 0.78);
   text-transform: uppercase;
 }
 
@@ -56,31 +56,31 @@
 .finance-stat {
   border-radius: 14px;
   padding: 12px 14px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, .15), rgba(255, 255, 255, .05));
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: linear-gradient(135deg, rgba(255, 255, 255, .55), rgba(255, 255, 255, .32));
+  border: 1px solid rgba(255, 255, 255, 0.6);
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
 .finance-stat-label {
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: .08em;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(22, 75, 105, 0.62);
   text-transform: uppercase;
 }
 
 .finance-stat-value {
   font-size: 20px;
   font-weight: 700;
-  color: #fff;
+  color: var(--ink);
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
 }
 
-.finance-stat-value.income { color: #7bed9f; }
-.finance-stat-value.expense { color: #ff9f9f; }
+.finance-stat-value.income { color: #1a8a4a; }
+.finance-stat-value.expense { color: #c0392b; }
 
 .finance-list {
   display: flex;
@@ -94,13 +94,13 @@
   gap: 12px;
   padding: 10px 14px;
   border-radius: 12px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, .15), rgba(255, 255, 255, .05));
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: linear-gradient(135deg, rgba(255, 255, 255, .55), rgba(255, 255, 255, .32));
+  border: 1px solid rgba(255, 255, 255, 0.6);
   transition: var(--transition-speed);
 }
 
 .tx-item:hover {
-  background: linear-gradient(135deg, rgba(255, 255, 255, .32), rgba(255, 255, 255, .14));
+  background: linear-gradient(135deg, rgba(255, 255, 255, .7), rgba(255, 255, 255, .45));
 }
 
 .tx-sign {
@@ -129,15 +129,15 @@
 .tx-desc {
   font-size: 12px;
   font-weight: 600;
-  color: #fff;
+  color: var(--ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .tx-meta {
-  font-size: 9px;
-  color: rgba(255, 255, 255, 0.6);
+  font-size: 10px;
+  color: rgba(22, 75, 105, 0.62);
   letter-spacing: .03em;
 }
 
@@ -148,8 +148,8 @@
   white-space: nowrap;
 }
 
-.tx-amount.income { color: #7bed9f; }
-.tx-amount.expense { color: #ff9f9f; }
+.tx-amount.income { color: #1a8a4a; }
+.tx-amount.expense { color: #c0392b; }
 
 .tx-item.planned {
   border-style: dashed;
@@ -172,7 +172,7 @@
   border: 0;
   border-radius: 8px;
   padding: 5px 10px;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   color: #fff;
   cursor: pointer;
@@ -180,21 +180,22 @@
 }
 
 .tx-btn-edit {
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(8, 127, 176, 0.18);
+  border: 1px solid rgba(8, 127, 176, 0.4);
+  color: #087fb0;
 }
 
 .tx-btn-edit:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(8, 127, 176, 0.3);
 }
 
 .tx-btn-delete {
-  background: rgba(255, 107, 107, 0.2);
-  border: 1px solid rgba(255, 107, 107, 0.3);
+  background: rgba(200, 60, 60, 0.5);
+  border: 1px solid rgba(200, 60, 60, 0.45);
 }
 
 .tx-btn-delete:hover {
-  background: rgba(255, 107, 107, 0.35);
+  background: rgba(200, 60, 60, 0.65);
 }
 
 .finance-header-actions {
@@ -203,19 +204,19 @@
 }
 
 .finance-import-btn {
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(22, 75, 105, 0.3);
   border-radius: 10px;
   padding: 7px 14px;
   font-size: 10px;
   font-weight: 700;
-  color: #fff;
-  background: rgba(255, 255, 255, 0.12);
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.35);
   cursor: pointer;
   transition: var(--transition-speed);
 }
 
 .finance-import-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.55);
 }
 
 /* Account selector */
@@ -227,20 +228,20 @@
 }
 
 .finance-account {
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(22, 75, 105, 0.28);
   border-radius: 99px;
   padding: 6px 14px;
   font-size: 10px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.7);
-  background: rgba(255, 255, 255, 0.08);
+  color: rgba(22, 75, 105, 0.75);
+  background: rgba(255, 255, 255, 0.3);
   cursor: pointer;
   transition: var(--transition-speed);
 }
 
 .finance-account:hover {
-  background: rgba(255, 255, 255, 0.15);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--ink);
 }
 
 .finance-account.active {
@@ -266,28 +267,29 @@
 .finance-month-label {
   font-size: 11px;
   font-weight: 700;
-  color: #fff;
+  color: var(--ink);
   text-transform: capitalize;
   min-width: 140px;
   text-align: center;
+  text-shadow: var(--text-glow);
 }
 
 .finance-month-btn {
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(22, 75, 105, 0.3);
   border-radius: 50%;
   width: 26px;
   height: 26px;
   display: grid;
   place-items: center;
   font-size: 14px;
-  color: #fff;
-  background: rgba(255, 255, 255, 0.1);
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.35);
   cursor: pointer;
   transition: var(--transition-speed);
 }
 
 .finance-month-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.55);
 }
 
 /* Category breakdown */
@@ -295,14 +297,14 @@
   border-radius: 14px;
   padding: 14px 16px;
   margin-bottom: 12px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, .12), rgba(255, 255, 255, .04));
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: linear-gradient(135deg, rgba(255, 255, 255, .45), rgba(255, 255, 255, .25));
+  border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
 .finance-breakdown-title {
   font-size: 10px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(22, 75, 105, 0.8);
   margin-bottom: 10px;
   text-transform: capitalize;
   display: flex;
@@ -317,33 +319,33 @@
 }
 
 .finance-mini-btn {
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(22, 75, 105, 0.3);
   border-radius: 99px;
   padding: 3px 10px;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.8);
-  background: rgba(255, 255, 255, 0.08);
+  color: rgba(22, 75, 105, 0.82);
+  background: rgba(255, 255, 255, 0.35);
   cursor: pointer;
 }
 
 .finance-mini-btn:hover {
-  background: rgba(255, 255, 255, 0.18);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--ink);
 }
 
-.available-pos { color: #7bed9f; }
-.available-neg { color: rgba(255, 255, 255, 0.85); }
+.available-pos { color: #1a8a4a; }
+.available-neg { color: rgba(22, 75, 105, 0.85); }
 
 .budget-input {
   width: 90px;
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(22, 75, 105, 0.3);
   border-radius: 8px;
   padding: 4px 8px;
   font-size: 10px;
   font-family: inherit;
-  color: #fff;
-  background: rgba(255, 255, 255, .08);
+  color: var(--ink);
+  background: rgba(255, 255, 255, .5);
   outline: none;
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -351,20 +353,20 @@
 
 .breakdown-val small {
   display: block;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(22, 75, 105, 0.62);
 }
 
-.breakdown-val.income { color: #7bed9f; }
-.breakdown-val.expense { color: #ff9f9f; }
+.breakdown-val.income { color: #1a8a4a; }
+.breakdown-val.expense { color: #c0392b; }
 
 /* Fixed-cost rows: self-contained cards so the action
    always reads as belonging to its row */
 .breakdown-row.fixed-row {
   grid-template-columns: minmax(0, 1fr) auto;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.5);
   border-radius: 10px;
   padding: 6px 10px;
 }
@@ -412,8 +414,8 @@
   display: flex;
   gap: 14px;
   margin-top: 8px;
-  font-size: 9px;
-  color: rgba(255, 255, 255, 0.65);
+  font-size: 10px;
+  color: rgba(22, 75, 105, 0.65);
 }
 
 .compare-legend .swatch {
@@ -445,22 +447,22 @@
 
 .finance-search {
   width: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(22, 75, 105, 0.3);
   border-radius: 10px;
   padding: 8px 12px;
   font-size: 11px;
   font-family: inherit;
-  color: #fff;
-  background: rgba(255, 255, 255, .08);
+  color: var(--ink);
+  background: rgba(255, 255, 255, .55);
   outline: none;
 }
 
 .finance-search::placeholder {
-  color: rgba(255, 255, 255, 0.65);
+  color: rgba(22, 75, 105, 0.55);
 }
 
 .finance-search:focus {
-  border-color: rgba(255, 255, 255, 0.5);
+  border-color: rgba(8, 127, 176, 0.6);
 }
 
 .breakdown-row {
@@ -473,15 +475,15 @@
 
 .breakdown-cat {
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(22, 75, 105, 0.88);
   line-height: 1.35;
   overflow-wrap: anywhere;
 }
 
 .breakdown-cat small {
   display: block;
-  font-size: 8px;
-  color: rgba(255, 255, 255, 0.55);
+  font-size: 10px;
+  color: rgba(22, 75, 105, 0.6);
 }
 
 .breakdown-bar {
@@ -501,7 +503,7 @@
 .breakdown-val {
   font-size: 10px;
   font-weight: 700;
-  color: #fff;
+  color: var(--ink);
   font-variant-numeric: tabular-nums;
   text-align: right;
   min-width: 70px;
@@ -518,16 +520,16 @@
   margin-bottom: 12px;
   font-size: 10px;
   font-weight: 600;
-  color: #fff;
-  background: linear-gradient(135deg, rgba(244, 195, 46, .25), rgba(244, 195, 46, .08));
-  border: 1px solid rgba(244, 195, 46, 0.4);
+  color: #6b4e00;
+  background: linear-gradient(135deg, rgba(244, 195, 46, .4), rgba(244, 195, 46, .2));
+  border: 1px solid rgba(180, 130, 10, 0.45);
 }
 
 .finance-alert-btn {
   border: 0;
   border-radius: 8px;
   padding: 5px 12px;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   color: #fff;
   background: linear-gradient(145deg, #27c9eb, #087fb0);
@@ -537,21 +539,21 @@
 
 /* Inline category select */
 .tx-category {
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(22, 75, 105, 0.3);
   border-radius: 8px;
   padding: 4px 6px;
-  font-size: 9px;
+  font-size: 10px;
   font-family: inherit;
-  color: #fff;
-  background: rgba(255, 255, 255, .08);
+  color: var(--ink);
+  background: rgba(255, 255, 255, .5);
   outline: none;
   cursor: pointer;
   max-width: 130px;
 }
 
 .tx-category option {
-  background: #1a3a52;
-  color: #fff;
+  background: #fff;
+  color: var(--ink);
 }
 
 .finance-breakdown.fixed-list {
@@ -559,7 +561,7 @@
 }
 
 .fixed-pill {
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: .05em;
   text-transform: uppercase;
@@ -574,8 +576,8 @@
 }
 
 .fixed-footnote {
-  font-size: 8px;
-  color: rgba(255, 255, 255, 0.45);
+  font-size: 10px;
+  color: rgba(22, 75, 105, 0.55);
   margin-top: 6px;
 }
 
@@ -588,10 +590,10 @@
 }
 
 .finance-history-title {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: .08em;
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(22, 75, 105, 0.6);
   text-transform: uppercase;
 }
 
@@ -602,19 +604,19 @@
   gap: 10px;
   padding: 8px 12px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
 .finance-history-file {
   font-size: 10px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(22, 75, 105, 0.88);
 }
 
 .finance-history-meta {
-  font-size: 8px;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: 10px;
+  color: rgba(22, 75, 105, 0.55);
 }
 
 /* Empty state */
@@ -635,12 +637,12 @@
 .finance-empty-title {
   font-size: 14px;
   font-weight: 700;
-  color: #fff;
+  color: var(--ink);
 }
 
 .finance-empty-text {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(22, 75, 105, 0.72);
   line-height: 1.4;
 }
 

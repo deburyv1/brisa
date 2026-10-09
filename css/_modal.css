@@ -58,20 +58,20 @@
 }
 
 .ai-split-btn {
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid transparent;
   border-radius: 10px;
   padding: 8px 14px;
   font-size: 12px;
   font-weight: 600;
   font-family: inherit;
   color: #fff;
-  background: linear-gradient(145deg, rgba(138, 43, 226, .35), rgba(75, 0, 130, .25));
+  background: linear-gradient(145deg, #8a2be2, #4b0082);
   cursor: pointer;
   transition: var(--transition-speed);
 }
 
 .ai-split-btn:hover:not(:disabled) {
-  background: linear-gradient(145deg, rgba(138, 43, 226, .55), rgba(75, 0, 130, .4));
+  filter: brightness(1.1);
 }
 
 .ai-split-btn:disabled {
@@ -81,7 +81,7 @@
 
 .ai-split-hint {
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(22, 75, 105, 0.6);
 }
 
 .ai-split-result {
@@ -91,14 +91,14 @@
 .ai-steps {
   border-radius: 12px;
   padding: 10px;
-  background: rgba(255, 255, 255, .06);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, .4);
+  border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
 .ai-steps-title {
   font-size: 10px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(22, 75, 105, 0.75);
   margin-bottom: 6px;
 }
 
@@ -125,23 +125,23 @@
 .ai-step-text {
   flex: 1;
   font-size: 12px;
-  color: #fff;
+  color: var(--ink);
 }
 
 .ai-step-add {
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(22, 75, 105, 0.3);
   border-radius: 8px;
   width: 24px;
   height: 24px;
   font-size: 14px;
-  color: #fff;
-  background: rgba(255, 255, 255, .08);
+  color: var(--ink);
+  background: rgba(255, 255, 255, .4);
   cursor: pointer;
   flex-shrink: 0;
 }
 
 .ai-step-add:hover {
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.6);
 }
 
 .modal-header {
@@ -154,14 +154,15 @@
 .modal-title {
   font-size: 14px;
   font-weight: 700;
-  color: #fff;
+  color: var(--ink);
   letter-spacing: .02em;
+  text-shadow: var(--text-glow);
 }
 
 .modal-close {
   border: 0;
-  background: rgba(255, 255, 255, .15);
-  color: #fff;
+  background: rgba(22, 75, 105, 0.12);
+  color: var(--ink);
   width: 28px;
   height: 28px;
   border-radius: 50%;
@@ -173,7 +174,7 @@
 }
 
 .modal-close:hover {
-  background: rgba(255, 255, 255, .25);
+  background: rgba(22, 75, 105, 0.2);
 }
 
 /* Form */
@@ -190,20 +191,20 @@
 }
 
 .form-group label {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 600;
   letter-spacing: .08em;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(22, 75, 105, 0.75);
   text-transform: uppercase;
 }
 
 .form-group label .required {
-  color: #ff6b6b;
+  color: #c0392b;
   margin-left: 2px;
 }
 
 .form-group label .optional {
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(22, 75, 105, 0.5);
   font-weight: 400;
   text-transform: none;
   letter-spacing: 0;
@@ -211,13 +212,13 @@
 
 .form-group input,
 .form-group select {
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(22, 75, 105, 0.3);
   border-radius: 10px;
   padding: 9px 12px;
   font-size: 12px;
   font-family: inherit;
-  color: #fff;
-  background: rgba(255, 255, 255, .08);
+  color: var(--ink);
+  background: rgba(255, 255, 255, .5);
   outline: none;
   transition: var(--transition-speed);
   width: 100%;
@@ -228,7 +229,7 @@
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='rgba(255,255,255,0.6)' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='rgba(22,75,105,0.6)' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
   padding-right: 32px;
@@ -236,31 +237,31 @@
 }
 
 .form-group select option {
-  background: #1a3a52;
-  color: #fff;
+  background: #fff;
+  color: var(--ink);
   padding: 8px;
 }
 
 .form-group select:focus {
-  border-color: rgba(255, 255, 255, 0.5);
-  background-color: rgba(255, 255, 255, .12);
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+  border-color: rgba(8, 127, 176, 0.6);
+  background-color: rgba(255, 255, 255, .65);
+  box-shadow: 0 0 0 3px rgba(8, 127, 176, 0.15);
 }
 
 .form-group input::placeholder,
 .form-group textarea::placeholder {
-  color: rgba(255, 255, 255, 0.65);
+  color: rgba(22, 75, 105, 0.55);
 }
 
 .form-group input:focus,
 .form-group select:focus {
-  border-color: rgba(255, 255, 255, 0.5);
-  background: rgba(255, 255, 255, .12);
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+  border-color: rgba(8, 127, 176, 0.6);
+  background: rgba(255, 255, 255, .65);
+  box-shadow: 0 0 0 3px rgba(8, 127, 176, 0.15);
 }
 
 .form-group input[type="date"] {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 .form-group input[type="file"] {
@@ -314,11 +315,11 @@
 }
 
 .modal-btn-secondary {
-  color: rgba(255, 255, 255, 0.8);
-  background: rgba(255, 255, 255, .1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(22, 75, 105, 0.85);
+  background: rgba(255, 255, 255, .35);
+  border: 1px solid rgba(22, 75, 105, 0.25);
 }
 
 .modal-btn-secondary:hover {
-  background: rgba(255, 255, 255, .15);
+  background: rgba(255, 255, 255, .5);
 }

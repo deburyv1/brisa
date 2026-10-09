@@ -41,20 +41,21 @@
   font-weight: 500;
   font-size: 20px;
   line-height: 1;
-  color: #fff;
+  color: var(--ink);
+  text-shadow: var(--text-glow);
 }
 
 .tagline {
-  font-size: 9px;
-  color: rgba(255, 255, 255, 0.7);
+  font-size: 10px;
+  color: rgba(22, 75, 105, 0.7);
   margin-top: 4px;
 }
 
 .nav-title {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 500;
   letter-spacing: .11em;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(22, 75, 105, 0.7);
   padding: 0 10px 8px;
 }
 
@@ -63,7 +64,7 @@
   width: 100%;
   border: 0;
   background: transparent;
-  color: #fff;
+  color: var(--ink);
   text-align: left;
   padding: 11px 12px;
   border-radius: 14px;
@@ -93,14 +94,20 @@
   font-style: normal;
   margin-left: auto;
   font-size: 10px;
-  background: rgba(255, 255, 255, 0.2);
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.45);
   padding: 3px 8px;
   border-radius: 99px;
   backdrop-filter: blur(8px);
 }
 
+.nav.active i {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.25);
+}
+
 .nav:hover {
-  background: rgba(255, 255, 255, .42);
+  background: rgba(255, 255, 255, .55);
   transform: translateX(2px);
 }
 
@@ -183,9 +190,9 @@
   box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.6), inset 0 -1px 2px rgba(0, 0, 0, 0.1);
 }
 
-.sidebar-card .card-title { font-size: 12px; font-weight: 700; color: #fff; margin-bottom: 2px; }
-.sidebar-card .card-subtitle { font-size: 8px; color: rgba(255, 255, 255, 0.7); margin-bottom: 2px; }
-.sidebar-card .card-meta { font-size: 7px; color: rgba(255, 255, 255, 0.5); letter-spacing: .08em; }
+.sidebar-card .card-title { font-size: 12px; font-weight: 700; color: var(--ink); margin-bottom: 2px; }
+.sidebar-card .card-subtitle { font-size: 10px; color: rgba(22, 75, 105, 0.7); margin-bottom: 2px; }
+.sidebar-card .card-meta { font-size: 9px; color: rgba(22, 75, 105, 0.55); letter-spacing: .08em; }
 
 .sidebar-widget {
   position: relative;
@@ -199,7 +206,7 @@
   box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.6), inset 0 -1px 2px rgba(0, 0, 0, 0.1);
 }
 
-.sidebar-widget .widget-label { font-size: 7px; font-weight: 700; letter-spacing: .12em; color: rgba(255, 255, 255, 0.5); }
-.sidebar-widget .widget-value { font-size: 14px; font-weight: 700; color: #fff; margin: 4px 0; }
+.sidebar-widget .widget-label { font-size: 9px; font-weight: 700; letter-spacing: .12em; color: rgba(22, 75, 105, 0.6); }
+.sidebar-widget .widget-value { font-size: 14px; font-weight: 700; color: var(--ink); margin: 4px 0; }
 .sidebar-widget .widget-bar { height: 4px; background: rgba(255, 255, 255, 0.15); border-radius: 99px; overflow: hidden; margin-top: 8px; }
 .sidebar-widget .widget-bar span { display: block; height: 100%; width: 72%; background: linear-gradient(90deg, #00c6ff, #0072ff); border-radius: 99px; }

@@ -35,7 +35,7 @@
   font-weight: 700;
   letter-spacing: .08em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(22, 75, 105, 0.8);
 }
 
 .week-nav {
@@ -45,22 +45,22 @@
 }
 
 .week-btn {
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(22, 75, 105, 0.3);
   border-radius: 50%;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   display: grid;
   place-items: center;
   font-size: 11px;
-  color: #fff;
-  background: rgba(255, 255, 255, 0.1);
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.4);
   cursor: pointer;
 }
 
 .week-range {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(22, 75, 105, 0.75);
   white-space: nowrap;
 }
 
@@ -87,20 +87,20 @@
 }
 
 .week-dow {
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 700;
   text-transform: capitalize;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(22, 75, 105, 0.62);
 }
 
 .week-num {
   font-size: 16px;
   font-weight: 700;
-  color: #fff;
+  color: var(--ink);
 }
 
 .week-day.today .week-num {
-  color: #7bedff;
+  color: #087fb0;
 }
 
 .week-items {
@@ -114,8 +114,8 @@
   display: flex;
   align-items: baseline;
   gap: 6px;
-  font-size: 9px;
-  color: rgba(255, 255, 255, 0.9);
+  font-size: 10px;
+  color: rgba(22, 75, 105, 0.92);
   border: 0;
   background: transparent;
   padding: 0;
@@ -153,14 +153,14 @@ button.week-item:hover .week-item-title {
 }
 
 .week-item-time {
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(22, 75, 105, 0.62);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
 .week-free {
-  font-size: 9px;
-  color: rgba(255, 255, 255, 0.35);
+  font-size: 10px;
+  color: rgba(22, 75, 105, 0.5);
   font-style: italic;
 }
 
@@ -170,7 +170,7 @@ button.week-item:hover .week-item-title {
   font-size: 10px;
   font-weight: 700;
   font-family: inherit;
-  color: #fff;
+  color: var(--ink);
   cursor: pointer;
   padding: 2px 6px;
   border-radius: 8px;
@@ -178,7 +178,7 @@ button.week-item:hover .week-item-title {
 }
 
 .week-daylabel:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.35);
 }
 
 /* Day board modes */
@@ -194,7 +194,7 @@ button.week-item:hover .week-item-title {
 
 .day-modes .week-tab {
   padding: 5px 0;
-  font-size: 9px;
+  font-size: 10px;
 }
 
 /* Unified day card: same look for habits, tasks, events. No checks. */
@@ -207,9 +207,9 @@ button.week-item:hover .week-item-title {
   font-family: inherit;
   text-align: left;
   cursor: grab;
-  background: linear-gradient(135deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, .1));
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: #fff;
+  background: linear-gradient(135deg, rgba(255, 255, 255, .55), rgba(255, 255, 255, .32));
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  color: var(--ink);
   font-size: 11px;
   font-weight: 700;
 }
@@ -221,8 +221,8 @@ button.week-item:hover .week-item-title {
 
 .day-card.dragging { opacity: 0.4; }
 .day-card.drop-hint {
-  border-color: #5df2ff;
-  background: rgba(93, 242, 255, 0.1);
+  border-color: #087fb0;
+  background: rgba(8, 127, 176, 0.12);
 }
 
 /* Hour grid */
@@ -240,29 +240,29 @@ button.week-item:hover .week-item-title {
   gap: 6px;
   align-items: start;
   padding: 4px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.28);
+  border-top: 1px solid rgba(22, 75, 105, 0.22);
 }
 
 .day-hour:nth-child(even of .day-hour) {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.18);
 }
 
 .day-hour.now {
-  background: rgba(93, 242, 255, 0.1);
-  border-top-color: rgba(93, 242, 255, 0.6);
+  background: rgba(8, 127, 176, 0.12);
+  border-top-color: rgba(8, 127, 176, 0.6);
 }
 
 .day-hour.now .day-hour-label {
-  color: #5df2ff;
+  color: #087fb0;
 }
 
 .day-hour-label {
   font-size: 10px;
   font-weight: 800;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--ink);
   font-variant-numeric: tabular-nums;
   padding-top: 8px;
-  text-shadow: 0 1px 4px rgba(0, 40, 70, 0.6);
+  text-shadow: var(--text-glow);
 }
 
 .day-hour-slot {
@@ -276,24 +276,24 @@ button.week-item:hover .week-item-title {
 }
 
 .day-hour-slot.drop-hint {
-  background: rgba(93, 242, 255, 0.12);
-  outline: 1px dashed rgba(93, 242, 255, 0.6);
+  background: rgba(8, 127, 176, 0.1);
+  outline: 1px dashed rgba(8, 127, 176, 0.65);
 }
 
 /* While dragging: reveal every drop target */
 .day-grid.dragging-on .day-hour-slot {
-  border-color: rgba(255, 255, 255, 0.3);
-  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(22, 75, 105, 0.3);
+  background: rgba(255, 255, 255, 0.25);
   min-height: 34px;
 }
 
 .day-grid.dragging-on .day-pool-slot {
-  outline: 1px dashed rgba(255, 255, 255, 0.4);
+  outline: 1px dashed rgba(22, 75, 105, 0.4);
 }
 
 .day-hour-empty {
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(22, 75, 105, 0.4);
   padding: 6px 8px;
 }
 
@@ -301,8 +301,8 @@ button.week-item:hover .week-item-title {
   margin-bottom: 8px;
   border-radius: 12px;
   padding: 8px;
-  background: rgba(0, 40, 70, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
 .day-pool-slot {
@@ -315,8 +315,8 @@ button.week-item:hover .week-item-title {
 }
 
 .day-pool-slot.drop-hint {
-  background: rgba(93, 242, 255, 0.12);
-  outline: 1px dashed rgba(93, 242, 255, 0.6);
+  background: rgba(8, 127, 176, 0.1);
+  outline: 1px dashed rgba(8, 127, 176, 0.65);
 }
 
 /* Order mode: no hours shown, only sequence */
@@ -344,8 +344,8 @@ button.week-item:hover .week-item-title {
   right: 8px;
   height: 3px;
   border-radius: 3px;
-  background: #5df2ff;
-  box-shadow: 0 0 8px rgba(93, 242, 255, 0.8);
+  background: #087fb0;
+  box-shadow: 0 0 8px rgba(8, 127, 176, 0.6);
 }
 
 .day-order .day-card.drop-before::before { top: -4px; }
@@ -383,14 +383,14 @@ button.week-item:hover .week-item-title {
 }
 
 .miss-btn {
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(22, 75, 105, 0.3);
   border-radius: 99px;
   padding: 3px 10px;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 600;
   font-family: inherit;
-  color: rgba(255, 255, 255, 0.75);
-  background: rgba(255, 255, 255, 0.08);
+  color: rgba(22, 75, 105, 0.8);
+  background: rgba(255, 255, 255, 0.35);
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
@@ -408,17 +408,17 @@ button.week-item:hover .week-item-title {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  font-size: 9px;
-  color: rgba(255, 255, 255, 0.6);
+  font-size: 10px;
+  color: rgba(22, 75, 105, 0.65);
   font-style: italic;
 }
 
 .week-btn-text {
   border: 0;
   background: transparent;
-  font-size: 9px;
+  font-size: 10px;
   font-family: inherit;
-  color: #7bedff;
+  color: #087fb0;
   cursor: pointer;
   text-decoration: underline;
   white-space: nowrap;
@@ -442,7 +442,7 @@ button.week-item:hover .week-item-title {
   font-size: 10px;
   font-weight: 700;
   font-family: inherit;
-  color: rgba(255, 255, 255, .65);
+  color: rgba(22, 75, 105, 0.7);
   background: transparent;
   cursor: pointer;
 }
@@ -453,11 +453,11 @@ button.week-item:hover .week-item-title {
 
 /* Today planner */
 .planner-label {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: .08em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(22, 75, 105, 0.62);
   margin: 10px 0 6px;
 }
 .planner-habits {
@@ -474,9 +474,9 @@ button.week-item:hover .week-item-title {
   font-family: inherit;
   text-align: left;
   cursor: pointer;
-  background: linear-gradient(135deg, rgba(255, 255, 255, .12), rgba(255, 255, 255, .04));
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #fff;
+  background: linear-gradient(135deg, rgba(255, 255, 255, .55), rgba(255, 255, 255, .32));
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  color: var(--ink);
 }
 .planner-habit.done { opacity: .75; }
 .planner-habit.done .planner-habit-name { text-decoration: line-through; }
@@ -514,12 +514,12 @@ button.week-item:hover .week-item-title {
   line-height: 1;
 }
 .planner-empty {
-  border: 1px dashed rgba(255, 255, 255, 0.35);
+  border: 1px dashed rgba(22, 75, 105, 0.4);
   border-radius: 12px;
   padding: 10px;
   font-size: 10px;
   font-family: inherit;
-  color: rgba(255, 255, 255, .8);
+  color: rgba(22, 75, 105, 0.8);
   background: transparent;
   cursor: pointer;
 }

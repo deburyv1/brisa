@@ -18,44 +18,44 @@
   font-weight: 700;
   letter-spacing: .1em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(22, 75, 105, 0.78);
 }
-.habits-sub { font-size: 10px; color: rgba(255, 255, 255, .65); margin-top: 2px; }
+.habits-sub { font-size: 10px; color: rgba(22, 75, 105, .68); margin-top: 2px; }
 
 .habits-icon-pick { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 6px; }
 .habits-emoji {
-  border: 1px solid rgba(255,255,255,.2); border-radius: 8px;
-  background: rgba(255,255,255,.08); font-size: 15px;
+  border: 1px solid rgba(22,75,105,.25); border-radius: 8px;
+  background: rgba(255,255,255,.35); font-size: 15px;
   width: 30px; height: 30px; cursor: pointer; line-height: 1;
 }
-.habits-emoji.sel { background: rgba(255,255,255,.28); border-color: #fff; }
+.habits-emoji.sel { background: rgba(8,127,176,.25); border-color: #087fb0; }
 .habits-add-row { display: flex; gap: 8px; }
 .habits-add-row #habits-icon {
   width: 46px;
   text-align: center;
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(22, 75, 105, 0.3);
   border-radius: 10px;
   padding: 9px 6px;
   font-size: 14px;
   font-family: inherit;
-  color: #fff;
-  background: rgba(255, 255, 255, .08);
+  color: var(--ink);
+  background: rgba(255, 255, 255, .5);
   outline: none;
 }
 .habits-add-row #habits-input {
   flex: 1;
   min-width: 0;
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(22, 75, 105, 0.3);
   border-radius: 10px;
   padding: 9px 12px;
   font-size: 12px;
   font-family: inherit;
-  color: #fff;
-  background: rgba(255, 255, 255, .08);
+  color: var(--ink);
+  background: rgba(255, 255, 255, .5);
   outline: none;
 }
 .habits-add-row #habits-input::placeholder {
-  color: rgba(255, 255, 255, 0.65);
+  color: rgba(22, 75, 105, 0.55);
 }
 .habits-add-btn {
   border: 0;
@@ -73,15 +73,15 @@
 .habit-editor select {
   width: 100%;
   box-sizing: border-box;
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(22, 75, 105, 0.3);
   border-radius: 10px;
   padding: 9px 12px;
   font-size: 12px;
   font-family: inherit;
-  color: #fff;
-  background: rgba(255, 255, 255, .08);
+  color: var(--ink);
+  background: rgba(255, 255, 255, .5);
   outline: none;
-  color-scheme: dark;
+  color-scheme: light;
 }
 .habit-editor select option { color: #123; }
 
@@ -89,44 +89,44 @@
 .habit-row {
   display: flex; align-items: center; gap: 10px;
   border-radius: 12px; padding: 8px 10px;
-  background: rgba(255,255,255,.1);
-  border: 1px solid rgba(255,255,255,.18);
+  background: linear-gradient(135deg, rgba(255,255,255,.55), rgba(255,255,255,.32));
+  border: 1px solid rgba(255,255,255,.6);
 }
 .habit-check {
   width: 26px; height: 26px; border-radius: 50%; cursor: pointer;
-  border: 2px solid rgba(255,255,255,.5); background: transparent;
+  border: 2px solid rgba(22,75,105,.5); background: rgba(255,255,255,.4);
   color: #fff; font-size: 13px; display: grid; place-items: center;
   flex-shrink: 0;
 }
 .habit-check.done { background: linear-gradient(145deg, #2ed573, #1a8a4a); border-color: transparent; }
 .habit-info { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.habit-name { font-size: 12px; font-weight: 600; color: #fff; }
+.habit-name { font-size: 12px; font-weight: 600; color: var(--ink); }
 .habit-row.done .habit-name { text-decoration: line-through; opacity: .7; }
 .habit-week { display: flex; gap: 4px; }
 .habit-dot {
   width: 8px; height: 8px; border-radius: 50%;
-  background: rgba(255,255,255,.22);
+  background: rgba(22,75,105,.22);
 }
-.habit-dot.on { background: #2ed573; }
+.habit-dot.on { background: #1a8a4a; }
 
 .habit-editor {
   margin-top: 12px; border-radius: 12px; padding: 12px;
-  background: rgba(255,255,255,.1);
-  border: 1px solid rgba(255,255,255,.2);
+  background: rgba(255,255,255,.35);
+  border: 1px solid rgba(255,255,255,.5);
 }
-.habit-editor-title { font-size: 12px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+.habit-editor-title { font-size: 12px; font-weight: 700; color: var(--ink); margin-bottom: 8px; }
 
 /* Frequency picker */
 .freq-presets { display: flex; gap: 6px; margin-bottom: 8px; }
 .freq-preset {
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(22, 75, 105, 0.3);
   border-radius: 99px;
   padding: 5px 12px;
   font-size: 11px;
   font-weight: 600;
   font-family: inherit;
-  color: rgba(255, 255, 255, .8);
-  background: rgba(255, 255, 255, .08);
+  color: rgba(22, 75, 105, 0.82);
+  background: rgba(255, 255, 255, .35);
   cursor: pointer;
 }
 .freq-days { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -134,12 +134,12 @@
   width: 38px;
   height: 30px;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(22, 75, 105, 0.3);
   font-size: 10px;
   font-weight: 700;
   font-family: inherit;
-  color: rgba(255, 255, 255, .6);
-  background: rgba(255, 255, 255, .06);
+  color: rgba(22, 75, 105, 0.62);
+  background: rgba(255, 255, 255, .3);
   cursor: pointer;
 }
 .freq-day.on {
@@ -149,11 +149,11 @@
 }
 .habit-row.off { opacity: .55; }
 .habit-row.off .habit-check { cursor: not-allowed; }
-.habit-off { font-size: 10px; font-weight: 400; color: rgba(255, 255, 255, .6); }
+.habit-off { font-size: 10px; font-weight: 400; color: rgba(22, 75, 105, 0.6); }
 .habit-freq {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
-  color: rgba(255, 255, 255, .55);
+  color: rgba(22, 75, 105, 0.6);
   margin-left: 6px;
   letter-spacing: .03em;
 }

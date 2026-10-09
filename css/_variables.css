@@ -21,4 +21,6 @@
   /* Aero-style text halo: dark soft shadow + faint glow,
      so white text reads on any wallpaper without darkening */
   --text-halo: 0 1px 3px rgba(0, 55, 95, .55), 0 0 16px rgba(0, 90, 140, .28);
+  /* Win7 glow: light halo for dark ink text on glass */
+  --text-glow: 0 0 7px rgba(255, 255, 255, .8), 0 1px 1px rgba(255, 255, 255, .45);
 }

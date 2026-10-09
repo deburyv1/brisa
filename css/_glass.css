@@ -4,10 +4,35 @@
    halo on text, sheen on top. Never darkening.
    ============================================ */
 
-/* Halo inherits into every text node: white text
-   keeps a soft dark edge on bright wallpapers */
+/* Halo inherits into every text node. Ink text carries a light
+   Win7-style glow; white text on saturated controls is unaffected. */
 body {
-  text-shadow: var(--text-halo);
+  text-shadow: var(--text-glow);
+}
+
+/* Win7 keyboard feel: every focusable control shows a clear ring */
+:focus-visible {
+  outline: 2px solid #5df2ff;
+  outline-offset: 1px;
+  border-radius: 6px;
+}
+
+/* Aero scrollbars: thin, blue-tinted, glassy */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(120, 200, 240, 0.75), rgba(8, 127, 176, 0.75));
+  border-radius: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(120, 200, 240, 0.95), rgba(8, 127, 176, 0.95));
 }
 
 /* Frosted surfaces keep their own crisp shadows */

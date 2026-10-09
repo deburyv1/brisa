@@ -24,7 +24,7 @@
   font-size: 10px;
   font-weight: 700;
   letter-spacing: .1em;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(22, 75, 105, 0.78);
   text-transform: uppercase;
 }
 
@@ -54,21 +54,21 @@
 }
 
 .tasks-filter-btn {
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(22, 75, 105, 0.28);
   border-radius: 99px;
   padding: 5px 12px;
   font-size: 10px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.75);
-  background: rgba(255, 255, 255, 0.08);
+  color: rgba(22, 75, 105, 0.78);
+  background: rgba(255, 255, 255, 0.3);
   cursor: pointer;
   transition: var(--transition-speed);
   font-variant-numeric: tabular-nums;
 }
 
 .tasks-filter-btn:hover {
-  background: rgba(255, 255, 255, 0.16);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--ink);
 }
 
 .tasks-filter-btn.active {
@@ -91,8 +91,8 @@
   gap: 12px;
   padding: 10px 14px;
   border-radius: 12px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, .15), rgba(255, 255, 255, .05));
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: linear-gradient(135deg, rgba(255, 255, 255, .55), rgba(255, 255, 255, .32));
+  border: 1px solid rgba(255, 255, 255, 0.6);
   transition: var(--transition-speed);
 }
 
@@ -113,20 +113,20 @@
 .task-parent,
 .task-event {
   display: inline-block;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   padding: 2px 8px;
   border-radius: 99px;
-  background: rgba(93, 242, 255, 0.15);
-  border: 1px solid rgba(93, 242, 255, 0.35);
-  color: #bff3ff;
+  background: rgba(8, 127, 176, 0.14);
+  border: 1px solid rgba(8, 127, 176, 0.4);
+  color: #087fb0;
   margin-right: 4px;
 }
 
 .task-event {
-  background: rgba(244, 195, 46, 0.15);
-  border-color: rgba(244, 195, 46, 0.4);
-  color: #ffe9a8;
+  background: rgba(180, 130, 10, 0.14);
+  border-color: rgba(180, 130, 10, 0.45);
+  color: #8a6100;
 }
 
 .task-detail-context {
@@ -146,7 +146,7 @@
 }
 
 .task-item:hover {
-  background: linear-gradient(135deg, rgba(255, 255, 255, .32), rgba(255, 255, 255, .14));
+  background: linear-gradient(135deg, rgba(255, 255, 255, .7), rgba(255, 255, 255, .45));
 }
 
 .task-item.urgent {
@@ -180,16 +180,16 @@
 }
 
 .task-priority.low {
-  color: rgba(255, 255, 255, 0.85);
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.25);
+  color: rgba(22, 75, 105, 0.85);
+  background: rgba(255, 255, 255, 0.45);
+  border-color: rgba(22, 75, 105, 0.3);
 }
 
 .task-checkbox {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.5);
+  border: 2px solid rgba(22, 75, 105, 0.5);
   cursor: pointer;
   flex-shrink: 0;
   display: grid;
@@ -198,7 +198,7 @@
 }
 
 .task-checkbox:hover {
-  border-color: #fff;
+  border-color: var(--ink);
 }
 
 .task-checkbox.done {
@@ -224,7 +224,7 @@
 .task-name {
   font-size: 12px;
   font-weight: 600;
-  color: #fff;
+  color: var(--ink);
 }
 
 .task-item.done .task-name {
@@ -233,8 +233,8 @@
 }
 
 .task-meta {
-  font-size: 9px;
-  color: rgba(255, 255, 255, 0.6);
+  font-size: 10px;
+  color: rgba(22, 75, 105, 0.62);
   letter-spacing: .03em;
 }
 
@@ -247,7 +247,7 @@
   border: 0;
   border-radius: 8px;
   padding: 5px 10px;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   color: #fff;
   cursor: pointer;
@@ -255,21 +255,23 @@
 }
 
 .task-btn-edit {
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(8, 127, 176, 0.18);
+  border: 1px solid rgba(8, 127, 176, 0.4);
+  color: #087fb0;
 }
 
 .task-btn-edit:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(8, 127, 176, 0.3);
 }
 
 .task-btn-ai {
-  background: linear-gradient(145deg, rgba(138, 43, 226, 0.35), rgba(75, 0, 130, 0.25));
-  border: 1px solid rgba(138, 43, 226, 0.4);
+  background: linear-gradient(145deg, #8a2be2, #4b0082);
+  border: 1px solid transparent;
+  color: #fff;
 }
 
 .task-btn-ai:hover:not(:disabled) {
-  background: linear-gradient(145deg, rgba(138, 43, 226, 0.55), rgba(75, 0, 130, 0.4));
+  filter: brightness(1.12);
 }
 
 .task-btn-ai:disabled {
@@ -283,7 +285,7 @@
   flex-direction: column;
   gap: 4px;
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(22, 75, 105, 0.78);
   margin-bottom: 12px;
 }
 
@@ -291,14 +293,14 @@
   margin-top: 6px;
   padding: 8px 10px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
 .task-detail-desc {
   font-size: 12px;
   line-height: 1.6;
-  color: #fff;
+  color: var(--ink);
   margin-bottom: 12px;
   white-space: pre-wrap;
 }
@@ -347,7 +349,7 @@
 
 .tasks-empty-text {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(22, 75, 105, 0.72);
   line-height: 1.4;
 }
 
