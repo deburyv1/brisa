@@ -323,3 +323,11 @@
 .modal-btn-secondary:hover {
   background: rgba(255, 255, 255, .5);
 }
+
+.modal-form .theme-check {
+  color: rgba(22, 75, 105, 0.85);
+}
+
+.modal-form .theme-check input[type="checkbox"] {
+  accent-color: #087fb0;
+}
