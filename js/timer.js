@@ -223,6 +223,9 @@ function flyTo(fromRect, toRect) {
     }
     const ghost = pill.cloneNode(true);
     ghost.removeAttribute("id");
+    // The source may be hidden (minimize) — the ghost must paint
+    ghost.style.display = "";
+    ghost.style.visibility = "visible";
     ghost.style.cssText += `;position:fixed;left:${fromRect.left}px;top:${fromRect.top}px;` +
       `width:${fromRect.width}px;height:${fromRect.height}px;margin:0;z-index:200;pointer-events:none;`;
     document.body.appendChild(ghost);
@@ -238,7 +241,7 @@ function flyTo(fromRect, toRect) {
       { transform: `translate(${dx * 0.3}px,${dy * 0.3 - lift * 0.5}px) rotate(${angle * 0.4}deg) scale(1.2,0.85)`, opacity: 1, borderRadius: "46%", offset: 0.35 },
       { transform: `translate(${mx}px,${my}px) rotate(${angle}deg) scale(1.7,0.45)`, opacity: 0.95, borderRadius: "40%", offset: 0.62 },
       { transform: `translate(${dx}px,${dy}px) rotate(0deg) scale(${s},${s})`, opacity: 0.15, borderRadius: "12px" },
-    ], { duration: 750, easing: "cubic-bezier(.45,.05,.35,1)", fill: "forwards" });
+    ], { duration: 450, easing: "cubic-bezier(.45,.05,.35,1)", fill: "forwards" });
     let settled = false;
     const done = () => {
       if (settled) return;
@@ -248,7 +251,7 @@ function flyTo(fromRect, toRect) {
     };
     anim.onfinish = done;
     // Hidden tabs never tick WAAPI: never hang the flow
-    setTimeout(done, 900);
+    setTimeout(done, 600);
   });
 }
 
