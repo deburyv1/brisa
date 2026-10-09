@@ -58,7 +58,7 @@ export async function initHabits() {
       <div class="habits-add-row">
         <input type="text" id="habits-icon" placeholder="✦" maxlength="16" title="Emoji del hábito">
         <input type="text" id="habits-input" placeholder="Nuevo hábito (ej: tender la cama)" maxlength="100" autocomplete="off">
-        <button class="habits-add-btn" id="habits-add">+</button>
+        <button class="habits-add-btn" id="habits-add" title="Agregar hábito">+</button>
       </div>
     </div>
     <div class="habits-list">

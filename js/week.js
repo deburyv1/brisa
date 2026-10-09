@@ -269,7 +269,7 @@ function renderHourGrid(board, dayKey, timedTasks, dayEvents, timedHabits, untim
   board.innerHTML = `
     <div class="day-grid" id="day-grid">
       <div class="day-pool" id="day-pool">
-        <div class="planner-label">Sin hora${readonly ? "" : " · arrastra a una hora para agendar"}</div>
+        <div class="planner-label">Sin hora${readonly ? "" : " · arrastra o Alt+↑↓ para agendar"}</div>
         <div class="day-pool-slot" id="day-pool-slot">
           ${pool.length === 0 ? `<span class="week-free">Nada sin hora.</span>` : pool.map(item => dayCard(item, readonly)).join("")}
         </div>
@@ -377,6 +377,15 @@ function wireHourDrop(board, dayKey) {
     else if (e.clientY > r.bottom - margin) grid.scrollTop += 14;
   });
   board.querySelectorAll(".day-card").forEach(el => {
+    el.addEventListener("keydown", (e) => {
+      if (!e.altKey || (e.key !== "ArrowUp" && e.key !== "ArrowDown")) return;
+      e.preventDefault();
+      const hour = Number(el.closest(".day-hour-slot")?.dataset.hour);
+      if (isNaN(hour)) return;
+      const next = Math.max(GRID_START, Math.min(GRID_END, hour + (e.key === "ArrowUp" ? -1 : 1)));
+      if (next === hour) return;
+      setItemHour({ kind: el.dataset.kind, id: el.dataset.id, at: el.dataset.at || null }, dayKey, next);
+    });
     el.addEventListener("dragstart", () => {
       dragged = { kind: el.dataset.kind, id: el.dataset.id, at: el.dataset.at || null };
       el.classList.add("dragging");
@@ -457,7 +466,7 @@ async function renderOrderList(board, dayKey, dayTasks, dayEvents, dueHabits, re
   const all = [...ordered, ...rest];
 
   board.innerHTML = `
-    <div class="planner-label">El orden lo defines tú · se guarda solo</div>
+    <div class="planner-label">El orden lo defines tú · arrastra o Alt+↑↓ · se guarda solo</div>
     <div class="day-order" id="day-order">
       ${all.length === 0 ? `<span class="week-free">Día despejado.</span>` : all.map(item => dayCard(item, readonly)).join("")}
     </div>
@@ -489,6 +498,15 @@ function wireOrderDrop(board, dayKey) {
   const cards = () => [...list.querySelectorAll(".day-card")];
 
   cards().forEach(el => {
+    el.addEventListener("keydown", (e) => {
+      if (!e.altKey || (e.key !== "ArrowUp" && e.key !== "ArrowDown")) return;
+      e.preventDefault();
+      const sib = e.key === "ArrowUp" ? el.previousElementSibling : el.nextElementSibling;
+      if (!sib || !sib.classList.contains("day-card")) return;
+      list.insertBefore(el, e.key === "ArrowUp" ? sib : sib.nextSibling);
+      el.focus();
+      saveDayOrder(board, dayKey);
+    });
     el.addEventListener("dragstart", () => {
       dragged = el;
       el.classList.add("dragging");

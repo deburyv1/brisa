@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>brisa — Aero Home</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
-  <link rel="stylesheet" href="css/app.css?v=20261009">
+  <link rel="stylesheet" href="css/app.css?v=20261009b">
   <link rel="stylesheet" href="vendor/quill.snow.css">
 </head>
 <body>
@@ -147,7 +147,7 @@
   </main>
 </div>
 <script src="vendor/quill.min.js"></script>
-<script type="module" src="js/app.js?v=20261009"></script>
+<script type="module" src="js/app.js?v=20261009b"></script>
 
 <!-- Floating timer: round, solid, draggable -->
 <div class="timer-pill" id="timer-pill" title="Temporizador (arrástrame)">
@@ -195,7 +195,7 @@
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title" id="task-detail-title">Detalle</div>
-      <button class="modal-close" id="task-detail-close">✕</button>
+      <button class="modal-close" title="Cerrar" id="task-detail-close">✕</button>
     </div>
     <div class="modal-form" id="task-detail-body"></div>
   </div>
@@ -206,7 +206,7 @@
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title" id="task-modal-title">Nueva tarea</div>
-      <button class="modal-close" id="task-modal-close">✕</button>
+      <button class="modal-close" title="Cerrar" id="task-modal-close">✕</button>
     </div>
     <form class="modal-form" id="task-form">
       <div class="form-group">
@@ -268,7 +268,7 @@
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title" id="journal-modal-title">Nueva nota</div>
-      <button class="modal-close" id="journal-modal-close">✕</button>
+      <button class="modal-close" title="Cerrar" id="journal-modal-close">✕</button>
     </div>
     <form class="modal-form" id="journal-form">
       <div class="form-group">
@@ -304,7 +304,7 @@
   <div class="modal modal-wide">
     <div class="modal-header">
       <div class="modal-title">Escribe tranquila</div>
-      <button class="modal-close" id="editor-close">✕</button>
+      <button class="modal-close" title="Cerrar" id="editor-close">✕</button>
     </div>
     <div class="modal-form">
       <div class="form-group">
@@ -326,7 +326,7 @@
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title" id="transaction-modal-title">Nuevo movimiento</div>
-      <button class="modal-close" id="transaction-modal-close">✕</button>
+      <button class="modal-close" title="Cerrar" id="transaction-modal-close">✕</button>
     </div>
     <form class="modal-form" id="transaction-form">
       <div class="form-group">
@@ -402,7 +402,7 @@
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title" id="event-modal-title">Nuevo evento</div>
-      <button class="modal-close" id="event-modal-close">✕</button>
+      <button class="modal-close" title="Cerrar" id="event-modal-close">✕</button>
     </div>
     <form class="modal-form" id="event-form">
       <div class="form-group">
@@ -454,7 +454,7 @@
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title" id="event-detail-title">Evento</div>
-      <button class="modal-close" id="event-detail-close">✕</button>
+      <button class="modal-close" title="Cerrar" id="event-detail-close">✕</button>
     </div>
     <p id="event-detail-when" class="focus-note"></p>
     <p id="event-detail-travel" class="focus-note"></p>
@@ -479,7 +479,7 @@
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title" id="account-modal-title">Nueva cuenta</div>
-      <button class="modal-close" id="account-modal-close">✕</button>
+      <button class="modal-close" title="Cerrar" id="account-modal-close">✕</button>
     </div>
     <form class="modal-form" id="account-form">
       <div class="form-group">
@@ -513,7 +513,7 @@
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title">Personalizar vidrio</div>
-      <button class="modal-close" id="theme-close">✕</button>
+      <button class="modal-close" title="Cerrar" id="theme-close">✕</button>
     </div>
     <div class="modal-form">
       <div class="theme-presets">
@@ -552,7 +552,7 @@
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title">Foto de perfil</div>
-      <button class="modal-close" id="avatar-modal-close">✕</button>
+      <button class="modal-close" title="Cerrar" id="avatar-modal-close">✕</button>
     </div>
     <div class="modal-form">
       <div class="form-group">
@@ -581,7 +581,7 @@
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title">De a un paso</div>
-      <button class="modal-close" id="focus-close">✕</button>
+      <button class="modal-close" title="Cerrar" id="focus-close">✕</button>
     </div>
     <h3 id="focus-title" class="focus-title"></h3>
     <div id="focus-body"></div>
@@ -593,7 +593,7 @@
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title">Nueva persona</div>
-      <button class="modal-close" id="modal-close">✕</button>
+      <button class="modal-close" title="Cerrar" id="modal-close">✕</button>
     </div>
     <form class="modal-form" id="person-form">
       <div class="form-group">

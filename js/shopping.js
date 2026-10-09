@@ -49,7 +49,7 @@ export async function initShopping() {
     <div class="shopping-add">
       <input type="text" id="shopping-input" placeholder="¿Qué falta? Ej: novas" maxlength="255" autocomplete="off">
       <input type="number" id="shopping-est" placeholder="$ ref" min="0" step="any">
-      <button class="shopping-add-btn" id="shopping-add">+</button>
+      <button class="shopping-add-btn" id="shopping-add" title="Agregar a la lista">+</button>
     </div>
     <div class="shopping-list">
       ${pending.length === 0 ? `<div class="shopping-empty">Nada pendiente. 🎉</div>` : pending.map(itemHtml).join("")}

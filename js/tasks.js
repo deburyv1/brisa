@@ -140,7 +140,7 @@ function taskRowHtml(t, tasks, isChild) {
   const fromParent = t.parent_task_id ? parentTitle(tasks, t) : "";
   return `
     <div class="task-item ${t.is_completed ? "done" : ""}${!t.is_completed && t.priority === "high" ? " urgent" : ""}${isChild ? " child" : ""}" data-task-id="${t.id}">
-      <div class="task-checkbox ${t.is_completed ? "done" : ""}" data-action="toggle"></div>
+      <div class="task-checkbox ${t.is_completed ? "done" : ""}" data-action="toggle" role="checkbox" tabindex="0" title="Marcar completada"></div>
       <div class="task-info">
         <div class="task-name">${isChild ? "↳ " : ""}${escapeHtml(t.title)}</div>
         <div class="task-meta">
@@ -218,6 +218,12 @@ function renderTasks(section, tasks) {
       });
       if (window.initTasks) window.initTasks();
       if (window.initReadiness) window.initReadiness();
+    });
+    item.querySelector('[data-action="toggle"]')?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        item.querySelector('[data-action="toggle"]')?.click();
+      }
     });
 
     item.querySelector('[data-action="ai"]')?.addEventListener("click", async () => {
