@@ -287,6 +287,17 @@
   gap: 10px;
 }
 
+.form-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 2px 0;
+}
+
+.form-checks .theme-check {
+  margin: 0;
+}
+
 .modal-actions {
   display: flex;
   gap: 8px;

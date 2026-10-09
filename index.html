@@ -367,14 +367,16 @@
             <option value="">Sin vincular</option>
           </select>
         </div>
-        <label class="theme-check" style="margin:2px 0 6px"><input type="checkbox" name="is_recurring" id="tx-recurring"> Se repite cada mes</label>
-        <label class="theme-check" style="margin:2px 0 6px"><input type="checkbox" name="is_planned" id="tx-planned"> Es un gasto futuro (previsto, aún no sale la plata)</label>
+      </div>
+      <div class="form-checks">
+        <label class="theme-check"><input type="checkbox" name="is_recurring" id="tx-recurring"> Se repite cada mes</label>
+        <label class="theme-check"><input type="checkbox" name="is_planned" id="tx-planned"> Es un gasto futuro (previsto, aún no sale la plata)</label>
+      </div>
+      <div class="form-row">
         <div class="form-group">
           <label>Fecha</label>
           <input type="date" name="date">
         </div>
-      </div>
-      <div class="form-row">
         <div class="form-group">
           <label>¿De quién es?<span class="optional">(dueño económico)</span></label>
           <select name="owner" id="tx-owner-select">
@@ -382,6 +384,8 @@
             <option value="other">De otra persona</option>
           </select>
         </div>
+      </div>
+      <div class="form-row">
         <div class="form-group" id="tx-person-row" style="display:none">
           <label>¿Quién?</label>
           <select name="person_id" id="tx-person-select">
