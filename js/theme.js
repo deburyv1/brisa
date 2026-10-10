@@ -7,8 +7,8 @@
 const KEY = "brisa.theme";
 
 export const PRESETS = {
-  normal: { blur: 24, alpha: 40, sat: 140, sheen: false, night: true },
-  full: { blur: 32, alpha: 48, sat: 180, sheen: true, night: true },
+  normal: { blur: 28, alpha: 55, sat: 140, sheen: false, night: true },
+  full: { blur: 32, alpha: 62, sat: 180, sheen: true, night: true },
 };
 
 export function loadTheme() {
@@ -18,7 +18,12 @@ export function loadTheme() {
   } catch {
     saved = null;
   }
-  return { ...PRESETS.normal, ...(saved || {}) };
+  const theme = { ...PRESETS.normal, ...(saved || {}) };
+  // Migration: themes saved before the readability flip had low alpha,
+  // which made panels dark over dark wallpapers. Bump to readable.
+  if (theme.alpha < 50) theme.alpha = 55;
+  if (theme.blur < 24) theme.blur = 28;
+  return theme;
 }
 
 export function saveTheme(theme) {
