@@ -137,10 +137,9 @@ async function renderTodayPlanner(body, events, dayKey, offset) {
   }
 
   const dayTasks = (state.tasks || []).filter(t =>
-    !t.is_completed && (
-      (t.scheduled_datetime && dateKey(t.scheduled_datetime) === dayKey) ||
-      (!t.scheduled_datetime && t.due_datetime && dateKey(t.due_datetime) === dayKey)
-    ));
+    t.scheduled_datetime && dateKey(t.scheduled_datetime) === dayKey ||
+    !t.scheduled_datetime && t.due_datetime && dateKey(t.due_datetime) === dayKey
+  );
   const timedTasks = dayTasks
     .filter(t => t.scheduled_datetime)
     .sort((a, b) => String(a.scheduled_datetime) > String(b.scheduled_datetime) ? 1 : -1);
@@ -148,7 +147,7 @@ async function renderTodayPlanner(body, events, dayKey, offset) {
   const dayEvents = (events || [])
     .filter(ev => ev.start && dateKey(ev.start) === dayKey)
     .sort((a, b) => String(a.start) > String(b.start) ? 1 : -1);
-  const dueHabits = habits.filter(h => h.due_today !== false && !h.done_today);
+  const dueHabits = habits.filter(h => h.due_today !== false);
   const openHabits = dueHabits.filter(h => !h.done_today);
   const habitAt = (h) => h.default_time ? `${dayKey}T${String(h.default_time).slice(0, 5)}:00` : null;
   const timedHabits = openHabits
@@ -447,8 +446,9 @@ async function renderOrderList(board, dayKey, dayTasks, dayEvents, dueHabits, re
   // When reopened after a close, show ALL habits (including done ones)
   // so the user can correct mistakes before closing again
   const openHabits = reopened ? dueHabits : dueHabits.filter(h => !h.done_today);
+  const openTasks = reopened ? dayTasks : dayTasks.filter(t => !t.is_completed);
   const items = [
-    ...dayTasks.map(t => ({ kind: "task", data: t, at: t.scheduled_datetime })),
+    ...openTasks.map(t => ({ kind: "task", data: t, at: t.scheduled_datetime })),
     ...dayEvents.map(ev => ({ kind: "event", data: ev, at: ev.start })),
     ...openHabits.map(h => ({
       kind: "habit", data: h,
