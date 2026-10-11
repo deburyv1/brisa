@@ -136,9 +136,10 @@ async function renderTodayPlanner(body, events, dayKey, offset) {
     habits = [];
   }
 
+  const readonly = offset < 0;
   const dayTasks = (state.tasks || []).filter(t =>
-    t.scheduled_datetime && dateKey(t.scheduled_datetime) === dayKey ||
-    !t.scheduled_datetime && t.due_datetime && dateKey(t.due_datetime) === dayKey
+    (t.scheduled_datetime && dateKey(t.scheduled_datetime) === dayKey) ||
+    (!t.scheduled_datetime && t.due_datetime && dateKey(t.due_datetime) === dayKey)
   );
   const timedTasks = dayTasks
     .filter(t => t.scheduled_datetime)
@@ -148,7 +149,7 @@ async function renderTodayPlanner(body, events, dayKey, offset) {
     .filter(ev => ev.start && dateKey(ev.start) === dayKey)
     .sort((a, b) => String(a.start) > String(b.start) ? 1 : -1);
   const dueHabits = habits.filter(h => h.due_today !== false);
-  const openHabits = dueHabits.filter(h => !h.done_today);
+  const openHabits = readonly ? dueHabits : dueHabits.filter(h => !h.done_today);
   const habitAt = (h) => h.default_time ? `${dayKey}T${String(h.default_time).slice(0, 5)}:00` : null;
   const timedHabits = openHabits
     .filter(h => habitAt(h))
@@ -156,7 +157,6 @@ async function renderTodayPlanner(body, events, dayKey, offset) {
   const untimedHabits = openHabits.filter(h => !habitAt(h));
 
   const dayMode = getDayMode();
-  const readonly = offset < 0;
 
   // Check if this day was closed before (snapshot exists)
   let wasClosed = false;
