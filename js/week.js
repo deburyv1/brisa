@@ -551,6 +551,105 @@ function wireOrderDrop(board, dayKey) {
   });
 }
 
+// Close confirmation: shows the date and what will be registered as done
+function openCloseConfirm(slot, dayKey, dayTasks, habits, offset) {
+  const overlay = document.querySelector("#day-close-modal");
+  const titleEl = document.querySelector("#day-close-modal-title");
+  const body = document.querySelector("#day-close-modal-body");
+  if (!overlay || !body) return;
+
+  const missed = new Set(
+    [...slot.querySelectorAll(".miss-btn.on")].map(b => {
+      const row = b.closest(".miss-row");
+      return `${row.dataset.kind}:${row.dataset.id}`;
+    })
+  );
+
+  const doneHabits = (habits || [])
+    .filter(h => h.due_today !== false && !h.done_today && !missed.has(`habit:${h.id}`));
+  const doneTasks = (dayTasks || []).filter(t => !missed.has(`task:${t.id}`));
+
+  const date = new Date();
+  date.setDate(date.getDate() + offset);
+  const dateStr = date.toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" });
+
+  titleEl.textContent = `Cerrar día`;
+  body.innerHTML = `
+    <div class="close-confirm-date">${dateStr}</div>
+    ${doneHabits.length === 0 && doneTasks.length === 0
+      ? `<span class="week-free">Nada que registrar como hecho.</span>`
+      : `
+        ${doneHabits.length > 0 ? `
+          <div class="close-confirm-label">Hábitos que se marcarán como hechos:</div>
+          <div class="close-confirm-list">
+            ${doneHabits.map(h => `
+              <div class="close-confirm-item">
+                <span class="close-confirm-check">✓</span>
+                <span>${h.icon ? `${escapeHtml(h.icon)} ` : ""}${escapeHtml(h.name)}</span>
+              </div>`).join("")}
+          </div>` : ""}
+        ${doneTasks.length > 0 ? `
+          <div class="close-confirm-label">Acciones que se marcarán como hechas:</div>
+          <div class="close-confirm-list">
+            ${doneTasks.map(t => `
+              <div class="close-confirm-item">
+                <span class="close-confirm-check">✓</span>
+                <span>${escapeHtml(t.title)}</span>
+              </div>`).join("")}
+          </div>` : ""}
+      `}
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-secondary" id="day-close-cancel">Cancelar</button>
+      <button class="modal-btn modal-btn-primary" id="day-close-confirm">Confirmar cierre</button>
+    </div>
+  `;
+  overlay.classList.add("active");
+
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) overlay.classList.remove("active");
+  });
+  body.querySelector("#day-close-cancel")?.addEventListener("click", () => {
+    overlay.classList.remove("active");
+  });
+  body.querySelector("#day-close-modal-close")?.addEventListener("click", () => {
+    overlay.classList.remove("active");
+  });
+
+  body.querySelector("#day-close-confirm")?.addEventListener("click", async () => {
+    for (const h of doneHabits) {
+      try {
+        await fetch(`/api/habits/${h.id}/check`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ done: true, date: dayKey }),
+        });
+      } catch (e) {
+        console.error("Error marcando hábito:", e);
+      }
+    }
+    for (const t of doneTasks) {
+      try {
+        await fetch(`/api/tasks/${t.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ is_completed: true, completed_at: new Date().toISOString() }),
+        });
+      } catch (e) {
+        console.error("Error completando tarea:", e);
+      }
+    }
+    await fetch("/api/days/close", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ day: dayKey }),
+    });
+    overlay.classList.remove("active");
+    if (window.initWeek) window.initWeek();
+    if (window.initHabits) window.initHabits();
+    if (window.initTasks) window.initTasks();
+  });
+}
+
 // Clicks + keyboard on day cards (planning board: no checks)
 function wireDayCards(board) {
   board.querySelectorAll(".day-card").forEach(el => {
@@ -667,13 +766,8 @@ async function renderDayClose(body, dayKey, offset, dayTasks, habits) {
     }
   });
 
-  slot.querySelector("#day-close-btn")?.addEventListener("click", async () => {
-    await fetch("/api/days/close", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ day: dayKey }),
-    });
-    if (window.initWeek) window.initWeek();
+  slot.querySelector("#day-close-btn")?.addEventListener("click", () => {
+    openCloseConfirm(slot, dayKey, dayTasks, habits, offset);
   });
 }
 
