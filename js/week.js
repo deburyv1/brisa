@@ -728,8 +728,9 @@ async function renderDayClose(body, dayKey, offset, dayTasks, habits) {
   }
 
   const pendingHabits = (habits || []).filter(h => h.due_today !== false && !h.done_today);
-  const pendingTasks = (dayTasks || []).filter(t => !missed.has(`task:${t.id}`));
-  const openHabits = pendingHabits.filter(h => !missed.has(`habit:${h.id}`));
+  const pendingTasks = (dayTasks || []).filter(t => !t.is_completed);
+  const openHabits = pendingHabits;
+  const openTasks = pendingTasks;
 
   slot.innerHTML = `
     <div class="day-close">
