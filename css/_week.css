@@ -216,8 +216,15 @@ button.week-item:hover .week-item-title {
 
 .day-card:active { cursor: grabbing; }
 
-.day-card.done { opacity: .6; }
-.day-card.done .week-item-title { text-decoration: line-through; }
+.day-card.done {
+  opacity: .55;
+  background: linear-gradient(135deg, rgba(255, 255, 255, .2), rgba(255, 255, 255, .1));
+  border-color: rgba(255, 255, 255, .3);
+}
+.day-card.done .week-item-title {
+  text-decoration: line-through;
+  opacity: .7;
+}
 
 .day-card.dragging { opacity: 0.4; }
 .day-card.drop-hint {

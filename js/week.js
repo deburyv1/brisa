@@ -148,12 +148,13 @@ async function renderTodayPlanner(body, events, dayKey, offset) {
   const dayEvents = (events || [])
     .filter(ev => ev.start && dateKey(ev.start) === dayKey)
     .sort((a, b) => String(a.start) > String(b.start) ? 1 : -1);
-  const dueHabits = habits.filter(h => h.due_today !== false);
+  const dueHabits = habits.filter(h => h.due_today !== false && !h.done_today);
+  const openHabits = dueHabits.filter(h => !h.done_today);
   const habitAt = (h) => h.default_time ? `${dayKey}T${String(h.default_time).slice(0, 5)}:00` : null;
-  const timedHabits = dueHabits
+  const timedHabits = openHabits
     .filter(h => habitAt(h))
     .sort((a, b) => String(a.default_time) > String(b.default_time) ? 1 : -1);
-  const untimedHabits = dueHabits.filter(h => !habitAt(h));
+  const untimedHabits = openHabits.filter(h => !habitAt(h));
 
   const dayMode = getDayMode();
 
@@ -436,10 +437,11 @@ function wireHourDrop(board, dayKey) {
 
 // ---- Por orden: secuencia sin horas, el orden se guarda ----
 async function renderOrderList(board, dayKey, dayTasks, dayEvents, dueHabits, readonly = false) {
+  const openHabits = dueHabits.filter(h => !h.done_today);
   const items = [
     ...dayTasks.map(t => ({ kind: "task", data: t, at: t.scheduled_datetime })),
     ...dayEvents.map(ev => ({ kind: "event", data: ev, at: ev.start })),
-    ...dueHabits.map(h => ({
+    ...openHabits.map(h => ({
       kind: "habit", data: h,
       at: h.default_time ? `${dayKey}T${String(h.default_time).slice(0, 5)}:00` : null,
     })),

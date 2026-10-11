@@ -157,6 +157,16 @@ try {
     PRIMARY KEY (day, kind, ref_id)
   )`);
 
+  // Snapshot of what was done before the close: reopening restores
+  // exactly that, so a mistaken close can be corrected and re-done.
+  await pool.query(`CREATE TABLE IF NOT EXISTS day_close_snapshots (
+    day DATE NOT NULL,
+    kind VARCHAR(10) NOT NULL,
+    ref_id INTEGER NOT NULL,
+    was_done BOOLEAN NOT NULL,
+    PRIMARY KEY (day, kind, ref_id)
+  )`);
+
   await pool.query(`INSERT INTO readiness_items (user_id, label, position)
     SELECT 1, x.label, x.pos FROM (VALUES
       ('Ducha', 1),

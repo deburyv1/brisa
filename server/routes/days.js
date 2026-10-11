@@ -53,16 +53,45 @@ router.delete('/miss', async (req, res) => {
   }
 });
 
-// POST /api/days/close { day } — finish the review
+// POST /api/days/close { day } — finish the review.
+// Saves a snapshot of what was done BEFORE the close, so reopening
+// can restore exactly that state and let the user correct + re-close.
 router.post('/close', async (req, res) => {
   const { day } = req.body;
   if (!day) return res.status(400).json({ error: 'day is required' });
+  const client = await pool.connect();
   try {
-    await pool.query('INSERT INTO day_closures (day) VALUES ($1) ON CONFLICT DO NOTHING', [day]);
+    await client.query('BEGIN');
+    const habits = await client.query(
+      'SELECT id, EXISTS(SELECT 1 FROM habit_completions WHERE habit_id = habits.id AND day = $1) AS was_done FROM habits WHERE active = TRUE',
+      [day]
+    );
+    const tasks = await client.query(
+      'SELECT id, is_completed AS was_done FROM tasks WHERE scheduled_datetime::date = $1 OR due_datetime::date = $1',
+      [day]
+    );
+    await client.query('DELETE FROM day_close_snapshots WHERE day = $1', [day]);
+    for (const h of habits.rows) {
+      await client.query(
+        'INSERT INTO day_close_snapshots (day, kind, ref_id, was_done) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING',
+        [day, 'habit', h.id, h.was_done]
+      );
+    }
+    for (const t of tasks.rows) {
+      await client.query(
+        'INSERT INTO day_close_snapshots (day, kind, ref_id, was_done) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING',
+        [day, 'task', t.id, t.was_done]
+      );
+    }
+    await client.query('INSERT INTO day_closures (day) VALUES ($1) ON CONFLICT DO NOTHING', [day]);
+    await client.query('COMMIT');
     res.json({ success: true });
   } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
     console.error('Error closing day:', err);
     res.status(500).json({ error: 'Database error' });
+  } finally {
+    client.release();
   }
 });
 
@@ -96,16 +125,47 @@ router.post('/order', async (req, res) => {
   }
 });
 
-// DELETE /api/days/close { day } — reopen the review
+// DELETE /api/days/close { day } — reopen the review.
+// Restores the pre-close snapshot so the user can correct and re-close.
 router.delete('/close', async (req, res) => {
   const { day } = req.body;
   if (!day) return res.status(400).json({ error: 'day is required' });
+  const client = await pool.connect();
   try {
-    await pool.query('DELETE FROM day_closures WHERE day = $1', [day]);
+    await client.query('BEGIN');
+    const snap = await client.query(
+      'SELECT kind, ref_id, was_done FROM day_close_snapshots WHERE day = $1',
+      [day]
+    );
+    for (const row of snap.rows) {
+      if (row.kind === 'habit') {
+        if (row.was_done) {
+          await client.query(
+            'INSERT INTO habit_completions (habit_id, day) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+            [row.ref_id, day]
+          );
+        } else {
+          await client.query(
+            'DELETE FROM habit_completions WHERE habit_id = $1 AND day = $2',
+            [row.ref_id, day]
+          );
+        }
+      } else if (row.kind === 'task') {
+        await client.query(
+          'UPDATE tasks SET is_completed = $1, completed_at = CASE WHEN $1 THEN COALESCE(completed_at, NOW()) ELSE NULL END WHERE id = $2',
+          [row.was_done, row.ref_id]
+        );
+      }
+    }
+    await client.query('DELETE FROM day_closures WHERE day = $1', [day]);
+    await client.query('COMMIT');
     res.json({ success: true });
   } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
     console.error('Error reopening day:', err);
     res.status(500).json({ error: 'Database error' });
+  } finally {
+    client.release();
   }
 });
 
