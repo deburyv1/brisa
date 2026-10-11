@@ -53,10 +53,10 @@ router.delete('/miss', async (req, res) => {
   }
 });
 
-// POST /api/days/close { day } — finish the review.
-// Saves a snapshot of what was done BEFORE the close, so reopening
-// can restore exactly that state and let the user correct + re-close.
-router.post('/close', async (req, res) => {
+// POST /api/days/snapshot { day } — save pre-close state.
+// Called when the confirmation dialog opens, BEFORE any habits
+// are marked as done, so reopening can restore the exact prior state.
+router.post('/snapshot', async (req, res) => {
   const { day } = req.body;
   if (!day) return res.status(400).json({ error: 'day is required' });
   const client = await pool.connect();
@@ -83,15 +83,28 @@ router.post('/close', async (req, res) => {
         [day, 'task', t.id, t.was_done]
       );
     }
-    await client.query('INSERT INTO day_closures (day) VALUES ($1) ON CONFLICT DO NOTHING', [day]);
     await client.query('COMMIT');
     res.json({ success: true });
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
-    console.error('Error closing day:', err);
+    console.error('Error saving snapshot:', err);
     res.status(500).json({ error: 'Database error' });
   } finally {
     client.release();
+  }
+});
+
+// POST /api/days/close { day } — finish the review.
+// Uses the pre-close snapshot (saved when the dialog opened).
+router.post('/close', async (req, res) => {
+  const { day } = req.body;
+  if (!day) return res.status(400).json({ error: 'day is required' });
+  try {
+    await pool.query('INSERT INTO day_closures (day) VALUES ($1) ON CONFLICT DO NOTHING', [day]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error closing day:', err);
+    res.status(500).json({ error: 'Database error' });
   }
 });
 

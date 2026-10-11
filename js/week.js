@@ -157,6 +157,14 @@ async function renderTodayPlanner(body, events, dayKey, offset) {
   const untimedHabits = openHabits.filter(h => !habitAt(h));
 
   const dayMode = getDayMode();
+  const readonly = offset < 0;
+
+  // Check if this day was closed before (snapshot exists)
+  let wasClosed = false;
+  try {
+    const dayInfo = await fetch(`/api/days?date=${dayKey}`).then(r => r.ok ? r.json() : null);
+    wasClosed = dayInfo && dayInfo.order && dayInfo.order.length > 0;
+  } catch { /* ignore */ }
 
   body.innerHTML = `
     <div class="week-header">
@@ -183,12 +191,11 @@ async function renderTodayPlanner(body, events, dayKey, offset) {
   body.querySelector("#mode-orden")?.addEventListener("click", () => setDayMode("orden"));
 
   const board = body.querySelector("#day-board");
-  const readonly = offset < 0;
   if (readonly) board.classList.add("day-readonly");
   if (dayMode === "hora") {
     renderHourGrid(board, dayKey, timedTasks, dayEvents, timedHabits, untimedTasks, untimedHabits, habits, readonly, offset === 0);
   } else {
-    await renderOrderList(board, dayKey, dayTasks, dayEvents, dueHabits, readonly);
+    await renderOrderList(board, dayKey, dayTasks, dayEvents, dueHabits, readonly, wasClosed);
   }
   wireAgendaButtons(body);
   await renderDayClose(body, dayKey, offset, dayTasks, habits);
@@ -436,8 +443,10 @@ function wireHourDrop(board, dayKey) {
 }
 
 // ---- Por orden: secuencia sin horas, el orden se guarda ----
-async function renderOrderList(board, dayKey, dayTasks, dayEvents, dueHabits, readonly = false) {
-  const openHabits = dueHabits.filter(h => !h.done_today);
+async function renderOrderList(board, dayKey, dayTasks, dayEvents, dueHabits, readonly = false, reopened = false) {
+  // When reopened after a close, show ALL habits (including done ones)
+  // so the user can correct mistakes before closing again
+  const openHabits = reopened ? dueHabits : dueHabits.filter(h => !h.done_today);
   const items = [
     ...dayTasks.map(t => ({ kind: "task", data: t, at: t.scheduled_datetime })),
     ...dayEvents.map(ev => ({ kind: "event", data: ev, at: ev.start })),
@@ -554,11 +563,22 @@ function wireOrderDrop(board, dayKey) {
 }
 
 // Close confirmation: shows the date and what will be registered as done
-function openCloseConfirm(slot, dayKey, dayTasks, habits, offset) {
+async function openCloseConfirm(slot, dayKey, dayTasks, habits, offset) {
   const overlay = document.querySelector("#day-close-modal");
   const titleEl = document.querySelector("#day-close-modal-title");
   const body = document.querySelector("#day-close-modal-body");
   if (!overlay || !body) return;
+
+  // Snapshot BEFORE marking anything as done
+  try {
+    await fetch("/api/days/snapshot", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ day: dayKey }),
+    });
+  } catch (e) {
+    console.error("Error saving snapshot:", e);
+  }
 
   const missed = new Set(
     [...slot.querySelectorAll(".miss-btn.on")].map(b => {
