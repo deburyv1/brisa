@@ -138,36 +138,39 @@ router.post('/order', async (req, res) => {
   }
 });
 
-// DELETE /api/days/close { day } — reopen the review.
-// Restores the pre-close snapshot so the user can correct and re-close.
+// DELETE /api/days/close { day, restore=true } — reopen the review.
+// Restores the pre-close snapshot so the user can correct and re-close,
+// unless restore:false (used when the user already corrected data directly).
 router.delete('/close', async (req, res) => {
-  const { day } = req.body;
+  const { day, restore = true } = req.body;
   if (!day) return res.status(400).json({ error: 'day is required' });
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const snap = await client.query(
-      'SELECT kind, ref_id, was_done FROM day_close_snapshots WHERE day = $1',
-      [day]
-    );
-    for (const row of snap.rows) {
-      if (row.kind === 'habit') {
-        if (row.was_done) {
+    if (restore !== false) {
+      const snap = await client.query(
+        'SELECT kind, ref_id, was_done FROM day_close_snapshots WHERE day = $1',
+        [day]
+      );
+      for (const row of snap.rows) {
+        if (row.kind === 'habit') {
+          if (row.was_done) {
+            await client.query(
+              'INSERT INTO habit_completions (habit_id, day) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+              [row.ref_id, day]
+            );
+          } else {
+            await client.query(
+              'DELETE FROM habit_completions WHERE habit_id = $1 AND day = $2',
+              [row.ref_id, day]
+            );
+          }
+        } else if (row.kind === 'task') {
           await client.query(
-            'INSERT INTO habit_completions (habit_id, day) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-            [row.ref_id, day]
-          );
-        } else {
-          await client.query(
-            'DELETE FROM habit_completions WHERE habit_id = $1 AND day = $2',
-            [row.ref_id, day]
+            'UPDATE tasks SET is_completed = $1, completed_at = CASE WHEN $1 THEN COALESCE(completed_at, NOW()) ELSE NULL END WHERE id = $2',
+            [row.was_done, row.ref_id]
           );
         }
-      } else if (row.kind === 'task') {
-        await client.query(
-          'UPDATE tasks SET is_completed = $1, completed_at = CASE WHEN $1 THEN COALESCE(completed_at, NOW()) ELSE NULL END WHERE id = $2',
-          [row.was_done, row.ref_id]
-        );
       }
     }
     await client.query('DELETE FROM day_closures WHERE day = $1', [day]);

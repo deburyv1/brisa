@@ -220,18 +220,22 @@ function setDayMode(mode) {
 
 // Unified card for every kind: same look, no checks (planning board).
 // Marking happens in Hábitos / Acciones.
-function dayCard(item, readonly = false) {
+function dayCard(item, readonly = false, dayKey = "") {
   const { kind, data, at } = item;
   const time = at ? String(at).slice(11, 16) : "sin hora";
   const mark = kind === "habit"
     ? `<span class="planner-icon">${data.icon ? escapeHtml(data.icon) : "·"}</span>`
     : `<span class="week-dot ${kind === "event" ? "event" : (data.priority || "medium")}"></span>`;
   const done = kind === "habit" && data.done_today ? " done" : "";
+  const correctBtn = (readonly && kind === "habit")
+    ? `<button class="day-correct${data.done_today ? " done" : ""}" data-correct-habit="${data.id}" data-done="${data.done_today ? "1" : "0"}" data-day="${dayKey}" title="${data.done_today ? "Quitar marca (no lo hice)" : "Marcar como hecho"}">${data.done_today ? "✓" : ""}</button>`
+    : "";
   const hint = readonly
-    ? "Día pasado: solo lectura"
+    ? (kind === "habit" ? "Día pasado: círculo para corregir" : "Día pasado: solo lectura")
     : kind === "habit" ? "Arrastra para mover · se marca en Hábitos" : "Arrastra para mover · clic para abrir";
   return `
     <div class="day-card${done}" ${readonly ? "" : 'draggable="true"'} data-kind="${kind}" data-id="${data.id}" data-at="${at ? escapeHtml(at) : ""}" role="button" tabindex="0" title="${hint}">
+      ${correctBtn}
       ${mark}
       <span class="week-item-title">${escapeHtml(kind === "habit" ? data.name : data.title)}</span>
       <span class="week-item-time${at ? "" : " unscheduled"}">${time}</span>
@@ -279,14 +283,14 @@ function renderHourGrid(board, dayKey, timedTasks, dayEvents, timedHabits, untim
       <div class="day-pool" id="day-pool">
         <div class="planner-label">Sin hora${readonly ? "" : " · arrastra o Alt+↑↓ para agendar"}</div>
         <div class="day-pool-slot" id="day-pool-slot">
-          ${pool.length === 0 ? `<span class="week-free">Nada sin hora.</span>` : pool.map(item => dayCard(item, readonly)).join("")}
+          ${pool.length === 0 ? `<span class="week-free">Nada sin hora.</span>` : pool.map(item => dayCard(item, readonly, dayKey)).join("")}
         </div>
       </div>
       ${Object.keys(byHour).map(hr => `
         <div class="day-hour${isToday && Number(hr) === nowHour ? " now" : ""}" data-hour="${hr}">
           <span class="day-hour-label">${String(hr).padStart(2, "0")}:00${isToday && Number(hr) === nowHour ? " · ahora" : ""}</span>
           <div class="day-hour-slot" data-hour="${hr}">
-            ${byHour[hr].map(item => dayCard(item, readonly)).join("") || `<span class="day-hour-empty">—</span>`}
+            ${byHour[hr].map(item => dayCard(item, readonly, dayKey)).join("") || `<span class="day-hour-empty">—</span>`}
           </div>
         </div>`).join("")}
     </div>
@@ -480,7 +484,7 @@ async function renderOrderList(board, dayKey, dayTasks, dayEvents, dueHabits, re
   board.innerHTML = `
     <div class="planner-label">El orden lo defines tú · arrastra o Alt+↑↓ · se guarda solo</div>
     <div class="day-order" id="day-order">
-      ${all.length === 0 ? `<span class="week-free">Día despejado.</span>` : all.map(item => dayCard(item, readonly)).join("")}
+      ${all.length === 0 ? `<span class="week-free">Día despejado.</span>` : all.map(item => dayCard(item, readonly, dayKey)).join("")}
     </div>
   `;
   wireDayCards(board);
@@ -684,10 +688,37 @@ function wireDayCards(board) {
     };
     el.addEventListener("click", open);
     el.addEventListener("keydown", (e) => {
+      if (e.target.closest(".day-correct")) return;
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
         open();
       }
+    });
+  });
+  // Habit correction in past days: toggle done state for that date.
+  // If the day was closed, it reopens (without wiping the correction).
+  board.querySelectorAll(".day-correct").forEach(btn => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.correctHabit;
+      const day = btn.dataset.day;
+      const done = btn.dataset.done !== "1";
+      btn.disabled = true;
+      try {
+        await fetch(`/api/habits/${id}/check`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ done, date: day }),
+        });
+        await fetch("/api/days/close", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ day, restore: false }),
+        });
+      } catch (err) {
+        console.error("Error corrigiendo hábito:", err);
+      }
+      if (window.initWeek) window.initWeek();
     });
   });
 }

@@ -226,6 +226,35 @@ button.week-item:hover .week-item-title {
   opacity: .7;
 }
 
+/* Correction toggle (past days): small circle to mark/unmark */
+.day-correct {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  background: transparent;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+  line-height: 1;
+}
+.day-correct:hover {
+  border-color: #fff;
+}
+.day-correct.done {
+  background: linear-gradient(145deg, #2ed573, #1a8a4a);
+  border-color: transparent;
+}
+.day-correct:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
 .day-card.dragging { opacity: 0.4; }
 .day-card.drop-hint {
   border-color: #087fb0;
