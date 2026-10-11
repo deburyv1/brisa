@@ -158,11 +158,12 @@ async function renderTodayPlanner(body, events, dayKey, offset) {
 
   const dayMode = getDayMode();
 
-  // Check if this day was closed before (snapshot exists)
+  // A day counts as reopened when it was closed before (snapshot exists).
+  // Closed days show everything including done items, so the user can correct.
   let wasClosed = false;
   try {
     const dayInfo = await fetch(`/api/days?date=${dayKey}`).then(r => r.ok ? r.json() : null);
-    wasClosed = dayInfo && dayInfo.order && dayInfo.order.length > 0;
+    wasClosed = !!(dayInfo && dayInfo.closed);
   } catch { /* ignore */ }
 
   body.innerHTML = `
@@ -443,10 +444,10 @@ function wireHourDrop(board, dayKey) {
 
 // ---- Por orden: secuencia sin horas, el orden se guarda ----
 async function renderOrderList(board, dayKey, dayTasks, dayEvents, dueHabits, readonly = false, reopened = false) {
-  // When reopened after a close, show ALL habits (including done ones)
-  // so the user can correct mistakes before closing again
-  const openHabits = reopened ? dueHabits : dueHabits.filter(h => !h.done_today);
-  const openTasks = reopened ? dayTasks : dayTasks.filter(t => !t.is_completed);
+  // Past days show everything including done items (review mode).
+  // Today shows done items only right after a reopen, so mistakes can be fixed.
+  const openHabits = (readonly || reopened) ? dueHabits : dueHabits.filter(h => !h.done_today);
+  const openTasks = (readonly || reopened) ? dayTasks : dayTasks.filter(t => !t.is_completed);
   const items = [
     ...openTasks.map(t => ({ kind: "task", data: t, at: t.scheduled_datetime })),
     ...dayEvents.map(ev => ({ kind: "event", data: ev, at: ev.start })),
