@@ -334,8 +334,11 @@ async function confirmEntry(section, entry) {
 
     renderIdle(section);
     if (window.initInbox) window.initInbox();
-    if (window.initTasks) window.initTasks();
+    // Tasks first (refreshes state.tasks), then everything that reads it
+    if (window.initTasks) await window.initTasks();
     if (window.initToday) window.initToday();
+    if (window.initWeek) window.initWeek();
+    if (window.initCalendar) window.initCalendar();
     if (window.initJournal) window.initJournal();
     if (window.initIdeas) window.initIdeas();
     if (window.renderNext) window.renderNext();
@@ -354,8 +357,11 @@ async function finishEntry(section, entry, targetType, targetId) {
   renderIdle(section);
   if (window.initInbox) window.initInbox();
   if (window.renderGuidanceBanner) window.renderGuidanceBanner();
-  if (window.initTasks) window.initTasks();
+  // Tasks first (refreshes state.tasks), then everything that reads it
+  if (window.initTasks) await window.initTasks();
   if (window.initToday) window.initToday();
+  if (window.initWeek) window.initWeek();
+  if (window.initCalendar) window.initCalendar();
   if (window.initJournal) window.initJournal();
   if (window.initIdeas) window.initIdeas();
   if (window.renderNext) window.renderNext();

@@ -222,7 +222,7 @@ function setDayMode(mode) {
 // Marking happens in Hábitos / Acciones.
 function dayCard(item, readonly = false, dayKey = "") {
   const { kind, data, at } = item;
-  const time = at ? String(at).slice(11, 16) : "sin hora";
+  const time = at ? fmtTime(at) : "sin hora";
   const mark = kind === "habit"
     ? `<span class="planner-icon">${data.icon ? escapeHtml(data.icon) : "·"}</span>`
     : `<span class="week-dot ${kind === "event" ? "event" : (data.priority || "medium")}"></span>`;
@@ -266,7 +266,9 @@ function renderHourGrid(board, dayKey, timedTasks, dayEvents, timedHabits, untim
   for (let h = GRID_START; h <= GRID_END; h++) byHour[h] = [];
   const nowHour = new Date().getHours();
   const place = (item) => {
-    const hr = Number(String(item.at).slice(11, 13));
+    // Local hour: DB datetimes may be UTC ISO (with Z) or local strings.
+    // Slicing the string reads UTC; Date reads the user's wall time.
+    const hr = new Date(item.at).getHours();
     if (byHour[hr]) byHour[hr].push(item);
   };
   timedTasks.forEach(t => place({ kind: "task", data: t, at: t.scheduled_datetime }));
@@ -722,8 +724,6 @@ function wireDayCards(board) {
     });
   });
 }
-
-const hhmm = (at) => at ? String(at).slice(11, 16) : null;
 
 async function renderDayClose(body, dayKey, offset, dayTasks, habits) {
   const slot = body.querySelector("#day-close-slot");
