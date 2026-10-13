@@ -106,6 +106,7 @@ async function renderFriction(task) {
       <button class="focus-option" data-friction="verify">🔎 Necesito verificar algo primero<small>Revisamos el dato en 10 min máximo</small></button>
       <button class="focus-option" data-friction="big">🧩 Es más grande de lo que parece<small>La partimos en algo chico</small></button>
       <button class="focus-option" data-friction="resist">😕 Me da resistencia<small>Partimos con 5 min nomás, parar vale</small></button>
+      <button class="focus-option" data-friction="unblock">✨ Ayúdame a partir<small>Describo mi traba y la separamos juntos</small></button>
     </div>
     <div id="focus-basics"></div>
   `;
@@ -127,6 +128,8 @@ function handleFriction(task, kind, basics = []) {
     renderSplit(task);
   } else if (kind === "resist") {
     renderStep(task, { presetMin: 5, note: "Empieza 5 minutos nomás. Parar también vale." });
+  } else if (kind === "unblock") {
+    renderUnblockAsk(task);
   }
 }
 
@@ -239,6 +242,105 @@ function renderDefineStep(task) {
       console.error("Error guardando paso:", e);
     }
     renderStep(task, {});
+  });
+}
+
+function renderUnblockAsk(task) {
+  body().innerHTML = `
+    <p class="focus-question">Cuéntame qué te traba, como me lo contarías a mí.</p>
+    <div class="form-group">
+      <textarea id="focus-block-input" rows="3" placeholder="Ej: no terminé de juntar las fotos y no sé si las que tengo sirven"></textarea>
+    </div>
+    <p class="focus-staging">Separo lo que se puede verificar de lo que pide un primer intento. Sin juicios.</p>
+    <div class="modal-actions">
+      <button type="button" class="modal-btn modal-btn-secondary" id="focus-back">Volver</button>
+      <button type="button" class="modal-btn modal-btn-primary" id="focus-unblock-go">Analizar mi traba</button>
+    </div>
+    <div id="focus-unblock-result"></div>
+  `;
+  const input = body().querySelector("#focus-block-input");
+  input?.focus();
+  body().querySelector("#focus-back")?.addEventListener("click", () => renderFriction(task));
+  body().querySelector("#focus-unblock-go")?.addEventListener("click", async () => {
+    const block = input?.value.trim();
+    if (!block) return;
+    const box = body().querySelector("#focus-unblock-result");
+    const btn = body().querySelector("#focus-unblock-go");
+    btn.disabled = true;
+    btn.textContent = "Pensando...";
+    box.innerHTML = "";
+    try {
+      const res = await fetch("/api/ai/unblock", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: task.title, block }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error");
+      renderUnblockResult(task, data);
+    } catch (e) {
+      box.innerHTML = `<p class="focus-note">No se pudo analizar. Intenta de nuevo.</p>`;
+      btn.disabled = false;
+      btn.textContent = "Analizar mi traba";
+    }
+  });
+}
+
+function renderUnblockResult(task, data) {
+  const box = body().querySelector("#focus-unblock-result");
+  if (!box) return;
+  const group = (label, items, prefix) => items.length === 0 ? "" : `
+    <div class="focus-unblock-group">
+      <div class="focus-unblock-label">${label}</div>
+      ${items.map((s, i) => `
+        <label class="prep-row">
+          <input type="checkbox" data-unblock="${prefix}-${i}" checked>
+          <span>${escapeHtml(s.titulo)} <small>· ~${s.minutos} min</small></span>
+        </label>`).join("")}
+    </div>`;
+  box.innerHTML = `
+    ${data.lectura ? `<p class="focus-note"><strong>Lo que veo:</strong> ${escapeHtml(data.lectura)}</p>` : ""}
+    ${group("Se puede verificar (dato concreto, acotado):", data.verificaciones || [], "v")}
+    ${group("Pide un primer intento (borrador visible):", data.borradores || [], "d")}
+    <div class="modal-actions" style="margin-top:8px">
+      <button type="button" class="modal-btn modal-btn-primary" id="focus-unblock-create">Crear pasos y empezar por el primero</button>
+    </div>
+  `;
+  box.querySelector("#focus-unblock-create")?.addEventListener("click", async () => {
+    const picked = [];
+    box.querySelectorAll("[data-unblock]:checked").forEach(cb => {
+      const [prefix, idx] = cb.dataset.unblock.split("-");
+      const src = prefix === "v" ? (data.verificaciones || []) : (data.borradores || []);
+      const step = src[Number(idx)];
+      if (step) picked.push(step);
+    });
+    if (picked.length === 0) return;
+    try {
+      const created = [];
+      for (const s of picked) {
+        const res = await fetch(`${API_BASE}/tasks`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: s.titulo,
+            description: `Paso de: ${task.title}`,
+            estimated_minutes: s.minutos,
+            parent_task_id: task.id,
+          }),
+        });
+        const child = await res.json();
+        setLink(child.id, task.id, "split");
+        created.push(child);
+      }
+      if (window.initTasks) await window.initTasks();
+      if (window.renderNext) window.renderNext();
+      currentTask = created[0];
+      document.querySelector("#focus-title").textContent = created[0].title;
+      renderStep(created[0], {});
+    } catch (e) {
+      console.error("Error creando pasos:", e);
+      alert("No se pudieron crear. Intenta de nuevo.");
+    }
   });
 }
 

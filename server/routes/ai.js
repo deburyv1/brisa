@@ -22,7 +22,7 @@ Responde SOLO con un arreglo JSON de strings, sin markdown, sin texto adicional.
 Ejemplo: ["Paso 1", "Paso 2", "Paso 3"]`;
 }
 
-async function callGeminiOnce(prompt) {
+async function callGeminiOnce(prompt, maxTokens = 512) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error('GEMINI_API_KEY not configured');
 
@@ -35,7 +35,7 @@ async function callGeminiOnce(prompt) {
       contents: [{ parts: [{ text: prompt }] }],
       generationConfig: {
         temperature: 0.3,
-        maxOutputTokens: 512,
+        maxOutputTokens: maxTokens,
       },
     }),
   });
@@ -50,11 +50,11 @@ async function callGeminiOnce(prompt) {
 }
 
 // Gemini can return 503 under load; retry with backoff.
-async function callGemini(prompt, attempts = 3) {
+async function callGemini(prompt, attempts = 3, maxTokens = 512) {
   let lastErr;
   for (let i = 0; i < attempts; i++) {
     try {
-      return await callGeminiOnce(prompt);
+      return await callGeminiOnce(prompt, maxTokens);
     } catch (e) {
       lastErr = e;
       if (i < attempts - 1) {
@@ -93,6 +93,66 @@ router.post('/split', async (req, res) => {
   } catch (err) {
     console.error('Gemini split error:', err);
     res.status(502).json({ error: 'No se pudo dividir la tarea. Intenta de nuevo.' });
+  }
+});
+
+function buildUnblockPrompt(taskTitle, block, parentTitle = '', eventTitle = '') {
+  return `Eres un asistente que ayuda a personas con dificultades ejecutivas a destrabarse.
+Tu trabajo: separar lo que se puede VERIFICAR de lo que requiere un primer intento (borrador).
+
+La tarea es: "${taskTitle}"
+Lo que frena a la persona: "${block}"
+${parentTitle ? `Es un paso de una tarea mayor: "${parentTitle}"` : ''}
+${eventTitle ? `Todo esto es preparación para el evento: "${eventTitle}"` : ''}
+
+Reglas:
+- Las VERIFICACIONES responden una pregunta concreta con un dato observable, acotadas a 10 minutos. Cada una incluye su criterio de "suficiente para actuar" (qué dato basta, no la certeza total).
+- Los BORRADORES son primeros intentos físicos de 10-25 minutos que producen algo visible (una lista, una secuencia, un mensaje). Nunca "pensar en" ni "decidir si".
+- Máximo 3 verificaciones y 3 borradores. Si algo no aplica, deja ese arreglo vacío.
+- La lectura es UNA frase empática que nombra la traba real (incertidumbre, interacción social, perfeccionismo, falta de un dato).
+
+Responde SOLO con este JSON, sin markdown ni texto adicional:
+{"lectura": "...", "verificaciones": [{"titulo": "...", "minutos": 10}], "borradores": [{"titulo": "...", "minutos": 15}]}`;
+}
+
+function parseUnblock(raw) {
+  const match = raw.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error('No JSON object in response');
+  const obj = JSON.parse(match[0]);
+  const clean = (arr) => (Array.isArray(arr) ? arr : [])
+    .map(s => typeof s === 'string'
+      ? { titulo: s.trim(), minutos: 15 }
+      : { titulo: String(s.titulo || '').trim(), minutos: Number(s.minutos) || 15 })
+    .filter(s => s.titulo.length > 0)
+    .slice(0, 3);
+  return {
+    lectura: String(obj.lectura || '').slice(0, 300),
+    verificaciones: clean(obj.verificaciones),
+    borradores: clean(obj.borradores),
+  };
+}
+
+// POST /api/ai/unblock { title, block, parentTitle?, eventTitle? }
+router.post('/unblock', async (req, res) => {
+  const { title, block, parentTitle, eventTitle } = req.body;
+  if (!title || !title.trim()) {
+    return res.status(400).json({ error: 'Title is required' });
+  }
+  if (!block || !block.trim()) {
+    return res.status(400).json({ error: 'Describe qué te frena' });
+  }
+
+  try {
+    const prompt = buildUnblockPrompt(title.trim(), block.trim(), parentTitle || '', eventTitle || '');
+    const raw = await callGemini(prompt, 3, 768);
+    const result = parseUnblock(raw);
+    if (result.verificaciones.length === 0 && result.borradores.length === 0) {
+      throw new Error('Empty result');
+    }
+    res.json(result);
+  } catch (err) {
+    console.error('Gemini unblock error:', err);
+    res.status(502).json({ error: 'No se pudo analizar la traba. Intenta de nuevo.' });
   }
 });
 
