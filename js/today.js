@@ -97,13 +97,15 @@ export async function initToday() {
       ${dayTasks.map(t => {
         const d = new Date(t.scheduled_datetime);
         const percent = ((d.getHours() + d.getMinutes() / 60) / 24) * 100;
-        return `<div class="today-task ${t.priority || "medium"}" style="left: ${percent}%" title="${escapeHtml(t.title || "Tarea")}"></div>`;
+        const overdue = isToday && !t.is_completed && d.getTime() < Date.now();
+        return `<div class="today-task ${t.priority || "medium"}${t.is_completed ? " done" : ""}${overdue ? " overdue" : ""}" style="left: ${percent}%" data-task-id="${t.id}" title="${escapeHtml(t.title || "Tarea")}"></div>`;
       }).join("")}
       ${events.map(ev => {
         const d = new Date(ev.start);
         const percent = ((d.getHours() + d.getMinutes() / 60) / 24) * 100;
-        return `<div class="today-event" style="left: ${percent}%" title="${escapeHtml(ev.title || "Evento")}"></div>`;
+        return `<div class="today-event" style="left: ${percent}%" data-event-id="${ev.id}" title="${escapeHtml(ev.title || "Evento")}"></div>`;
       }).join("")}
+      <div class="today-pop" id="today-pop" style="display:none"></div>
     </div>
     <div class="today-labels">
       <span class="today-label">00</span>
@@ -125,12 +127,147 @@ export async function initToday() {
   section.querySelector("#today-next")?.addEventListener("click", () => shiftToday(1));
   section.querySelector("#today-reset")?.addEventListener("click", () => resetToday());
 
+  wireMarkers(section, dayTasks, events, isToday, key);
+
   const timeEl = section.querySelector(".today-time");
+  if (section.dataset.clockId) {
+    clearInterval(Number(section.dataset.clockId));
+    delete section.dataset.clockId;
+  }
   if (timeEl && isToday) {
-    setInterval(() => {
+    let ticks = 0;
+    const id = setInterval(() => {
+      if (!document.body.contains(section)) {
+        clearInterval(id);
+        return;
+      }
       const el = section.querySelector(".today-time");
       if (el) el.textContent = formatTime(new Date());
+      // Refresh overdue states every minute, unless the popover is open
+      if (++ticks % 60 === 0) {
+        const open = section.querySelector("#today-pop");
+        if (open && open.style.display !== "none") return;
+        if (window.initToday) window.initToday();
+      }
     }, 1000);
+    section.dataset.clockId = String(id);
+  }
+}
+
+function markerPercent(dt) {
+  const d = dt instanceof Date ? dt : new Date(dt);
+  return ((d.getHours() + d.getMinutes() / 60) / 24) * 100;
+}
+
+function overdueText(dt) {
+  const mins = Math.max(1, Math.round((Date.now() - new Date(dt).getTime()) / 60000));
+  if (mins < 60) return `vencida hace ${mins} min`;
+  const h = Math.floor(mins / 60);
+  return `vencida hace ${h} h${mins % 60 ? ` ${mins % 60} min` : ""}`;
+}
+
+function wireMarkers(section, dayTasks, events, isToday, key) {
+  const pop = section.querySelector("#today-pop");
+  if (!pop) return;
+
+  const closePop = () => { pop.style.display = "none"; pop.innerHTML = ""; };
+
+  const showPop = (anchorEl, html) => {
+    const timeline = section.querySelector(".today-timeline");
+    const tRect = timeline.getBoundingClientRect();
+    const aRect = anchorEl.getBoundingClientRect();
+    let pct = ((aRect.left + aRect.width / 2 - tRect.left) / tRect.width) * 100;
+    pct = Math.max(14, Math.min(86, pct));
+    pop.innerHTML = html;
+    pop.style.display = "";
+    pop.style.left = `${pct}%`;
+  };
+
+  const refreshAll = async () => {
+    if (window.initTasks) await window.initTasks();
+    if (window.initToday) window.initToday();
+    if (window.initWeek) window.initWeek();
+    if (window.initCalendar) window.initCalendar();
+    if (window.initReadiness) window.initReadiness();
+    if (window.renderNext) window.renderNext();
+  };
+
+  const updateTask = async (id, body) => {
+    await fetch(`/api/tasks/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    closePop();
+    await refreshAll();
+  };
+
+  section.querySelectorAll(".today-task").forEach(el => {
+    el.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const t = (state.tasks || []).find(x => String(x.id) === String(el.dataset.taskId));
+      if (!t) return;
+      if (!isToday) return; // past days stay read-only
+      const d = new Date(t.scheduled_datetime);
+      const overdue = !t.is_completed && d.getTime() < Date.now();
+      if (t.is_completed) {
+        showPop(el, `
+          <div class="today-pop-title">${escapeHtml(t.title)}</div>
+          <div class="today-pop-time">Hecha ✓ ${t.completed_at ? formatTime(new Date(t.completed_at)) : ""}</div>
+          <div class="today-pop-actions">
+            <button class="modal-btn modal-btn-secondary" data-act="reopen">Deshacer</button>
+          </div>`);
+        pop.querySelector('[data-act="reopen"]')?.addEventListener("click", () =>
+          updateTask(t.id, { is_completed: false, completed_at: null }));
+        return;
+      }
+      showPop(el, `
+        <div class="today-pop-title">${escapeHtml(t.title)}</div>
+        <div class="today-pop-time">${overdue ? `⏰ ${overdueText(t.scheduled_datetime)} · ¿lo hiciste o se reprograma?` : `Hoy ${formatTime(d)}`}</div>
+        <div class="today-pop-actions">
+          <button class="modal-btn modal-btn-primary" data-act="done">✓ Hecho</button>
+          <button class="modal-btn modal-btn-secondary" data-act="plus1">+1 h</button>
+          <button class="modal-btn modal-btn-secondary" data-act="tomorrow">Mañana</button>
+        </div>`);
+      pop.querySelector('[data-act="done"]')?.addEventListener("click", () =>
+        updateTask(t.id, { is_completed: true, completed_at: new Date().toISOString() }));
+      pop.querySelector('[data-act="plus1"]')?.addEventListener("click", () => {
+        const at = new Date(Date.now() + 60 * 60000);
+        updateTask(t.id, { scheduled_datetime: at.toISOString() });
+      });
+      pop.querySelector('[data-act="tomorrow"]')?.addEventListener("click", () => {
+        const at = new Date(t.scheduled_datetime);
+        at.setDate(at.getDate() + 1);
+        updateTask(t.id, { scheduled_datetime: at.toISOString() });
+      });
+    });
+  });
+
+  section.querySelectorAll(".today-event").forEach(el => {
+    el.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (window.openEventDetail) window.openEventDetail(el.dataset.eventId);
+    });
+  });
+
+  if (!section.dataset.dismissBound) {
+    section.dataset.dismissBound = "1";
+    document.addEventListener("click", function dismiss(e) {
+      const p = section.querySelector("#today-pop");
+      if (!p) return;
+      if (p.style.display !== "none" && !p.contains(e.target)) {
+        p.style.display = "none";
+        p.innerHTML = "";
+      }
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+      const p = section.querySelector("#today-pop");
+      if (p && p.style.display !== "none") {
+        p.style.display = "none";
+        p.innerHTML = "";
+      }
+    });
   }
 }
 
