@@ -152,6 +152,7 @@ function taskRowHtml(t, tasks, isChild) {
         </div>
       </div>
       <div class="task-actions">
+        ${t.is_completed ? "" : `<button class="task-btn task-btn-start" data-action="start" title="Empezar ahora (mismo flujo que AHORA)">▶</button>`}
         <button class="task-btn task-btn-ai" data-action="ai" title="Dividir con IA">✨</button>
         <button class="task-btn task-btn-edit" data-action="edit">Editar</button>
         <button class="task-btn task-btn-delete" data-action="delete">Eliminar</button>
@@ -248,6 +249,10 @@ function renderTasks(section, tasks) {
         btn.disabled = false;
         btn.textContent = "✨";
       }
+    });
+
+    item.querySelector('[data-action="start"]')?.addEventListener("click", () => {
+      if (window.openFocus) window.openFocus(id);
     });
 
     item.querySelector('[data-action="edit"]')?.addEventListener("click", () => {

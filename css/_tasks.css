@@ -270,6 +270,16 @@
   color: #fff;
 }
 
+.task-btn-start {
+  background: linear-gradient(145deg, #27c9eb, #087fb0);
+  border: 1px solid transparent;
+  color: #fff;
+}
+
+.task-btn-start:hover {
+  filter: brightness(1.1);
+}
+
 .task-btn-ai:hover:not(:disabled) {
   filter: brightness(1.12);
 }
