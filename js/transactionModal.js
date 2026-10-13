@@ -114,6 +114,9 @@ export function initTransactionModal() {
       titleEl.textContent = "Nuevo movimiento";
       form.date.value = new Date().toISOString().slice(0, 10);
       fillCategories(form, form.type.value, preset?.category || "");
+      const descInput = form.description;
+      descInput.readOnly = false;
+      descInput.title = "";
       if (preset) {
         if (preset.description) form.description.value = preset.description;
         if (preset.alias !== undefined) form.alias.value = preset.alias || "";
@@ -124,12 +127,31 @@ export function initTransactionModal() {
           fillCategories(form, preset.type, preset.category || "");
         }
         form.is_recurring.checked = true;
+        if (preset.lockDescription) {
+          // The description identifies the fixed series: changing it would
+          // spawn a second series. Alias/details stay editable.
+          descInput.readOnly = true;
+          descInput.title = "La descripción identifica la serie fija";
+          if (!form.querySelector("#tx-lock-hint")) {
+            const hint = document.createElement("div");
+            hint.id = "tx-lock-hint";
+            hint.className = "tx-lock-hint";
+            hint.textContent = "La descripción identifica la serie · usa el alias para personalizar";
+            descInput.after(hint);
+          }
+        } else {
+          form.querySelector("#tx-lock-hint")?.remove();
+        }
       }
       toggleLinkRow(form);
       togglePersonRow(form);
       fillPersonOptions(form, "");
+      // Snapshot synchronously: if the user types before the async
+      // option loads finish, the dirty guard still catches it.
+      const pristineSnapshot = snapshotForm(form);
+      cleanSnapshot = pristineSnapshot;
       fillLinkOptions(form, currentAccountId, "", null).then(() => {
-        cleanSnapshot = snapshotForm(form);
+        if (!isDirty(form, pristineSnapshot)) cleanSnapshot = snapshotForm(form);
       });
     }
 

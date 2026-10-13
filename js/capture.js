@@ -198,7 +198,11 @@ function renderSuggestion(section, entry, reason) {
       <div class="capture-when" ${needsDate(selectedType) ? "" : 'style="display:none"'}>
         <button class="capture-when-btn" data-when="today">Hoy</button>
         <button class="capture-when-btn" data-when="later">Después</button>
-        <input type="datetime-local" id="capture-datetime" class="capture-datetime">
+        <input type="date" id="capture-date" class="capture-datetime" title="Día (opcional)">
+        <input type="time" id="capture-time" class="capture-datetime" title="Hora (opcional)">
+        <label class="capture-extreme" id="capture-extreme-row" ${selectedType === "reminder" ? "" : 'style="display:none"'} title="Al llegar la hora: pantalla completa + sonido hasta que lo veas">
+          <input type="checkbox" id="capture-extreme"> Extrema
+        </label>
       </div>
       <div class="capture-actions">
         <button class="modal-btn modal-btn-secondary" id="capture-discard">Descartar</button>
@@ -215,6 +219,8 @@ function renderSuggestion(section, entry, reason) {
         b.classList.toggle("active", b === btn));
       const when = section.querySelector(".capture-when");
       if (when) when.style.display = needsDate(selectedType) ? "" : "none";
+      const extremeRow = section.querySelector("#capture-extreme-row");
+      if (extremeRow) extremeRow.style.display = selectedType === "reminder" ? "" : "none";
     });
   });
 
@@ -253,21 +259,34 @@ function renderSuggestion(section, entry, reason) {
   });
 }
 
-function dateFor(when, datetimeValue) {
+function dateFor(when, dateValue, timeValue) {
   const now = new Date();
   if (when === "today") {
     now.setHours(23, 59, 0, 0);
     return now;
   }
-  if (datetimeValue) return new Date(datetimeValue);
+  if (dateValue) {
+    // Date without time → end of that day, so "just the day" still notifies
+    const [y, m, d] = dateValue.split("-").map(Number);
+    const at = new Date(y, (m || 1) - 1, d || 1);
+    if (timeValue) {
+      const [hh, mm] = timeValue.split(":").map(Number);
+      at.setHours(hh || 0, mm || 0, 0, 0);
+    } else {
+      at.setHours(23, 59, 0, 0);
+    }
+    return at;
+  }
   return null;
 }
 
 async function confirmEntry(section, entry) {
   const whenBtn = section.querySelector(".capture-when-btn.selected");
-  const datetimeValue = section.querySelector("#capture-datetime")?.value;
+  const dateValue = section.querySelector("#capture-date")?.value;
+  const timeValue = section.querySelector("#capture-time")?.value;
   const when = whenBtn?.dataset.when;
-  const at = dateFor(when, datetimeValue);
+  const extreme = section.querySelector("#capture-extreme")?.checked || false;
+  const at = dateFor(when, dateValue, timeValue);
   const iso = at ? at.toISOString() : null;
   // Titles are always plain text (one line, no tags); the full
   // rich content only survives into notes.
@@ -301,7 +320,9 @@ async function confirmEntry(section, entry) {
       const idea = await postJson("/api/ideas", { title: text, entry_id: entry.id });
       targetId = idea.id;
     } else if (selectedType === "reminder") {
-      const rem = await postJson("/api/reminders", { title: text, remind_at: iso, entry_id: entry.id });
+      const rem = await postJson("/api/reminders", {
+        title: text, remind_at: iso, entry_id: entry.id, extreme,
+      });
       targetId = rem.id;
     }
 

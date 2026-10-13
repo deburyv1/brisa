@@ -69,7 +69,7 @@ const NAV_LABELS = {
 };
 
 const NAV_SECTIONS = {
-  home: ["#welcome-section", "#capture-section", "#readiness-section", "#next-section", "#today-section", "#birthdays-section", "#week-section"],
+  home: ["#welcome-section", "#today-section", "#capture-section", "#next-section", "#birthdays-section", "#week-section"],
   inbox: ["#inbox-section"],
   tasks: ["#tasks-section"],
   journal: ["#journal-section"],
@@ -83,9 +83,9 @@ const NAV_SECTIONS = {
 
 const ALL_SECTIONS = [
   "#welcome-section",
+  "#today-section",
   "#capture-section",
   "#next-section",
-  "#today-section",
   "#birthdays-section",
   "#inbox-section",
   "#tasks-section",
@@ -96,7 +96,6 @@ const ALL_SECTIONS = [
   "#shopping-section",
   "#habits-section",
   "#ideas-section",
-  "#readiness-section",
   "#week-section",
 ];
 

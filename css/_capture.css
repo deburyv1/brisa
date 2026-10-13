@@ -163,6 +163,27 @@
   gap: 8px;
 }
 
+.capture-extreme {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #8a6100;
+  background: linear-gradient(135deg, rgba(244, 195, 46, .4), rgba(244, 195, 46, .2));
+  border: 1px solid rgba(180, 130, 10, 0.45);
+  border-radius: 10px;
+  padding: 5px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.capture-extreme input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  accent-color: #b4820a;
+}
+
 .capture-expand {
   border: 1px solid rgba(22, 75, 105, 0.3);
   border-radius: 12px;

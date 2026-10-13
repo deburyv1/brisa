@@ -29,7 +29,45 @@
   width: 30px; height: 30px; cursor: pointer; line-height: 1;
 }
 .habits-emoji.sel { background: rgba(8,127,176,.25); border-color: #087fb0; }
-.habits-add-row { display: flex; gap: 8px; }
+.habits-add-row { display: flex; gap: 8px; position: relative; }
+.habits-emoji-btn {
+  border: 1px solid rgba(22, 75, 105, 0.3);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .5);
+  font-size: 17px;
+  width: 40px;
+  cursor: pointer;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.habit-emoji-row {
+  display: flex;
+  gap: 6px;
+  position: relative;
+}
+.habit-emoji-row input { flex: 1; min-width: 0; }
+
+/* Emoji picker popup (emoji-picker-element brings its own inner styles) */
+.emoji-pop {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 120;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 14px 40px rgba(3, 25, 40, .45);
+}
+.emoji-pop.open { display: block; }
+.emoji-pop emoji-picker {
+  --background: #f4fafd;
+  --border-color: rgba(22, 75, 105, 0.25);
+  --input-border-color: rgba(22, 75, 105, 0.3);
+  --input-font-color: var(--ink);
+  --category-font-color: rgba(22, 75, 105, 0.7);
+  width: 320px;
+  height: 360px;
+}
 .habits-add-row #habits-icon {
   width: 46px;
   text-align: center;

@@ -298,6 +298,12 @@
   margin: 0;
 }
 
+.tx-lock-hint {
+  font-size: 10px;
+  color: rgba(22, 75, 105, 0.62);
+  margin-top: 2px;
+}
+
 .modal-actions {
   display: flex;
   gap: 8px;

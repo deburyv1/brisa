@@ -115,15 +115,18 @@ function stopTakeoverSound() {
   alarmTimers = [];
 }
 
-function showTakeover(item, isEvent, lateLeave) {
+function showTakeover(item, kind, lateLeave) {
   stopTakeoverSound();
   document.querySelector("#upcoming-takeover")?.remove();
   chime(4);
   alarmTimers.push(setInterval(() => chime(4), 8000));
 
-  const heading = !isEvent ? "⏰ ¡Ahora!" : item.travel_minutes ? "🚌 ¡Sal ya!" : "📅 ¡Ahora!";
+  const isEvent = kind === "event";
+  const isReminder = kind === "reminder";
+  const heading = isReminder ? "🔔 ¡Recuerda!" : !isEvent ? "⏰ ¡Ahora!" : item.travel_minutes ? "🚌 ¡Sal ya!" : "📅 ¡Ahora!";
   const sub = lateLeave && item.travel_minutes
     ? `Debiste salir hace ${Math.max(1, Math.round(-(new Date(item.start).getTime() - Number(item.travel_minutes) * 60000 - Date.now()) / 60000))} min. Sin culpa: parte ahora.`
+    : isReminder ? "No se calla hasta que lo marques hecho o lo pospongas."
     : "Lo que hiciste cuenta, aunque no esté terminado.";
 
   const overlay = document.createElement("div");
@@ -135,7 +138,9 @@ function showTakeover(item, isEvent, lateLeave) {
       <p>${escapeHtml(item.title)}</p>
       <p style="font-size:11px;opacity:.85">${sub}</p>
       <div style="display:flex;gap:8px;justify-content:center">
-        <button class="modal-btn modal-btn-primary" id="upcoming-go">Ver</button>
+        ${isReminder
+          ? `<button class="modal-btn modal-btn-primary" id="upcoming-done">Hecho ✓</button>`
+          : `<button class="modal-btn modal-btn-primary" id="upcoming-go">Ver</button>`}
         <button class="modal-btn modal-btn-secondary" id="upcoming-snooze">5 min más</button>
         <button class="modal-btn modal-btn-secondary" id="upcoming-drop">Descartar</button>
       </div>
@@ -149,15 +154,27 @@ function showTakeover(item, isEvent, lateLeave) {
       window.openFocus(item.id);
     }
   });
+  overlay.querySelector("#upcoming-done")?.addEventListener("click", async () => {
+    try {
+      await fetch(`/api/reminders/${item.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ done: true }),
+      });
+    } catch {
+      // ignore
+    }
+    stopTakeover();
+  });
   overlay.querySelector("#upcoming-snooze")?.addEventListener("click", () => {
     const snoozed = readSet(SNOOZE_KEY);
-    snoozed.add(`${snoozeKey(isEvent, item.id)}:${Date.now() + 5 * 60 * 1000}`);
+    snoozed.add(`${snoozeKey(kind, item.id)}:${Date.now() + 5 * 60 * 1000}`);
     writeSet(SNOOZE_KEY, snoozed);
     stopTakeover();
   });
   overlay.querySelector("#upcoming-drop")?.addEventListener("click", () => {
     const dismissed = readSet(DISMISSED_KEY);
-    dismissed.add(snoozeKey(isEvent, item.id));
+    dismissed.add(snoozeKey(kind, item.id));
     writeSet(DISMISSED_KEY, dismissed);
     stopTakeover();
     hidePill();
@@ -171,11 +188,11 @@ function stopTakeover() {
   document.querySelector("#upcoming-takeover")?.remove();
 }
 
-function snoozeKey(isEvent, id) {
-  return `${isEvent ? "event" : "task"}:${id}`;
+function snoozeKey(kind, id) {
+  return `${kind}:${id}`;
 }
 
-function check() {
+async function check() {
   const dismissed = readSet(DISMISSED_KEY);
   const snoozedRaw = readSet(SNOOZE_KEY);
   const now = Date.now();
@@ -195,7 +212,7 @@ function check() {
   const taskHit = (state.tasks || [])
     .filter(t => !t.is_completed && t.scheduled_datetime)
     .map(t => ({ kind: "task", item: t, min: minutesUntil(t.scheduled_datetime) }))
-    .filter(x => x.min > -15 && x.min <= WINDOW_MIN && !dismissed.has(snoozeKey(false, x.item.id)) && !snoozed.has(snoozeKey(false, x.item.id)))
+    .filter(x => x.min > -15 && x.min <= WINDOW_MIN && !dismissed.has(snoozeKey("task", x.item.id)) && !snoozed.has(snoozeKey("task", x.item.id)))
     .sort((a, b) => a.min - b.min)[0];
 
   let eventHit = null;
@@ -210,21 +227,39 @@ function check() {
         if (minStart <= 0) return null;
         return { kind: "event", item: ev, min: minLeave, leave: true };
       })
-      .filter(x => x && x.min <= WINDOW_MIN && !dismissed.has(snoozeKey(true, x.item.id)) && !snoozed.has(snoozeKey(true, x.item.id)))
+      .filter(x => x && x.min <= WINDOW_MIN && !dismissed.has(snoozeKey("event", x.item.id)) && !snoozed.has(snoozeKey("event", x.item.id)))
       .sort((a, b) => a.min - b.min)[0];
   } catch {
     eventHit = null;
   }
 
-  const upcoming = [taskHit, eventHit].filter(Boolean).sort((a, b) => a.min - b.min)[0];
+  // Reminders: extreme ones jump straight to takeover at due time,
+  // normal ones follow the same 3-stage escalation.
+  let reminderHit = null;
+  try {
+    const res = await fetch("/api/reminders?pending=1");
+    if (res.ok) {
+      const rems = await res.json();
+      reminderHit = rems
+        .filter(r => r.remind_at)
+        .map(r => ({ kind: "reminder", item: r, min: minutesUntil(r.remind_at) }))
+        .filter(x => x.min > -15 && x.min <= WINDOW_MIN && !dismissed.has(snoozeKey("reminder", x.item.id)) && !snoozed.has(snoozeKey("reminder", x.item.id)))
+        .sort((a, b) => a.min - b.min)[0];
+    }
+  } catch {
+    reminderHit = null;
+  }
+
+  const upcoming = [taskHit, eventHit, reminderHit].filter(Boolean).sort((a, b) => a.min - b.min)[0];
   if (!upcoming) {
     hidePill();
     return;
   }
 
   const isEvent = upcoming.kind === "event";
+  const isReminder = upcoming.kind === "reminder";
   const lateLeave = isEvent && upcoming.item.travel_minutes && upcoming.min < 0;
-  const key = snoozeKey(isEvent, upcoming.item.id);
+  const key = snoozeKey(upcoming.kind, upcoming.item.id);
   const label = lateLeave
     ? "¡Sal ya!"
     : upcoming.min < 1
@@ -265,11 +300,19 @@ function check() {
       stopTitleFlash();
       if (isEvent) {
         if (window.openEventDetail) window.openEventDetail(upcoming.item.id);
-      } else if (window.openFocus) {
+      } else if (!isReminder && window.openFocus) {
         window.openFocus(upcoming.item.id);
       }
     });
     document.body.appendChild(pill);
+  }
+
+  // Extreme reminders skip the silent stages: takeover as soon as due
+  if (isReminder && upcoming.item.extreme && upcoming.min <= 0 && !document.querySelector("#upcoming-takeover")) {
+    chime(3);
+    notify("Brisa · urgente", upcoming.item.title);
+    showTakeover(upcoming.item, "reminder", false);
+    return;
   }
 
   // Stage 2: chime + notification + title at 5 min (once per key)
@@ -284,7 +327,7 @@ function check() {
 
   // Stage 3: fullscreen takeover at zero
   if (upcoming.min <= 0 && !document.querySelector("#upcoming-takeover")) {
-    showTakeover(upcoming.item, isEvent, lateLeave);
+    showTakeover(upcoming.item, upcoming.kind, lateLeave);
   }
 }
 

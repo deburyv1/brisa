@@ -697,6 +697,7 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
         amount: p.amount,
         category: p.category || "",
         type: p.type || "expense",
+        lockDescription: true,
       });
     });
   });

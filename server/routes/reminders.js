@@ -17,14 +17,14 @@ router.get('/', async (req, res) => {
 
 // POST /api/reminders
 router.post('/', async (req, res) => {
-  const { title, description, remind_at, entry_id } = req.body;
+  const { title, description, remind_at, entry_id, extreme } = req.body;
   if (!title || !title.trim()) {
     return res.status(400).json({ error: 'Title is required' });
   }
   try {
     const result = await pool.query(
-      'INSERT INTO reminders (user_id, title, description, remind_at, entry_id) VALUES (1, $1, $2, $3, $4) RETURNING *',
-      [title.trim(), description || null, remind_at || null, entry_id || null]
+      'INSERT INTO reminders (user_id, title, description, remind_at, entry_id, extreme) VALUES (1, $1, $2, $3, $4, $5) RETURNING *',
+      [title.trim(), description || null, remind_at || null, entry_id || null, extreme ? true : false]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {

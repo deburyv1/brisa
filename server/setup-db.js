@@ -284,6 +284,7 @@ try {
     entry_id INTEGER REFERENCES entries(id) ON DELETE SET NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`);
+  await pool.query(`ALTER TABLE reminders ADD COLUMN IF NOT EXISTS extreme BOOLEAN DEFAULT FALSE`);
 
   await pool.query(`CREATE TABLE IF NOT EXISTS settings (
     key TEXT PRIMARY KEY,

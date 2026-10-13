@@ -94,8 +94,10 @@ export function initTaskModal() {
         });
     } else {
       titleEl.textContent = "Nueva tarea";
+      const pristineSnapshot = snapshotForm(form);
+      cleanSnapshot = pristineSnapshot;
       fillReadinessOptions("").then(() => {
-        cleanSnapshot = snapshotForm(form);
+        if (!isDirty(form, pristineSnapshot)) cleanSnapshot = snapshotForm(form);
       });
     }
 

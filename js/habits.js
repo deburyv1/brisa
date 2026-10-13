@@ -7,6 +7,14 @@
    ============================================ */
 
 const API_BASE = "/api";
+
+// Emoji picker loads lazily; if the vendor file is missing the app keeps working.
+function lazyEmoji(input, btn) {
+  if (!input || !btn) return;
+  import("./emojiPicker.js")
+    .then(m => m.attachEmojiPicker(input, btn))
+    .catch(e => console.warn("Emoji picker no disponible:", e));
+}
 const QUICK_ICONS = ["🚿", "🛏️", "🍳", "📖", "🚶", "💧", "🧘", "🎸"];
 
 async function fetchHabits() {
@@ -57,6 +65,7 @@ export async function initHabits() {
       </div>
       <div class="habits-add-row">
         <input type="text" id="habits-icon" placeholder="✦" maxlength="16" title="Emoji del hábito">
+        <button class="habits-emoji-btn" id="habits-icon-btn" title="Elegir emoji">😀</button>
         <input type="text" id="habits-input" placeholder="Nuevo hábito (ej: tender la cama)" maxlength="100" autocomplete="off">
         <button class="habits-add-btn" id="habits-add" title="Agregar hábito">+</button>
       </div>
@@ -71,6 +80,7 @@ export async function initHabits() {
 
   let pickedIcon = "";
   const iconInput = section.querySelector("#habits-icon");
+  lazyEmoji(iconInput, section.querySelector("#habits-icon-btn"));
   section.querySelectorAll(".habits-emoji").forEach(btn => {
     btn.addEventListener("click", () => {
       pickedIcon = btn.dataset.emoji;
@@ -169,7 +179,10 @@ async function openEditor(id, habits) {
     </div>
     <div class="form-group">
       <label>Emoji</label>
-      <input type="text" id="habit-edit-icon" value="${escapeAttr(habit.icon || "")}" maxlength="16">
+      <div class="habit-emoji-row">
+        <input type="text" id="habit-edit-icon" value="${escapeAttr(habit.icon || "")}" maxlength="16">
+        <button class="habits-emoji-btn" id="habit-edit-icon-btn" title="Elegir emoji">😀</button>
+      </div>
     </div>
     <div class="form-group">
       <label>¿Qué días toca?</label>
@@ -199,6 +212,7 @@ async function openEditor(id, habits) {
     </div>
   `;
   box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  lazyEmoji(box.querySelector("#habit-edit-icon"), box.querySelector("#habit-edit-icon-btn"));
 
   const dayBtns = [...box.querySelectorAll(".freq-day")];
   const getDays = () => dayBtns.filter(b => b.classList.contains("on")).map(b => Number(b.dataset.day));
