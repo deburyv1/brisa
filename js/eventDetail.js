@@ -162,6 +162,19 @@ export function initEventDetail() {
 
   overlay.querySelector("#event-detail-close")?.addEventListener("click", close);
   overlay.querySelector("#event-detail-ok")?.addEventListener("click", close);
+  overlay.querySelector("#event-detail-delete")?.addEventListener("click", async () => {
+    if (!currentEventId) return;
+    if (!confirm("¿Eliminar este evento? Sus preparaciones quedan como tareas sueltas.")) return;
+    try {
+      await fetch(`${API_BASE}/events/${currentEventId}`, { method: "DELETE" });
+    } catch (e) {
+      console.error("Error eliminando evento:", e);
+    }
+    close();
+    if (window.initCalendar) window.initCalendar();
+    if (window.initWeek) window.initWeek();
+    if (window.initToday) window.initToday();
+  });
   overlay.addEventListener("click", (e) => {
     if (e.target === overlay) close();
   });
