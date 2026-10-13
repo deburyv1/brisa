@@ -166,6 +166,17 @@
   margin-bottom: 4px;
 }
 
+.focus-hint {
+  font-size: 10px;
+  color: rgba(22, 75, 105, 0.72);
+  margin: 0 0 10px;
+  line-height: 1.5;
+}
+
+.focus-hint strong {
+  color: var(--ink);
+}
+
 .focus-option {
   border: 1px solid rgba(22, 75, 105, 0.28);
   border-radius: 12px;
@@ -178,6 +189,19 @@
   background: rgba(255, 255, 255, 0.35);
   cursor: pointer;
   transition: var(--transition-speed);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.focus-option small {
+  font-size: 10px;
+  font-weight: 400;
+  opacity: 0.7;
+}
+
+.focus-option.primary small {
+  opacity: 0.85;
 }
 
 .focus-option:hover {

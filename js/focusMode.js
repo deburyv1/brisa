@@ -96,15 +96,16 @@ async function renderFriction(task) {
   }
   body().innerHTML = `
     <p class="focus-question">Antes de hacerlo, ¿qué te frena?</p>
+    <p class="focus-hint">Si ya sabes qué hacer, aprieta <strong>Empezar</strong> y parte. Si algo te traba, elige qué es y te ayudo a destrabarlo.</p>
     <div class="focus-options">
+      <button class="focus-option primary" data-friction="ready">▶️ Empezar<small>Ya sé qué hacer · parte el timer</small></button>
       ${basics.length > 0 ? `
-        <button class="focus-option" data-friction="basics">🧹 Lo básico pendiente (${basics.length})</button>
+        <button class="focus-option" data-friction="basics">🧹 Lo básico pendiente (${basics.length})<small>Marca ducha, cama, etc. y sigues</small></button>
       ` : ""}
-      <button class="focus-option" data-friction="unknown">🟢 No sé cuál es el siguiente paso</button>
-      <button class="focus-option" data-friction="verify">🔎 Necesito verificar algo primero</button>
-      <button class="focus-option" data-friction="big">🧩 Es más grande de lo que parece</button>
-      <button class="focus-option" data-friction="resist">😕 Me da resistencia</button>
-      <button class="focus-option primary" data-friction="ready">▶️ Ya tengo suficiente información</button>
+      <button class="focus-option" data-friction="unknown">🟢 No sé cuál es el siguiente paso<small>Lo definimos juntos en una frase</small></button>
+      <button class="focus-option" data-friction="verify">🔎 Necesito verificar algo primero<small>Revisamos el dato en 10 min máximo</small></button>
+      <button class="focus-option" data-friction="big">🧩 Es más grande de lo que parece<small>La partimos en algo chico</small></button>
+      <button class="focus-option" data-friction="resist">😕 Me da resistencia<small>Partimos con 5 min nomás, parar vale</small></button>
     </div>
     <div id="focus-basics"></div>
   `;
