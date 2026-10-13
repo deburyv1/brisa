@@ -20,6 +20,18 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET /api/events/:id
+router.get('/:id', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM events WHERE id = $1', [req.params.id]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Event not found' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Error fetching event:', err);
+    res.status(500).json({ error: 'Database error' });
+  }
+});
+
 // POST /api/events
 router.post('/', async (req, res) => {
   const { title, description, start, end, location, entry_id, travel_minutes } = req.body;

@@ -100,6 +100,7 @@ export async function initCalendar() {
                 ${ev.location ? `<div class="calendar-meta">📍 ${escapeHtml(ev.location)}</div>` : ""}
               </div>
               <div class="tx-actions">
+                <button class="tx-btn tx-btn-edit" data-action="edit">Editar</button>
                 <button class="tx-btn tx-btn-delete" data-action="delete">Eliminar</button>
               </div>
             </div>
@@ -115,12 +116,17 @@ export async function initCalendar() {
 
   section.querySelectorAll(".calendar-item").forEach(item => {
     const id = item.dataset.eventId;
+    item.querySelector('[data-action="edit"]')?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (window.openEventModal) window.openEventModal(id);
+    });
     item.querySelector('[data-action="delete"]')?.addEventListener("click", async (e) => {
       e.stopPropagation();
       if (confirm("¿Eliminar este evento?")) {
         await fetch(`${API_BASE}/events/${id}`, { method: "DELETE" });
         if (window.initCalendar) window.initCalendar();
         if (window.initToday) window.initToday();
+        if (window.initWeek) window.initWeek();
       }
     });
     item.addEventListener("click", () => {

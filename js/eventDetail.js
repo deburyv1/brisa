@@ -162,6 +162,11 @@ export function initEventDetail() {
 
   overlay.querySelector("#event-detail-close")?.addEventListener("click", close);
   overlay.querySelector("#event-detail-ok")?.addEventListener("click", close);
+  overlay.querySelector("#event-detail-edit")?.addEventListener("click", () => {
+    const id = currentEventId;
+    close();
+    if (id && window.openEventModal) window.openEventModal(id);
+  });
   overlay.querySelector("#event-detail-delete")?.addEventListener("click", async () => {
     if (!currentEventId) return;
     if (!confirm("¿Eliminar este evento? Sus preparaciones quedan como tareas sueltas.")) return;
