@@ -92,7 +92,8 @@ export function renderNext() {
 
   section.querySelectorAll("[data-start]").forEach(btn => {
     btn.addEventListener("click", () => {
-      if (window.openFocus) window.openFocus(btn.dataset.start);
+      if (window.startWorkmode) window.startWorkmode(btn.dataset.start);
+      else if (window.openFocus) window.openFocus(btn.dataset.start);
     });
   });
 }

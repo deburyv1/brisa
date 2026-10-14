@@ -39,7 +39,8 @@ function paint() {
 
 function setMinutes(min) {
   stopTick();
-  totalSec = Math.max(1, Math.round(min * 60));
+  const clean = Number(min);
+  totalSec = Number.isFinite(clean) && clean > 0 ? Math.round(clean * 60) : totalSec;
   remainingSec = totalSec;
   clearRun();
   paint();

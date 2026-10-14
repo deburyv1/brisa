@@ -202,15 +202,15 @@
   line-height: 1.5;
 }
 
-/* Zen: hide sidebar, widen content */
+/* Zen: hide sidebar, center content */
 body.zen .sidebar {
   display: none;
 }
 
 body.zen .content {
-  margin-left: 0;
-  max-width: 1100px;
+  margin-left: auto;
   margin-right: auto;
+  max-width: 1100px;
 }
 
 @media (max-width: 900px) {

@@ -486,8 +486,10 @@ function renderNewStep(parent) {
 }
 
 // Hands the timing over to the floating circle: the modal fades,
-// the circle pulses once so the eye follows it, and it starts counting.
-function handoffToTimer(minutes) {
+// the circle pulses once so the eye follows it, it starts counting,
+// and we land in Enfoque ready to work.
+async function handoffToTimer(minutes) {
+  const taskId = currentTask ? currentTask.id : null;
   if (window.brisaTimer) {
     // Resume paused session as-is; only a fresh timer takes new minutes
     if (!window.brisaTimer.hasSession()) {
@@ -504,6 +506,13 @@ function handoffToTimer(minutes) {
     setTimeout(() => pill.classList.remove("timer-handoff"), 1300);
   });
   if (window.brisaTimer) window.brisaTimer.start();
+  if (taskId && window.startWorkmode) {
+    try {
+      await window.startWorkmode(taskId);
+    } catch {
+      // navigation is a bonus; the timer already runs
+    }
+  }
 }
 
 // ---- Shell ----

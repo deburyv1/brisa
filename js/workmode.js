@@ -32,7 +32,8 @@ function resolveTask() {
 }
 
 function fmt(sec) {
-  const s = Math.max(0, Math.round(sec));
+  const n = Number(sec);
+  const s = Number.isFinite(n) ? Math.max(0, Math.round(n)) : 0;
   return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 }
 
@@ -115,6 +116,7 @@ function render(section) {
           <div class="workmode-clock" id="workmode-clock">--:--</div>
           <div class="workmode-presets">
             ${[10, 15, 25].map(m => `<button class="workmode-preset" data-min="${m}">${m}</button>`).join("")}
+            <button class="workmode-preset workmode-reset" id="workmode-reset" title="Detener y volver al inicio">↺</button>
           </div>
           <div class="workmode-actions">
             <button class="modal-btn modal-btn-primary" id="workmode-toggle">▶ Empezar</button>
@@ -155,6 +157,16 @@ function render(section) {
     if (!window.brisaTimer) return;
     if (window.brisaTimer.isRunning()) window.brisaTimer.stop();
     else window.brisaTimer.start();
+    paintTimer();
+  });
+
+  section.querySelector("#workmode-reset")?.addEventListener("click", () => {
+    if (!window.brisaTimer || !window.brisaTimer.timeLeft) return;
+    const t = window.brisaTimer.timeLeft();
+    const total = t && Number.isFinite(t.totalSec) ? t.totalSec : 600;
+    const mins = Math.max(1, Math.round(total / 60));
+    window.brisaTimer.stop();
+    window.brisaTimer.setMinutes(mins);
     paintTimer();
   });
 
@@ -234,4 +246,13 @@ export async function initWorkmode() {
       }
     });
   }
+}
+
+// Enters work mode on a specific task (e.g. from Empezar buttons):
+// selects it, navigates to the view, renders fresh.
+export async function startWorkmode(taskId) {
+  await flushSave();
+  if (taskId != null) currentId = taskId;
+  document.querySelector('.nav[data-nav="workmode"]')?.click();
+  await initWorkmode();
 }

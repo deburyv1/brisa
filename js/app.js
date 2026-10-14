@@ -36,7 +36,7 @@ import { initTimer } from "./timer.js";
 import { initWeek } from "./week.js";
 import { initWallpaper } from "./wallpaper.js";
 import { initGlass } from "./glass.js";
-import { initWorkmode } from "./workmode.js";
+import { initWorkmode, startWorkmode } from "./workmode.js";
 
 window.initTasks = initTasks;
 window.initJournal = initJournal;
@@ -56,6 +56,7 @@ window.loadEntryIntoCapture = loadEntryIntoCapture;
 window.renderNext = renderNext;
 window.openFocus = openFocus;
 window.initWorkmode = initWorkmode;
+window.startWorkmode = startWorkmode;
 
 const NAV_LABELS = {
   home: "Inicio",
