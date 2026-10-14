@@ -38,7 +38,7 @@ export async function loadEntryIntoCapture(entryId) {
     if (!entry) return;
     pendingEntry = entry;
     selectedType = entry.suggested_type || suggestType(plainText(entry.raw_text)).type;
-    renderSuggestion(section, entry, "Revísala y confirma el tipo.");
+    renderSuggestion(section, entry);
   } catch (e) {
     console.error("Error cargando entrada:", e);
   }
@@ -146,7 +146,7 @@ async function capture(section) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     pendingEntry = await res.json();
     selectedType = suggestion.type;
-    renderSuggestion(section, pendingEntry, suggestion.reason);
+    renderSuggestion(section, pendingEntry);
     if (window.initInbox) window.initInbox();
     if (window.renderGuidanceBanner) window.renderGuidanceBanner();
   } catch (err) {
@@ -184,11 +184,10 @@ async function findSimilar(text, excludeId = null) {
   }
 }
 
-function renderSuggestion(section, entry, reason) {
+function renderSuggestion(section, entry) {
   section.innerHTML = `
     <div class="capture-suggest">
       <div class="capture-suggest-text"><span class="capture-suggest-icon">💭</span><div class="md">${renderRich(entry.raw_text)}</div></div>
-      <div class="capture-suggest-reason">${escapeHtml(reason)}</div>
       <div class="capture-similar" id="capture-similar" style="display:none"></div>
       <div class="capture-types">
         ${TYPES.map(t => `
