@@ -45,6 +45,22 @@ function escapeHtml(str) {
     .replace(/"/g, "&quot;");
 }
 
+// Parent breadcrumb: when working a step, show which action it
+// belongs to and where you are in it.
+function parentContext(task) {
+  if (task.parent_task_id == null) return "";
+  const all = state.tasks || [];
+  const parent = all.find(t => String(t.id) === String(task.parent_task_id));
+  if (!parent) return "";
+  const siblings = all.filter(t => String(t.parent_task_id) === String(parent.id));
+  const pos = siblings.findIndex(t => String(t.id) === String(task.id)) + 1;
+  const total = siblings.length;
+  return `
+    <button type="button" class="workmode-parent" data-parent="${parent.id}" title="Ver la acción completa">
+      Parte de: <strong>${escapeHtml(parent.title)}</strong>${total > 0 ? ` · Paso ${pos} de ${total}` : ""}
+    </button>`;
+}
+
 async function flushSave() {
   if (!dirty || !quill || !currentId) return;
   dirty = false;
@@ -110,6 +126,7 @@ function render(section) {
     </div>
     <div class="workmode-grid">
       <div class="workmode-task aero-panel">
+        ${parentContext(task)}
         <div class="workmode-task-title">${escapeHtml(task.title)}</div>
         ${task.first_step ? `<div class="workmode-step">Ahora mismo, solo esto: <strong>${escapeHtml(task.first_step)}</strong></div>` : `<div class="workmode-step dim">Sin primer paso definido.</div>`}
         <div class="workmode-timer">
@@ -144,6 +161,11 @@ function render(section) {
 
   section.querySelector("#workmode-zen")?.addEventListener("click", () => {
     document.body.classList.toggle("zen");
+  });
+
+  section.querySelector(".workmode-parent")?.addEventListener("click", (e) => {
+    const pid = e.currentTarget.dataset.parent;
+    if (pid && window.openFocus) window.openFocus(pid);
   });
 
   section.querySelectorAll(".workmode-preset").forEach(b => {
