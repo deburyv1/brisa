@@ -197,6 +197,19 @@ function renderDefineStep(task) {
   body().querySelector("#focus-define-save")?.addEventListener("click", async () => {
     const step = input?.value.trim();
     if (!step) return;
+    if (step.length < 4) {
+      input?.focus();
+      input?.select();
+      let nudge = body().querySelector("#focus-define-nudge");
+      if (!nudge) {
+        nudge = document.createElement("p");
+        nudge.id = "focus-define-nudge";
+        nudge.className = "focus-note";
+        input?.after(nudge);
+      }
+      nudge.textContent = "Muy cortito: descríbelo en una frase (ej: abre la boleta y mira el monto).";
+      return;
+    }
     try {
       await fetch(`${API_BASE}/tasks/${task.id}`, {
         method: "PUT",
