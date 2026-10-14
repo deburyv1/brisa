@@ -75,6 +75,9 @@ export async function openFocus(taskId, opts = {}) {
 
   if (opts.skipFriction) {
     renderStep(task, {});
+  } else if (window.brisaTimer && window.brisaTimer.hasSession()) {
+    // Paused or running session: continue where left, don't restart friction
+    renderStep(task, {});
   } else {
     renderFriction(task);
   }
@@ -483,7 +486,10 @@ function renderNewStep(parent) {
 // the circle pulses once so the eye follows it, and it starts counting.
 function handoffToTimer(minutes) {
   if (window.brisaTimer) {
-    window.brisaTimer.setMinutes(minutes);
+    // Resume paused session as-is; only a fresh timer takes new minutes
+    if (!window.brisaTimer.hasSession()) {
+      window.brisaTimer.setMinutes(minutes);
+    }
   }
   closeFocus();
   requestAnimationFrame(() => {
@@ -513,6 +519,8 @@ export function initFocus() {
 
 function closeFocus() {
   document.querySelector("#focus-modal")?.classList.remove("active");
+  // Leaving the session pauses the floating timer (resume continues it)
+  if (window.brisaTimer) window.brisaTimer.stop();
   currentTask = null;
 }
 
