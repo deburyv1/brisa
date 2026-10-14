@@ -110,6 +110,48 @@ async function fetchChildren(taskId) {
   return [];
 }
 
+// Mode bar: visible, switchable, no auto-magic hidden from the user.
+const FOCUS_MODES = [
+  { id: "checklist", label: "Checklist" },
+  { id: "step", label: "Paso" },
+  { id: "guide", label: "Guía" },
+];
+
+function modeBar(current) {
+  return `
+    <div class="focus-modes">
+      <span>Modo: <strong>${FOCUS_MODES.find(m => m.id === current).label}</strong></span>
+      <span>${FOCUS_MODES.filter(m => m.id !== current).map(m =>
+        `<button type="button" class="focus-mode-link" data-mode="${m.id}">${m.label}</button>`).join(" · ")}</span>
+    </div>`;
+}
+
+async function switchMode(task, mode) {
+  if (mode === "checklist") {
+    const [children, fresh] = await Promise.all([fetchChildren(task.id), resolveTask(task.id)]);
+    currentTask = fresh || task;
+    document.querySelector("#focus-title").textContent = currentTask.title;
+    renderChecklist(currentTask, children);
+  } else if (mode === "step") {
+    renderStep(task, {});
+  } else if (mode === "guide") {
+    renderUnblockAsk(task);
+  }
+}
+
+function wireModeBar(task) {
+  body().querySelectorAll(".focus-mode-link").forEach(btn => {
+    btn.addEventListener("click", () => switchMode(task, btn.dataset.mode));
+  });
+}
+
+async function refreshChecklist(task) {
+  const [fresh, stillThere] = await Promise.all([fetchChildren(task.id), resolveTask(task.id)]);
+  currentTask = stillThere || task;
+  document.querySelector("#focus-title").textContent = currentTask.title;
+  renderChecklist(currentTask, fresh);
+}
+
 function body() {
   return document.querySelector("#focus-body");
 }
@@ -154,6 +196,7 @@ function renderStep(task, { presetMin = 10, note = null } = {}) {
   const hasStep = !!(task.first_step && task.first_step.trim());
   body().innerHTML = `
     <p class="focus-permission">Objetivo de esta sesión: avanzar <strong>una sola cosa</strong>, no terminar todo.</p>
+    ${modeBar("step")}
     ${note ? `<p class="focus-note">${escapeHtml(note)}</p>` : ""}
     <div class="focus-step-box">
       <div class="focus-step-label">Ahora mismo, solo esto:</div>
@@ -199,6 +242,7 @@ function renderStep(task, { presetMin = 10, note = null } = {}) {
     if (currentTask) renderFriction(currentTask);
   });
   body().querySelector("#focus-done")?.addEventListener("click", completeTask);
+  wireModeBar(task);
 }
 
 // Checklist mode: the path is clear, just walk it.
@@ -210,19 +254,25 @@ function renderChecklist(task, children, note = null) {
   const next = open[0] || null;
   body().innerHTML = `
     <p class="focus-permission">El camino está claro. Avanza paso a paso.</p>
+    ${modeBar("checklist")}
     ${note ? `<p class="focus-note">${escapeHtml(note)}</p>` : ""}
     ${task.first_step && task.first_step.trim() ? `<p class="focus-note">Arranca por: <strong>${escapeHtml(task.first_step)}</strong></p>` : ""}
+    ${total > 0 ? `
     <div class="focus-progress">
       <div class="focus-progress-top"><span>Avance de esta acción</span><span>${done} de ${total}</span></div>
-      <div class="focus-progress-bar"><span style="width:${total ? Math.round((done / total) * 100) : 0}%"></span></div>
-    </div>
+      <div class="focus-progress-bar"><span style="width:${Math.round((done / total) * 100)}%"></span></div>
+    </div>` : ""}
     <div class="focus-checklist">
+      ${total === 0 ? `<p class="focus-note">Sin pasos todavía: escríbelos abajo, uno a la vez.</p>` : ""}
       ${children.map(c => `
         <button type="button" class="focus-check-item ${c.is_completed ? "done" : ""}" data-child="${c.id}">
           <span class="focus-check-box">${c.is_completed ? "✓" : ""}</span>
           <span class="focus-check-title">${escapeHtml(c.title)}</span>
           ${c.estimated_minutes ? `<span class="focus-check-min">~${c.estimated_minutes} min</span>` : ""}
         </button>`).join("")}
+      <div class="focus-add-row">
+        <input type="text" id="focus-add-step" class="prep-input" placeholder="Agregar paso + Enter" autocomplete="off">
+      </div>
     </div>
     <div class="modal-actions">
       <button type="button" class="modal-btn modal-btn-secondary" id="focus-later" title="Cerrar sin marcar nada">Lo dejo acá</button>
@@ -253,12 +303,32 @@ function renderChecklist(task, children, note = null) {
       if (window.renderNext) window.renderNext();
       if (window.initToday) window.initToday();
       if (window.initReadiness) window.initReadiness();
-      const fresh = await fetchChildren(task.id);
-      const stillThere = await resolveTask(task.id);
-      currentTask = stillThere || task;
-      document.querySelector("#focus-title").textContent = currentTask.title;
-      renderChecklist(currentTask, fresh);
+      await refreshChecklist(task);
     });
+  });
+  const addInput = body().querySelector("#focus-add-step");
+  const addStep = async () => {
+    const title = addInput?.value.trim();
+    if (!title) return;
+    try {
+      await fetch(`${API_BASE}/tasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, parent_task_id: task.id }),
+      });
+    } catch (e) {
+      console.error("Error agregando paso:", e);
+    }
+    if (window.initTasks) await window.initTasks();
+    if (window.renderNext) window.renderNext();
+    await refreshChecklist(task);
+    body().querySelector("#focus-add-step")?.focus();
+  };
+  addInput?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addStep();
+    }
   });
   const nextBtn = body().querySelector("#focus-next-step");
   if (nextBtn && next) {
@@ -269,6 +339,7 @@ function renderChecklist(task, children, note = null) {
     if (currentTask) renderFriction(currentTask);
   });
   body().querySelector("#focus-done")?.addEventListener("click", completeTask);
+  wireModeBar(task);
 }
 
 function renderDefineStep(task) {
@@ -318,6 +389,7 @@ function renderDefineStep(task) {
 function renderUnblockAsk(task) {
   body().innerHTML = `
     <p class="focus-question">Cuéntame qué te traba, como me lo contarías a mí.</p>
+    ${modeBar("guide")}
     <div class="form-group">
       <textarea id="focus-block-input" rows="3" placeholder="Ej: no terminé de juntar las fotos y no sé si las que tengo sirven"></textarea>
     </div>
@@ -330,6 +402,7 @@ function renderUnblockAsk(task) {
   `;
   const input = body().querySelector("#focus-block-input");
   input?.focus();
+  wireModeBar(task);
   body().querySelector("#focus-back")?.addEventListener("click", () => renderFriction(task));
   body().querySelector("#focus-unblock-go")?.addEventListener("click", async () => {
     const block = input?.value.trim();

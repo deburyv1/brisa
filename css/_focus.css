@@ -146,6 +146,42 @@
   font-weight: 400;
 }
 
+/* Mode bar: visible, switchable, quiet */
+.focus-modes {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 10px;
+  color: rgba(22, 75, 105, 0.6);
+  margin: 0 0 10px;
+}
+
+.focus-modes strong {
+  color: var(--ink);
+}
+
+.focus-mode-link {
+  border: 0;
+  background: none;
+  padding: 2px 4px;
+  font-size: 10px;
+  font-family: inherit;
+  color: #087fb0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.focus-add-row {
+  margin-top: 6px;
+}
+
+.focus-add-row .prep-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
 /* Checklist mode: progress as evidence, never score */
 .focus-progress {
   margin: 10px 0 4px;
