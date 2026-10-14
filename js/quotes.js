@@ -1,22 +1,45 @@
 /* ============================================
    BRISA - Quotes Module
-   Famous quotes vendored from The Story Shack
-   quote generator (static examples). One per
+   Famous quotes in Spanish, vendored from The Story
+   Shack quote generator (?locale=es). One per
    page load, offline, no scraping.
    ============================================ */
 
-const QUOTES = [
-  { text: "Time flies, whether you're wasting it or not.", author: "Crystal Woods" },
-  { text: "To be successful in life what you need is education, not literacy and degrees.", author: "Munshi Premchand" },
-  { text: "The world hates change, yet it is the only thing that has brought progress.", author: "Charles Kettering" },
-  { text: "You are not a drop in the ocean. You are the entire ocean in a drop.", author: "Rumi" },
-  { text: "Be true to who you are.", author: "Anónimo" },
-  { text: "Intelligence plus character – that is the goal of true education.", author: "Martin Luther King Jr" },
-  { text: "The mind is everything. What you think you become.", author: "Buddha" },
-  { text: "Guests, like fish, begin to smell after three days.", author: "Benjamin Franklin" },
-  { text: "Failure is success if we learn from it.", author: "Malcolm Forbes" },
-  { text: "What is once well done is done forever.", author: "Henry David Thoreau" },
+const RAW = [
+  "Justo y suavemente llega lejos. - Miguel de Cervantes",
+  "Todo tiene belleza, pero no todos la ven. - Confucio",
+  "El tiempo es lo que más deseamos, pero lo que peor utilizamos. - William Penn",
+  "Ésos son mis principios, y si no te gustan. bueno, tengo otros. - Groucho Marx",
+  "El placer más noble es la alegría de comprender. - Leonardo da Vinci",
+  "La vida es frágil. No tenemos un mañana garantizado, así que dalo todo. - Tim Cook",
+  "No es posible tener un mapa porque la vida sigue cambiando. - Osho",
+  "Conquistar el miedo es el comienzo de la sabiduría. - Bertrand Russell",
+  "Lo único que debemos temer es al miedo mismo. Franklin D. Roosevelt",
+  "Vive tu vida, haz tu trabajo y luego quítate el sombrero. - Henry David Thoreau",
+  "Solo tienes que escribir una oración verdadera. Escribe la oración más verdadera que conozcas. - Ernest Hemingway",
+  "En el amor verdadero, alcanzas la libertad. - Thich Nhat Hanh",
+  "Deja que la belleza de lo que amas sea lo que haces. - Rumi",
+  "La originalidad no es más que una imitación juiciosa. - Voltaire",
+  "El miedo es destructivo; el amor es una energía creativa. - Osho",
+  "Para curar las preocupaciones, el trabajo es mejor que el whisky. Thomas A. Edison",
+  "Dejar de fumar es fácil. Lo he hecho cientos de veces. - Mark Twain",
+  "Vive tus creencias y podrás cambiar el mundo. - Henry David Thoreau",
+  "Guarda tus miedos para ti, pero comparte tu coraje con los demás. - Robert Louis Stevenson",
+  "Nunca soñé con el éxito. Trabajé para conseguirlo. - Estée Lauder",
+  "Tú eres tus elecciones. - Lucio Anneo Séneca",
+  "Nuestros muertos nunca están muertos para nosotros hasta que los olvidamos. - George Eliot",
+  "El pájaro un nido, la araña una tela, el hombre amistad. - William Blake",
+  "Los tiempos difíciles nunca duran, pero la gente difícil sí.",
+  "Nunca seas un imitador, sé siempre original. No te conviertas en una copia al carbón. - Osho",
 ];
+
+function parse(raw) {
+  const i = raw.lastIndexOf(" - ");
+  if (i < 0) return { text: raw.trim(), author: "Anónimo" };
+  return { text: raw.slice(0, i).trim(), author: raw.slice(i + 3).trim() || "Anónimo" };
+}
+
+const QUOTES = RAW.map(parse);
 
 function format(q) {
   return `\u201C${q.text}\u201D — ${q.author}`;
