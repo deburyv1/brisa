@@ -195,6 +195,7 @@ function handleFriction(task, kind) {
 function renderStep(task, { presetMin = 10, note = null } = {}) {
   const hasStep = !!(task.first_step && task.first_step.trim());
   const isChildStep = task.parent_task_id != null;
+  const parent = isChildStep ? findTask(task.parent_task_id) : null;
   const stepContent = hasStep
     ? `<div class="focus-step">${escapeHtml(task.first_step)}</div>`
     : isChildStep
@@ -205,6 +206,7 @@ function renderStep(task, { presetMin = 10, note = null } = {}) {
   body().innerHTML = `
     <p class="focus-permission">Objetivo de esta sesión: avanzar <strong>una sola cosa</strong>, no terminar todo.</p>
     ${modeBar("step")}
+    ${parent ? `<button type="button" class="focus-parent-link" id="focus-parent" title="Ver la acción completa">Parte de: <strong>${escapeHtml(parent.title)}</strong></button>` : ""}
     ${note ? `<p class="focus-note">${escapeHtml(note)}</p>` : ""}
     <div class="focus-step-box">
       <div class="focus-step-label">Ahora mismo, solo esto:</div>
@@ -242,6 +244,13 @@ function renderStep(task, { presetMin = 10, note = null } = {}) {
   paintStart();
   startBtn?.addEventListener("click", () => handoffToTimer(minutes));
   body().querySelector("#focus-define-now")?.addEventListener("click", () => renderDefineStep(task));
+  body().querySelector("#focus-parent")?.addEventListener("click", async () => {
+    const p = await resolveTask(task.parent_task_id);
+    if (!p) return;
+    currentTask = p;
+    document.querySelector("#focus-title").textContent = p.title;
+    await routeByClarity(p);
+  });
   body().querySelector("#focus-later")?.addEventListener("click", closeFocus);
   body().querySelector("#focus-stuck")?.addEventListener("click", () => {
     if (currentTask) renderFriction(currentTask);
@@ -352,10 +361,12 @@ function renderChecklist(task, children, note = null) {
 }
 
 function renderDefineStep(task) {
+  const current = task.first_step && task.first_step.trim() ? task.first_step.trim() : "";
   body().innerHTML = `
     <p class="focus-question">¿Cuál sería el primer paso físico, bien chico?</p>
+    ${current ? `<p class="focus-note">Actual: "<strong>${escapeHtml(current)}</strong>". Editarlo lo reemplaza.</p>` : ""}
     <div class="form-group">
-      <input type="text" id="focus-define-input" placeholder="Ej: saca una prenda y ponla en la cama">
+      <input type="text" id="focus-define-input" placeholder="Ej: saca una prenda y ponla en la cama" value="${escapeHtml(current)}">
     </div>
     <div class="modal-actions">
       <button type="button" class="modal-btn modal-btn-secondary" id="focus-back">Volver</button>

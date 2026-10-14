@@ -146,6 +146,27 @@
   font-weight: 400;
 }
 
+.focus-parent-link {
+  align-self: flex-start;
+  border: 1px solid rgba(22, 75, 105, 0.25);
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: 99px;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-family: inherit;
+  color: rgba(22, 75, 105, 0.85);
+  cursor: pointer;
+  margin-bottom: 10px;
+}
+
+.focus-parent-link:hover {
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.focus-parent-link strong {
+  color: var(--ink);
+}
+
 /* Mode bar: visible, switchable, quiet */
 .focus-modes {
   display: flex;
