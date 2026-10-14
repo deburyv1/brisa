@@ -95,40 +95,27 @@ function body() {
 
 // ---- Views ----
 
-async function renderFriction(task) {
-  let basics = [];
-  try {
-    const res = await fetch("/api/readiness");
-    if (res.ok) basics = (await res.json()).filter(i => !i.done);
-  } catch {
-    basics = [];
-  }
+function renderFriction(task) {
   body().innerHTML = `
     <p class="focus-question">Antes de hacerlo, ¿qué te frena?</p>
     <p class="focus-hint">Si ya sabes qué hacer, aprieta <strong>Empezar</strong> y parte. Si algo te traba, elige qué es y te ayudo a destrabarlo.</p>
     <div class="focus-options">
       <button class="focus-option primary" data-friction="ready">▶️ Empezar<small>Ya sé qué hacer · parte el timer</small></button>
-      ${basics.length > 0 ? `
-        <button class="focus-option" data-friction="basics">🧹 Lo básico pendiente (${basics.length})<small>Marca ducha, cama, etc. y sigues</small></button>
-      ` : ""}
       <button class="focus-option" data-friction="unknown">🟢 No sé cuál es el siguiente paso<small>Lo definimos juntos en una frase</small></button>
       <button class="focus-option" data-friction="verify">🔎 Necesito verificar algo primero<small>Revisamos el dato en 10 min máximo</small></button>
       <button class="focus-option" data-friction="big">🧩 Es más grande de lo que parece<small>La partimos en algo chico</small></button>
       <button class="focus-option" data-friction="resist">😕 Me da resistencia<small>Partimos con 5 min nomás, parar vale</small></button>
       <button class="focus-option" data-friction="unblock">✨ Ayúdame a partir<small>Describo mi traba y la separamos juntos</small></button>
     </div>
-    <div id="focus-basics"></div>
   `;
   body().querySelectorAll(".focus-option").forEach(btn => {
-    btn.addEventListener("click", () => handleFriction(task, btn.dataset.friction, basics));
+    btn.addEventListener("click", () => handleFriction(task, btn.dataset.friction));
   });
 }
 
-function handleFriction(task, kind, basics = []) {
+function handleFriction(task, kind) {
   if (kind === "ready") {
     renderStep(task, {});
-  } else if (kind === "basics") {
-    renderBasics(task, basics);
   } else if (kind === "unknown") {
     renderDefineStep(task);
   } else if (kind === "verify") {
@@ -191,38 +178,6 @@ function renderStep(task, { presetMin = 10, note = null } = {}) {
     if (currentTask) renderFriction(currentTask);
   });
   body().querySelector("#focus-done")?.addEventListener("click", completeTask);
-}
-
-function renderBasics(task, basics) {
-  const box = body().querySelector("#focus-basics");
-  if (!box) return;
-  box.innerHTML = `
-    <div class="focus-basics">
-      ${basics.map(b => `
-        <label class="prep-row">
-          <input type="checkbox" data-basic="${b.id}">
-          <span>${escapeHtml(b.label)}</span>
-        </label>`).join("")}
-      <button class="modal-btn modal-btn-primary" id="focus-basics-done" style="margin-top:8px">Listo, sigamos</button>
-    </div>
-  `;
-  box.querySelectorAll("[data-basic]").forEach(cb => {
-    cb.addEventListener("change", async () => {
-      try {
-        await fetch("/api/readiness/check", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ item_id: Number(cb.dataset.basic), done: cb.checked }),
-        });
-        if (window.initReadiness) window.initReadiness();
-      } catch (e) {
-        console.error("Error guardando readiness:", e);
-      }
-    });
-  });
-  box.querySelector("#focus-basics-done")?.addEventListener("click", () => {
-    renderStep(task, {});
-  });
 }
 
 function renderDefineStep(task) {
