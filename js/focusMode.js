@@ -70,7 +70,14 @@ export async function openFocus(taskId, opts = {}) {
 
   const overlay = document.querySelector("#focus-modal");
   if (!overlay) return;
-  overlay.querySelector("#focus-title").textContent = task.title;
+  // Child steps show the parent action as title; the step itself
+  // lives in the hero box, so nothing reads twice.
+  let title = task.title;
+  if (task.parent_task_id != null) {
+    const parent = findTask(task.parent_task_id) || await resolveTask(task.parent_task_id).catch(() => null);
+    if (parent) title = parent.title;
+  }
+  overlay.querySelector("#focus-title").textContent = title;
   overlay.classList.add("active");
 
   if (opts.skipFriction) {
