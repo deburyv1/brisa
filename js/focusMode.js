@@ -201,7 +201,8 @@ function renderStep(task, { presetMin = 10, note = null } = {}) {
   const hasStep = !!(task.first_step && task.first_step.trim());
   const isChildStep = task.parent_task_id != null;
   const parent = isChildStep ? findTask(task.parent_task_id) : null;
-  const stepContent = hasStep
+  const actionable = hasStep || isChildStep;
+  const stepInner = hasStep
     ? `<div class="focus-step">${escapeHtml(task.first_step)}</div>`
     : isChildStep
       ? `<div class="focus-step">${escapeHtml(task.title)}</div>`
@@ -211,10 +212,18 @@ function renderStep(task, { presetMin = 10, note = null } = {}) {
     ${modeBar("step")}
     ${parent ? `<button type="button" class="focus-parent-link" id="focus-parent" title="Ver la acción completa">Parte de: <strong>${escapeHtml(parent.title)}</strong></button>` : ""}
     ${note ? `<p class="focus-note">${escapeHtml(note)}</p>` : ""}
+    ${actionable ? `
+    <button type="button" class="focus-step-box as-complete" id="focus-step-done" title="Marcar como hecho">
+      <span class="focus-step-check" aria-hidden="true"></span>
+      <span class="focus-step-text">
+        <span class="focus-step-label">Ahora mismo, solo esto:</span>
+        ${stepInner}
+      </span>
+    </button>` : `
     <div class="focus-step-box">
       <div class="focus-step-label">Ahora mismo, solo esto:</div>
-      ${stepContent}
-    </div>
+      ${stepInner}
+    </div>`}
     <div class="focus-timer-row">
       <div class="focus-time-btns" title="Duración de la sesión">
         <button class="focus-time-btn" data-min="5">5</button>
@@ -226,9 +235,7 @@ function renderStep(task, { presetMin = 10, note = null } = {}) {
     </div>
     <p id="focus-message" class="focus-message"></p>
     <div class="modal-actions focus-quiet-row">
-      <button type="button" class="modal-btn modal-btn-secondary" id="focus-later" title="Cerrar sin marcar nada">Lo dejo acá</button>
       <button type="button" class="modal-btn modal-btn-secondary" id="focus-stuck" title="Volver a qué me frena">Atascado</button>
-      <button type="button" class="modal-btn modal-btn-secondary" id="focus-done" title="Marcar la tarea como hecha">Marcar hecha ✓</button>
     </div>
   `;
   let minutes = presetMin;
@@ -261,6 +268,7 @@ function renderStep(task, { presetMin = 10, note = null } = {}) {
   }
   startBtn?.addEventListener("click", () => handoffToTimer(minutes));
   body().querySelector("#focus-define-now")?.addEventListener("click", () => renderDefineStep(task));
+  body().querySelector("#focus-step-done")?.addEventListener("click", completeTask);
   body().querySelector("#focus-parent")?.addEventListener("click", async () => {
     const p = await resolveTask(task.parent_task_id);
     if (!p) return;

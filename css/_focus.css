@@ -46,6 +46,52 @@
   font-weight: 400;
 }
 
+/* The step itself is the complete button: one evident action */
+button.focus-step-box.as-complete {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+button.focus-step-box.as-complete:hover {
+  border-color: rgba(8, 127, 176, 0.55);
+}
+
+button.focus-step-box.as-complete:hover .focus-step-check {
+  border-color: #087fb0;
+  background: rgba(8, 127, 176, 0.15);
+}
+
+button.focus-step-box.as-complete:hover .focus-step-check::after {
+  content: "✓";
+  color: #087fb0;
+}
+
+.focus-step-check {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 2px;
+  border: 2px solid rgba(22, 75, 105, 0.4);
+  background: rgba(255, 255, 255, 0.5);
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  transition: var(--transition-speed);
+}
+
+.focus-step-text {
+  flex: 1;
+  min-width: 0;
+}
+
 .focus-staging {
   font-size: 10px;
   color: rgba(22, 75, 105, 0.72);
