@@ -194,16 +194,21 @@ function handleFriction(task, kind) {
 
 function renderStep(task, { presetMin = 10, note = null } = {}) {
   const hasStep = !!(task.first_step && task.first_step.trim());
+  const isChildStep = task.parent_task_id != null;
+  const stepContent = hasStep
+    ? `<div class="focus-step">${escapeHtml(task.first_step)}</div>`
+    : isChildStep
+      ? `<div class="focus-step">${escapeHtml(task.title)}</div>
+         <p class="focus-note" style="margin:6px 0 0">Este paso ya es lo chico: hazlo directo.</p>`
+      : `<div class="focus-step missing">Aún no defines el primer paso.</div>
+         <button type="button" class="modal-btn modal-btn-secondary" id="focus-define-now" style="margin-top:8px">Definirlo (20 segundos)</button>`;
   body().innerHTML = `
     <p class="focus-permission">Objetivo de esta sesión: avanzar <strong>una sola cosa</strong>, no terminar todo.</p>
     ${modeBar("step")}
     ${note ? `<p class="focus-note">${escapeHtml(note)}</p>` : ""}
     <div class="focus-step-box">
       <div class="focus-step-label">Ahora mismo, solo esto:</div>
-      ${hasStep
-        ? `<div class="focus-step">${escapeHtml(task.first_step)}</div>`
-        : `<div class="focus-step missing">Aún no defines el primer paso.</div>
-           <button type="button" class="modal-btn modal-btn-secondary" id="focus-define-now" style="margin-top:8px">Definirlo (20 segundos)</button>`}
+      ${stepContent}
     </div>
     <div class="focus-timer-row">
       <div class="focus-time-btns" title="Duración de la sesión">
