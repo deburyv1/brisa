@@ -252,8 +252,7 @@ function renderTasks(section, tasks) {
     });
 
     item.querySelector('[data-action="start"]')?.addEventListener("click", () => {
-      if (window.startWorkmode) window.startWorkmode(id);
-      else if (window.openFocus) window.openFocus(id);
+      if (window.openFocus) window.openFocus(id);
     });
 
     item.querySelector('[data-action="edit"]')?.addEventListener("click", () => {
