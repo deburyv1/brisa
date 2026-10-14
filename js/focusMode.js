@@ -275,10 +275,14 @@ function renderChecklist(task, children, note = null) {
       </div>
     </div>
     <div class="modal-actions">
+      ${next
+        ? `<button type="button" class="modal-btn modal-btn-primary focus-primary-block" id="focus-next-step" title="Abrir el siguiente paso pendiente">Empezar siguiente</button>`
+        : `<button type="button" class="modal-btn modal-btn-primary focus-primary-block" id="focus-done" title="Todos los pasos listos: marcar la tarea como hecha">Marcar hecha ✓</button>`}
+    </div>
+    <div class="modal-actions focus-quiet-row">
       <button type="button" class="modal-btn modal-btn-secondary" id="focus-later" title="Cerrar sin marcar nada">Lo dejo acá</button>
       <button type="button" class="modal-btn modal-btn-secondary" id="focus-stuck" title="Volver a qué me frena">Atascado</button>
-      ${next ? `<button type="button" class="modal-btn modal-btn-primary" id="focus-next-step" title="Abrir el siguiente paso pendiente">Empezar siguiente</button>` : ""}
-      <button type="button" class="modal-btn modal-btn-primary" id="focus-done" title="Marcar la tarea como hecha">Marcar hecha ✓</button>
+      ${next ? `<button type="button" class="modal-btn modal-btn-secondary" id="focus-done" title="Marcar la tarea como hecha">Marcar hecha ✓</button>` : ""}
     </div>
   `;
   body().querySelectorAll(".focus-check-item").forEach(btn => {
