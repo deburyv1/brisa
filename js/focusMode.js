@@ -78,6 +78,9 @@ export async function openFocus(taskId, opts = {}) {
   } else if (window.brisaTimer && window.brisaTimer.hasSession()) {
     // Paused or running session: continue where left, don't restart friction
     renderStep(task, {});
+  } else if (task.first_step && task.first_step.trim()) {
+    // Step already known: no interrogation, straight to doing
+    renderStep(task, {});
   } else {
     renderFriction(task);
   }
