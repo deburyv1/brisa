@@ -145,7 +145,7 @@ async function switchMode(task, mode) {
 }
 
 function wireModeBar(task) {
-  body().querySelectorAll(".focus-mode-link").forEach(btn => {
+  body().querySelectorAll(".focus-mode-seg").forEach(btn => {
     btn.addEventListener("click", () => switchMode(task, btn.dataset.mode));
   });
 }
