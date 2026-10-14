@@ -2,6 +2,8 @@
    BRISA - Greeting Module
    Dynamic greeting and date
    ============================================ */
+import { pickQuote } from "./quotes.js";
+
 export function initGreeting() {
   const USER_NAME = "Leonardo";
 
@@ -23,8 +25,12 @@ export function initGreeting() {
     const greetingEl = document.querySelector("#greeting");
     const dateEl = document.querySelector("#date");
     const pillEl = document.querySelector("#date-pill");
+    const quoteEl = document.querySelector(".greeting-quote");
     if (greetingEl) greetingEl.textContent = getGreeting();
     if (dateEl) dateEl.textContent = getDate();
+    if (quoteEl) {
+      quoteEl.textContent = pickQuote();
+    }
     if (pillEl) {
       pillEl.textContent = new Date().toLocaleDateString("es-ES", {
         weekday: "short",
