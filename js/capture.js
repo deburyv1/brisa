@@ -6,7 +6,7 @@ import { suggestType, TYPE_LABELS } from "./suggest.js";
 import { createEditor, editorHTML, plainText, renderRich } from "./richtext.js";
 
 const API_BASE = "/api";
-const TYPES = ["action", "event", "note", "idea", "reminder"];
+const TYPES = ["action", "event", "note", "idea", "reminder", "purchase"];
 
 let pendingEntry = null;
 let selectedType = null;
@@ -324,6 +324,10 @@ async function confirmEntry(section, entry) {
         title: text, remind_at: iso, entry_id: entry.id, extreme,
       });
       targetId = rem.id;
+    } else if (selectedType === "purchase") {
+      const item = text.replace(/^(comprar|cómprame|comprame)\s+/i, "").trim() || text;
+      const shop = await postJson("/api/shopping", { description: item });
+      targetId = shop.id;
     }
 
     await fetch(`${API_BASE}/entries/${entry.id}`, {
@@ -341,6 +345,7 @@ async function confirmEntry(section, entry) {
     if (window.initCalendar) window.initCalendar();
     if (window.initJournal) window.initJournal();
     if (window.initIdeas) window.initIdeas();
+    if (window.initShopping) window.initShopping();
     if (window.renderNext) window.renderNext();
   } catch (err) {
     console.error("Error procesando entrada:", err);

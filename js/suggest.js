@@ -14,10 +14,15 @@ const WEEKDAYS = [
 ];
 
 const ACTION_VERBS = [
-  "comprar", "llamar", "revisar", "hacer", "lavar", "pagar", "enviar",
+  "llamar", "revisar", "hacer", "lavar", "pagar", "enviar",
   "responder", "preparar", "ordenar", "limpiar", "llevar", "buscar",
   "pedir", "arreglar", "terminar", "empezar", "leer", "escribir",
   "tengo que", "hay que", "necesito hacer", "no olvidar",
+];
+
+const BUY_HINTS = [
+  "comprar", "compra", "cómprame", "comprame",
+  "supermercado", "super ", "feria", "farmacia", "panadería", "panaderia",
 ];
 
 const IDEA_HINTS = [
@@ -42,7 +47,7 @@ function hasDateRef(text) {
   return false;
 }
 
-// Returns { type, reason }. Types: action | event | note | idea | reminder
+// Returns { type, reason }. Types: action | event | note | idea | reminder | purchase
 export function suggestType(rawText) {
   const text = rawText.toLowerCase().trim();
   const timeRef = hasTimeOfDay(text);
@@ -50,6 +55,9 @@ export function suggestType(rawText) {
 
   if (IDEA_HINTS.some(h => text.includes(h))) {
     return { type: "idea", reason: "Parece una idea." };
+  }
+  if (BUY_HINTS.some(h => text.includes(h))) {
+    return { type: "purchase", reason: "Parece una compra." };
   }
   if (timeRef && dateRef) {
     return { type: "event", reason: "Tiene fecha y hora." };
@@ -78,4 +86,5 @@ export const TYPE_LABELS = {
   note: "Nota",
   idea: "Idea",
   reminder: "Recordatorio",
+  purchase: "Compra",
 };
