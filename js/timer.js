@@ -477,10 +477,6 @@ export function initTimer() {
     e.stopPropagation();
     toggle();
   });
-  document.querySelector("#timer-pause-mini")?.addEventListener("click", (e) => {
-    e.stopPropagation();
-    pauseTimer();
-  });
 
   document.querySelectorAll(".timer-preset").forEach(b =>
     b.addEventListener("click", () => setMinutes(Number(b.dataset.min))));
