@@ -81,12 +81,33 @@ export async function openFocus(taskId, opts = {}) {
   } else if (window.brisaTimer && window.brisaTimer.hasSession()) {
     // Paused or running session: continue where left, don't restart friction
     renderStep(task, {});
-  } else if (task.first_step && task.first_step.trim()) {
-    // Step already known: no interrogation, straight to doing
+  } else {
+    await routeByClarity(task);
+  }
+}
+
+// Single entry routing: the task's shape decides the mode,
+// the user never picks a methodology.
+async function routeByClarity(task) {
+  const children = await fetchChildren(task.id);
+  const open = children.filter(c => !c.is_completed);
+  if (open.length > 0) {
+    renderChecklist(task, children);
+  } else if ((task.parent_task_id != null) || (task.first_step && task.first_step.trim())) {
     renderStep(task, {});
   } else {
-    renderFriction(task);
+    renderUnblockAsk(task);
   }
+}
+
+async function fetchChildren(taskId) {
+  try {
+    const res = await fetch(`${API_BASE}/tasks?parent_task_id=${taskId}`);
+    if (res.ok) return await res.json();
+  } catch (e) {
+    console.error("Error cargando pasos:", e);
+  }
+  return [];
 }
 
 function body() {
@@ -180,6 +201,76 @@ function renderStep(task, { presetMin = 10, note = null } = {}) {
   body().querySelector("#focus-done")?.addEventListener("click", completeTask);
 }
 
+// Checklist mode: the path is clear, just walk it.
+// Progress is evidence (X of Y), never score.
+function renderChecklist(task, children, note = null) {
+  const done = children.filter(c => c.is_completed).length;
+  const total = children.length;
+  const open = children.filter(c => !c.is_completed);
+  const next = open[0] || null;
+  body().innerHTML = `
+    <p class="focus-permission">El camino está claro. Avanza paso a paso.</p>
+    ${note ? `<p class="focus-note">${escapeHtml(note)}</p>` : ""}
+    ${task.first_step && task.first_step.trim() ? `<p class="focus-note">Arranca por: <strong>${escapeHtml(task.first_step)}</strong></p>` : ""}
+    <div class="focus-progress">
+      <div class="focus-progress-top"><span>Avance de esta acción</span><span>${done} de ${total}</span></div>
+      <div class="focus-progress-bar"><span style="width:${total ? Math.round((done / total) * 100) : 0}%"></span></div>
+    </div>
+    <div class="focus-checklist">
+      ${children.map(c => `
+        <button type="button" class="focus-check-item ${c.is_completed ? "done" : ""}" data-child="${c.id}">
+          <span class="focus-check-box">${c.is_completed ? "✓" : ""}</span>
+          <span class="focus-check-title">${escapeHtml(c.title)}</span>
+          ${c.estimated_minutes ? `<span class="focus-check-min">~${c.estimated_minutes} min</span>` : ""}
+        </button>`).join("")}
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="modal-btn modal-btn-secondary" id="focus-later" title="Cerrar sin marcar nada">Lo dejo acá</button>
+      <button type="button" class="modal-btn modal-btn-secondary" id="focus-stuck" title="Volver a qué me frena">Atascado</button>
+      ${next ? `<button type="button" class="modal-btn modal-btn-primary" id="focus-next-step" title="Abrir el siguiente paso pendiente">Empezar siguiente</button>` : ""}
+      <button type="button" class="modal-btn modal-btn-primary" id="focus-done" title="Marcar la tarea como hecha">Marcar hecha ✓</button>
+    </div>
+  `;
+  body().querySelectorAll(".focus-check-item").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.child;
+      const child = children.find(c => String(c.id) === String(id));
+      if (!child) return;
+      const completing = !child.is_completed;
+      try {
+        await fetch(`${API_BASE}/tasks/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            is_completed: completing,
+            completed_at: completing ? new Date().toISOString() : null,
+          }),
+        });
+      } catch (e) {
+        console.error("Error actualizando paso:", e);
+      }
+      if (window.initTasks) await window.initTasks();
+      if (window.renderNext) window.renderNext();
+      if (window.initToday) window.initToday();
+      if (window.initReadiness) window.initReadiness();
+      const fresh = await fetchChildren(task.id);
+      const stillThere = await resolveTask(task.id);
+      currentTask = stillThere || task;
+      document.querySelector("#focus-title").textContent = currentTask.title;
+      renderChecklist(currentTask, fresh);
+    });
+  });
+  const nextBtn = body().querySelector("#focus-next-step");
+  if (nextBtn && next) {
+    nextBtn.addEventListener("click", () => openFocus(next.id));
+  }
+  body().querySelector("#focus-later")?.addEventListener("click", closeFocus);
+  body().querySelector("#focus-stuck")?.addEventListener("click", () => {
+    if (currentTask) renderFriction(currentTask);
+  });
+  body().querySelector("#focus-done")?.addEventListener("click", completeTask);
+}
+
 function renderDefineStep(task) {
   body().innerHTML = `
     <p class="focus-question">¿Cuál sería el primer paso físico, bien chico?</p>
@@ -197,8 +288,7 @@ function renderDefineStep(task) {
   body().querySelector("#focus-define-save")?.addEventListener("click", async () => {
     const step = input?.value.trim();
     if (!step) return;
-    if (step.length < 4) {
-      input?.focus();
+    if (step.length < 4) {      input?.focus();
       input?.select();
       let nudge = body().querySelector("#focus-define-nudge");
       if (!nudge) {
@@ -526,16 +616,33 @@ async function completeTask() {
   if (window.initToday) window.initToday();
 
   const link = takeLink(doneId);
-  if (link && (link.kind === "verify" || link.kind === "split")) {
-    const parent = await resolveTask(link.parentId);
+  const parentId = (link && link.parentId) || currentTask.parent_task_id || null;
+  if (link && link.kind === "verify") {
+    const parent = parentId ? await resolveTask(parentId) : null;
     if (parent && !parent.is_completed) {
       currentTask = parent;
       document.querySelector("#focus-title").textContent = parent.title;
-      if (link.kind === "verify") {
-        renderVerifyResult(currentTask, parent);
+      renderVerifyResult(currentTask, parent);
+      return;
+    }
+  } else if (parentId) {
+    // A finished step returns to its parent with visible progress,
+    // suggesting the next step instead of closing the flow.
+    const parent = await resolveTask(parentId);
+    if (parent && !parent.is_completed) {
+      currentTask = parent;
+      document.querySelector("#focus-title").textContent = parent.title;
+      const siblings = await fetchChildren(parent.id);
+      const openSiblings = siblings.filter(s => !s.is_completed);
+      if (openSiblings.length > 0) {
+        renderChecklist(parent, siblings, `✓ "${doneTitle}" listo.`);
       } else {
-        renderStep(currentTask, {});
+        renderStep(parent, { note: `✓ "${doneTitle}" listo. Era el último paso.` });
       }
+      if (window.initTasks) await window.initTasks();
+      if (window.renderNext) window.renderNext();
+      if (window.initToday) window.initToday();
+      if (window.initReadiness) window.initReadiness();
       return;
     }
   }

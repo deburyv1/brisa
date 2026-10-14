@@ -3,10 +3,19 @@ import pool from '../db.js';
 
 const router = Router();
 
-// GET /api/tasks
+// GET /api/tasks[?parent_task_id=]
 router.get('/', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM tasks ORDER BY created_at DESC');
+    const { parent_task_id } = req.query;
+    let result;
+    if (parent_task_id !== undefined && parent_task_id !== '') {
+      result = await pool.query(
+        'SELECT * FROM tasks WHERE parent_task_id = $1 ORDER BY created_at ASC',
+        [Number(parent_task_id)]
+      );
+    } else {
+      result = await pool.query('SELECT * FROM tasks ORDER BY created_at DESC');
+    }
     res.json(result.rows);
   } catch (err) {
     console.error('Error fetching tasks:', err);

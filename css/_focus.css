@@ -146,6 +146,104 @@
   font-weight: 400;
 }
 
+/* Checklist mode: progress as evidence, never score */
+.focus-progress {
+  margin: 10px 0 4px;
+}
+
+.focus-progress-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: rgba(22, 75, 105, 0.65);
+  margin-bottom: 6px;
+}
+
+.focus-progress-bar {
+  height: 8px;
+  border-radius: 99px;
+  background: rgba(22, 75, 105, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  overflow: hidden;
+}
+
+.focus-progress-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #00c6ff, #0072ff);
+  transition: width .3s ease;
+}
+
+.focus-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0 4px;
+}
+
+.focus-check-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  border-radius: 12px;
+  padding: 9px 12px;
+  cursor: pointer;
+  color: var(--ink);
+  background: linear-gradient(135deg, rgba(255, 255, 255, .55), rgba(255, 255, 255, .32));
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  transition: var(--transition-speed);
+}
+
+.focus-check-item:hover {
+  background: linear-gradient(135deg, rgba(255, 255, 255, .7), rgba(255, 255, 255, .45));
+}
+
+.focus-check-box {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  border: 2px solid rgba(22, 75, 105, 0.4);
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.focus-check-item.done .focus-check-box {
+  background: linear-gradient(145deg, #2ed573, #1a8a4a);
+  border-color: transparent;
+}
+
+.focus-check-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.focus-check-item.done .focus-check-title {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.focus-check-min {
+  font-size: 10px;
+  color: rgba(22, 75, 105, 0.6);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 .prep-input {
   flex: 1;
   min-width: 0;
