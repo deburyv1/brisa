@@ -76,13 +76,17 @@ export async function initJournal() {
   renderNotes(section, notes);
 }
 
-function renderNotes(section, notes) {
+function renderNotes(section, notes, query = "") {
   section.innerHTML = `
     <div class="journal-header">
       <div class="journal-title">Notas</div>
-      <button class="journal-add-btn" id="add-note">+ Nueva</button>
+      <div class="journal-tools">
+        <input type="search" id="journal-search" class="journal-search" placeholder="Buscar en notas…" value="${escapeHtml(query)}" autocomplete="off">
+        <button class="journal-add-btn" id="add-note">+ Nueva</button>
+      </div>
     </div>
     <div class="journal-list">
+      ${notes.length === 0 ? `<div class="journal-empty-note">${query ? "Sin resultados para esa búsqueda." : "Sin notas."}</div>` : ""}
       ${notes.map(n => `
         <div class="note-card" data-note-id="${n.id}" data-action="edit">
           <div class="note-card-top">
@@ -105,6 +109,29 @@ function renderNotes(section, notes) {
       if (window.openJournalModal) window.openJournalModal();
     });
   }
+
+  const searchInput = section.querySelector("#journal-search");
+  let debounce = null;
+  searchInput?.addEventListener("input", () => {
+    clearTimeout(debounce);
+    debounce = setTimeout(async () => {
+      const q = searchInput.value.trim();
+      if (!q) {
+        if (window.initJournal) window.initJournal();
+        return;
+      }
+      try {
+        const res = await fetch(`${API_BASE}/journal/search?q=${encodeURIComponent(q)}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        renderNotes(section, await res.json(), q);
+        section.querySelector("#journal-search")?.focus();
+        const el = section.querySelector("#journal-search");
+        el.setSelectionRange(el.value.length, el.value.length);
+      } catch (e) {
+        console.warn("No se pudo buscar:", e);
+      }
+    }, 300);
+  });
 
   section.querySelectorAll(".note-card").forEach(card => {
     const id = card.dataset.noteId;

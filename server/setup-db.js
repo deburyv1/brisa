@@ -63,6 +63,22 @@ try {
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`);
 
+  // Plain-text mirror of rich content: the searchable/quotable layer.
+  // HTML stays the visual source of truth; content_text feeds search + AI.
+  await pool.query(`ALTER TABLE journal ADD COLUMN IF NOT EXISTS content_text TEXT`);
+  await pool.query(`UPDATE journal SET content_text = regexp_replace(
+      regexp_replace(regexp_replace(regexp_replace(regexp_replace(
+        coalesce(content, ''),
+        '<[^>]*>', ' ', 'g'),
+        '&amp;', '&', 'g'),
+        '&lt;', '<', 'g'),
+        '&gt;', '>', 'g'),
+        '&quot;', '"', 'g')
+    WHERE content_text IS NULL AND content IS NOT NULL`);
+  await pool.query(`ALTER TABLE journal ADD COLUMN IF NOT EXISTS search_vector tsvector
+    GENERATED ALWAYS AS (to_tsvector('spanish', coalesce(title, '') || ' ' || coalesce(content_text, ''))) STORED`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS journal_search_idx ON journal USING GIN (search_vector)`);
+
   await pool.query(`CREATE TABLE IF NOT EXISTS transactions (
     id SERIAL PRIMARY KEY,
     user_id INTEGER DEFAULT 1,

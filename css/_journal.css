@@ -45,6 +45,41 @@
   box-shadow: 0 4px 12px rgba(0, 120, 170, .3);
 }
 
+.journal-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.journal-search {
+  border: 1px solid rgba(22, 75, 105, 0.3);
+  border-radius: 10px;
+  padding: 7px 12px;
+  font-size: 11px;
+  font-family: inherit;
+  color: var(--ink);
+  background: rgba(255, 255, 255, .5);
+  outline: none;
+  width: 170px;
+}
+
+.journal-search::placeholder {
+  color: rgba(22, 75, 105, 0.55);
+}
+
+.journal-search:focus {
+  border-color: rgba(8, 127, 176, 0.6);
+  background: rgba(255, 255, 255, .65);
+}
+
+.journal-empty-note {
+  text-align: center;
+  font-size: 11px;
+  color: rgba(22, 75, 105, 0.68);
+  padding: 16px;
+  grid-column: 1 / -1;
+}
+
 .journal-list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));

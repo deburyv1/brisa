@@ -3,6 +3,39 @@ import pool from '../db.js';
 
 const router = Router();
 
+// Strip rich HTML down to searchable plain text (mirror of client plainText)
+function stripHtml(html) {
+  return String(html ?? '')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// GET /api/journal/search?q= — full-text ranked search (must precede /:id)
+router.get('/search', async (req, res) => {
+  const q = String(req.query.q || '').trim();
+  if (!q) return res.json([]);
+  try {
+    const result = await pool.query(
+      `SELECT *, ts_rank(search_vector, plainto_tsquery('spanish', $1)) AS rank
+       FROM journal
+       WHERE search_vector @@ plainto_tsquery('spanish', $1)
+       ORDER BY rank DESC, updated_at DESC
+       LIMIT 20`,
+      [q]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error searching notes:', err);
+    res.status(500).json({ error: 'Database error' });
+  }
+});
+
 // GET /api/journal
 router.get('/', async (req, res) => {
   try {
@@ -34,8 +67,8 @@ router.post('/', async (req, res) => {
   }
   try {
     const result = await pool.query(
-      'INSERT INTO journal (user_id, title, content, mood) VALUES (1, $1, $2, $3) RETURNING *',
-      [title.trim(), content || null, mood || null]
+      'INSERT INTO journal (user_id, title, content, content_text, mood) VALUES (1, $1, $2, $3, $4) RETURNING *',
+      [title.trim(), content || null, stripHtml(content), mood || null]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -52,8 +85,8 @@ router.put('/:id', async (req, res) => {
   }
   try {
     const result = await pool.query(
-      'UPDATE journal SET title = $1, content = $2, mood = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4 RETURNING *',
-      [title.trim(), content || null, mood || null, req.params.id]
+      'UPDATE journal SET title = $1, content = $2, content_text = $3, mood = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $5 RETURNING *',
+      [title.trim(), content || null, stripHtml(content), mood || null, req.params.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Note not found' });
     res.json(result.rows[0]);
