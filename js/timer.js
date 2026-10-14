@@ -461,6 +461,9 @@ export function initTimer() {
     if (getMode() === "mini") restoreTimer();
     else minimizeTimer();
   });
+  document.querySelector("#timer-test")?.addEventListener("click", () => {
+    debugFinishSoon();
+  });
   document.querySelector("#timer-chip")?.addEventListener("click", (e) => {
     if (e.target.closest("#timer-chip-toggle")) return;
     restoreTimer();
@@ -528,7 +531,7 @@ export function initTimer() {
   });
   resumeRun();
 
-  window.brisaTimer = { setMinutes, start: startTimer, stop: pauseTimer, isRunning: () => !!timerId, hasSession: () => !!timerId || remainingSec < totalSec };
+  window.brisaTimer = { setMinutes, start: startTimer, stop: pauseTimer, isRunning: () => !!timerId, hasSession: () => !!timerId || remainingSec < totalSec, debugFinishSoon };
 }
 
 function startTimer() {
@@ -552,6 +555,15 @@ function pauseTimer() {
   saveRun();
   syncButtons(false);
   paint();
+}
+
+// Test helper: jump to 2 seconds before finishing (navbar 🧪 button)
+function debugFinishSoon() {
+  stopTick();
+  if (totalSec <= 0) totalSec = 10 * 60;
+  remainingSec = 2;
+  paint();
+  startTimer();
 }
 
 function resumeRun() {
