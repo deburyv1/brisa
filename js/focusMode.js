@@ -119,10 +119,8 @@ const FOCUS_MODES = [
 
 function modeBar(current) {
   return `
-    <div class="focus-modes">
-      <span>Modo: <strong>${FOCUS_MODES.find(m => m.id === current).label}</strong></span>
-      <span>${FOCUS_MODES.filter(m => m.id !== current).map(m =>
-        `<button type="button" class="focus-mode-link" data-mode="${m.id}">${m.label}</button>`).join(" · ")}</span>
+    <div class="focus-modes" title="Cambia cómo trabajas esta acción">
+      ${FOCUS_MODES.map(m => `<button type="button" class="focus-mode-seg ${m.id === current ? "on" : ""}" data-mode="${m.id}">${m.label}</button>`).join("")}
     </div>`;
 }
 
@@ -212,9 +210,10 @@ function renderStep(task, { presetMin = 10, note = null } = {}) {
     </div>
     <div class="focus-timer-row">
       <div class="focus-time-btns" title="Duración de la sesión">
+        <button class="focus-time-btn" data-min="5">5</button>
         <button class="focus-time-btn" data-min="10">10</button>
         <button class="focus-time-btn" data-min="15">15</button>
-        <button class="focus-time-btn" data-min="25">25</button>
+        <input type="number" class="focus-custom-min" id="focus-custom-min" min="1" max="120" placeholder="min" title="Minutos a tu medida">
       </div>
       <button class="modal-btn modal-btn-primary focus-primary-block" id="focus-start" title="Cierra esto y parte el timer flotante">Empezar</button>
     </div>
@@ -236,10 +235,23 @@ function renderStep(task, { presetMin = 10, note = null } = {}) {
       minutes = Number(b.dataset.min);
       body().querySelectorAll(".focus-time-btn").forEach(x =>
         x.classList.toggle("selected", x === b));
+      const custom = body().querySelector("#focus-custom-min");
+      if (custom) custom.value = "";
       paintStart();
     });
   });
+  body().querySelector("#focus-custom-min")?.addEventListener("change", (e) => {
+    const v = Math.max(1, Math.min(120, Number(e.target.value) || 0));
+    if (!v) return;
+    minutes = v;
+    body().querySelectorAll(".focus-time-btn").forEach(x => x.classList.remove("selected"));
+    paintStart();
+  });
   paintStart();
+  if (![5, 10, 15].includes(minutes)) {
+    const custom = body().querySelector("#focus-custom-min");
+    if (custom) custom.value = String(minutes);
+  }
   startBtn?.addEventListener("click", () => handoffToTimer(minutes));
   body().querySelector("#focus-define-now")?.addEventListener("click", () => renderDefineStep(task));
   body().querySelector("#focus-parent")?.addEventListener("click", async () => {

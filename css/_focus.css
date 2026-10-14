@@ -16,11 +16,12 @@
 }
 
 .focus-step-box {
-  border-radius: 14px;
-  padding: 14px 16px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, .5), rgba(255, 255, 255, .3));
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  margin-bottom: 10px;
+  border-radius: 18px;
+  padding: 18px 18px 16px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, .65), rgba(255, 255, 255, .4));
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 6px 18px rgba(0, 90, 140, .1);
+  margin-bottom: 12px;
 }
 
 .focus-step-label {
@@ -29,14 +30,14 @@
   letter-spacing: .1em;
   text-transform: uppercase;
   color: rgba(22, 75, 105, 0.62);
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .focus-step {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 17px;
+  font-weight: 700;
   color: var(--ink);
-  line-height: 1.4;
+  line-height: 1.45;
 }
 
 .focus-step.missing {
@@ -167,31 +168,55 @@
   color: var(--ink);
 }
 
-/* Mode bar: visible, switchable, quiet */
+/* Mode switcher: three clear pills, current one lit */
 .focus-modes {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 10px;
-  color: rgba(22, 75, 105, 0.6);
-  margin: 0 0 10px;
+  gap: 6px;
+  margin: 0 0 12px;
 }
 
-.focus-modes strong {
-  color: var(--ink);
-}
-
-.focus-mode-link {
-  border: 0;
-  background: none;
-  padding: 2px 4px;
-  font-size: 10px;
+.focus-mode-seg {
+  flex: 1;
+  border: 1px solid rgba(22, 75, 105, 0.28);
+  border-radius: 99px;
+  padding: 7px 4px;
+  font-size: 11px;
+  font-weight: 700;
   font-family: inherit;
-  color: #087fb0;
+  color: rgba(22, 75, 105, 0.75);
+  background: rgba(255, 255, 255, 0.35);
   cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  transition: var(--transition-speed);
+}
+
+.focus-mode-seg:hover {
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.focus-mode-seg.on {
+  color: #fff;
+  background: linear-gradient(180deg, #00c6ff, #0072ff);
+  border-color: transparent;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.8), 0 4px 12px rgba(0, 113, 170, .3);
+}
+
+.focus-custom-min {
+  width: 52px;
+  border: 1px solid rgba(22, 75, 105, 0.3);
+  border-radius: 99px;
+  padding: 4px 6px;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: inherit;
+  text-align: center;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.35);
+  outline: none;
+}
+
+.focus-custom-min::placeholder {
+  color: rgba(22, 75, 105, 0.5);
+  font-weight: 400;
 }
 
 .focus-add-row {
