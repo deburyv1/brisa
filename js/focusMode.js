@@ -134,28 +134,30 @@ function handleFriction(task, kind, basics = []) {
 }
 
 function renderStep(task, { presetMin = 10, note = null } = {}) {
-  const step = task.first_step || "Empieza por lo más chico que veas.";
+  const hasStep = !!(task.first_step && task.first_step.trim());
   body().innerHTML = `
-    <p class="focus-permission">No tiene que quedar perfecto. Solo mueve UNA cosa.</p>
+    <p class="focus-permission">Objetivo de esta sesión: avanzar <strong>una sola cosa</strong>, no terminar todo.</p>
     ${note ? `<p class="focus-note">${escapeHtml(note)}</p>` : ""}
     <div class="focus-step-box">
       <div class="focus-step-label">Ahora mismo, solo esto:</div>
-      <div class="focus-step">${escapeHtml(step)}</div>
+      ${hasStep
+        ? `<div class="focus-step">${escapeHtml(task.first_step)}</div>`
+        : `<div class="focus-step missing">Aún no defines el primer paso.</div>
+           <button type="button" class="modal-btn modal-btn-secondary" id="focus-define-now" style="margin-top:8px">Definirlo (20 segundos)</button>`}
     </div>
-    <p class="focus-staging">Todo lo que saques va a <strong>un solo lugar provisorio</strong> (la cama sirve). Ordenar viene después, no ahora.</p>
     <div class="focus-timer-row">
-      <div class="focus-time-btns">
+      <div class="focus-time-btns" title="Duración de la sesión">
         <button class="focus-time-btn" data-min="10">10</button>
         <button class="focus-time-btn" data-min="15">15</button>
         <button class="focus-time-btn" data-min="25">25</button>
       </div>
-      <button class="modal-btn modal-btn-primary" id="focus-start">Empezar</button>
+      <button class="modal-btn modal-btn-primary" id="focus-start" title="Cierra esto y parte el timer flotante">Empezar</button>
     </div>
     <p id="focus-message" class="focus-message"></p>
     <div class="modal-actions">
-      <button type="button" class="modal-btn modal-btn-secondary" id="focus-later">Lo dejo acá</button>
-      <button type="button" class="modal-btn modal-btn-secondary" id="focus-stuck">Atascado</button>
-      <button type="button" class="modal-btn modal-btn-primary" id="focus-done">Listo ✓</button>
+      <button type="button" class="modal-btn modal-btn-secondary" id="focus-later" title="Cerrar sin marcar nada">Lo dejo acá</button>
+      <button type="button" class="modal-btn modal-btn-secondary" id="focus-stuck" title="Volver a qué me frena">Atascado</button>
+      <button type="button" class="modal-btn modal-btn-primary" id="focus-done" title="Marcar la tarea como hecha">Marcar hecha ✓</button>
     </div>
   `;
   let minutes = presetMin;
@@ -174,6 +176,7 @@ function renderStep(task, { presetMin = 10, note = null } = {}) {
   });
   paintStart();
   startBtn?.addEventListener("click", () => handoffToTimer(minutes));
+  body().querySelector("#focus-define-now")?.addEventListener("click", () => renderDefineStep(task));
   body().querySelector("#focus-later")?.addEventListener("click", closeFocus);
   body().querySelector("#focus-stuck")?.addEventListener("click", () => {
     if (currentTask) renderFriction(currentTask);
