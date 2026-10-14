@@ -199,12 +199,10 @@ function renderStep(task, { presetMin = 10, note = null } = {}) {
   const stepContent = hasStep
     ? `<div class="focus-step">${escapeHtml(task.first_step)}</div>`
     : isChildStep
-      ? `<div class="focus-step">${escapeHtml(task.title)}</div>
-         <p class="focus-note" style="margin:6px 0 0">Este paso ya es lo chico: hazlo directo.</p>`
+      ? `<div class="focus-step">${escapeHtml(task.title)}</div>`
       : `<div class="focus-step missing">Aún no defines el primer paso.</div>
          <button type="button" class="modal-btn modal-btn-secondary" id="focus-define-now" style="margin-top:8px">Definirlo (20 segundos)</button>`;
   body().innerHTML = `
-    <p class="focus-permission">Objetivo de esta sesión: avanzar <strong>una sola cosa</strong>, no terminar todo.</p>
     ${modeBar("step")}
     ${parent ? `<button type="button" class="focus-parent-link" id="focus-parent" title="Ver la acción completa">Parte de: <strong>${escapeHtml(parent.title)}</strong></button>` : ""}
     ${note ? `<p class="focus-note">${escapeHtml(note)}</p>` : ""}
@@ -218,13 +216,13 @@ function renderStep(task, { presetMin = 10, note = null } = {}) {
         <button class="focus-time-btn" data-min="15">15</button>
         <button class="focus-time-btn" data-min="25">25</button>
       </div>
-      <button class="modal-btn modal-btn-primary" id="focus-start" title="Cierra esto y parte el timer flotante">Empezar</button>
+      <button class="modal-btn modal-btn-primary focus-primary-block" id="focus-start" title="Cierra esto y parte el timer flotante">Empezar</button>
     </div>
     <p id="focus-message" class="focus-message"></p>
-    <div class="modal-actions">
+    <div class="modal-actions focus-quiet-row">
       <button type="button" class="modal-btn modal-btn-secondary" id="focus-later" title="Cerrar sin marcar nada">Lo dejo acá</button>
       <button type="button" class="modal-btn modal-btn-secondary" id="focus-stuck" title="Volver a qué me frena">Atascado</button>
-      <button type="button" class="modal-btn modal-btn-primary" id="focus-done" title="Marcar la tarea como hecha">Marcar hecha ✓</button>
+      <button type="button" class="modal-btn modal-btn-secondary" id="focus-done" title="Marcar la tarea como hecha">Marcar hecha ✓</button>
     </div>
   `;
   let minutes = presetMin;
