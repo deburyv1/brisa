@@ -1,0 +1,220 @@
+/* ============================================
+   BRISA - Workmode (deep work view)
+   ============================================ */
+.workmode {
+  position: relative;
+  margin-top: 11px;
+  border-radius: var(--radius-panel);
+  padding: 20px 24px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, var(--glass-a1)), rgba(255, 255, 255, var(--glass-a2)));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 10px 30px rgba(0, 58, 94, .08);
+}
+
+.workmode-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.workmode-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  color: rgba(22, 75, 105, 0.78);
+  text-transform: uppercase;
+}
+
+.workmode-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.workmode-select {
+  border: 1px solid rgba(22, 75, 105, 0.3);
+  border-radius: 10px;
+  padding: 7px 10px;
+  font-size: 11px;
+  font-family: inherit;
+  color: var(--ink);
+  background: rgba(255, 255, 255, .5);
+  outline: none;
+  max-width: 280px;
+}
+
+.workmode-select option {
+  background: #fff;
+  color: var(--ink);
+}
+
+.workmode-zen-btn {
+  border: 1px solid rgba(22, 75, 105, 0.3);
+  border-radius: 10px;
+  padding: 7px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(22, 75, 105, 0.85);
+  background: rgba(255, 255, 255, .35);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.workmode-zen-btn:hover {
+  background: rgba(255, 255, 255, .55);
+}
+
+.workmode-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 380px) 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.workmode-task,
+.workmode-notes {
+  border-radius: var(--radius-card);
+  padding: 16px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, .55), rgba(255, 255, 255, .32));
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.workmode-task-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  text-shadow: var(--text-glow);
+}
+
+.workmode-step {
+  font-size: 12px;
+  color: rgba(22, 75, 105, 0.85);
+  line-height: 1.5;
+}
+
+.workmode-step.dim {
+  color: rgba(22, 75, 105, 0.55);
+  font-style: italic;
+}
+
+.workmode-timer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .35);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.workmode-clock {
+  font-size: 40px;
+  font-weight: 300;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.workmode-clock.running {
+  color: #087fb0;
+}
+
+.workmode-presets {
+  display: flex;
+  gap: 6px;
+}
+
+.workmode-preset {
+  border: 1px solid rgba(22, 75, 105, 0.3);
+  border-radius: 99px;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(22, 75, 105, 0.8);
+  background: rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+}
+
+.workmode-preset.selected {
+  color: #fff;
+  background: linear-gradient(180deg, #00c6ff, #0072ff);
+  border-color: transparent;
+}
+
+.workmode-actions {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.workmode-notes-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: rgba(22, 75, 105, 0.65);
+}
+
+.workmode-save {
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: rgba(22, 75, 105, 0.55);
+}
+
+.workmode-save[data-state="error"] {
+  color: #c0392b;
+}
+
+.workmode-notes-hint {
+  font-size: 10px;
+  color: rgba(22, 75, 105, 0.55);
+}
+
+.workmode-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 32px 16px;
+  text-align: center;
+}
+
+.workmode-empty-icon {
+  font-size: 32px;
+}
+
+.workmode-empty-text {
+  font-size: 12px;
+  color: rgba(22, 75, 105, 0.75);
+  line-height: 1.5;
+}
+
+/* Zen: hide sidebar, widen content */
+body.zen .sidebar {
+  display: none;
+}
+
+body.zen .content {
+  margin-left: 0;
+  max-width: 1100px;
+  margin-right: auto;
+}
+
+@media (max-width: 900px) {
+  .workmode-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -527,7 +527,7 @@ export function initTimer() {
   });
   resumeRun();
 
-  window.brisaTimer = { setMinutes, start: startTimer, stop: pauseTimer, isRunning: () => !!timerId, hasSession: () => !!timerId || remainingSec < totalSec, debugFinishSoon };
+  window.brisaTimer = { setMinutes, start: startTimer, stop: pauseTimer, isRunning: () => !!timerId, hasSession: () => !!timerId || remainingSec < totalSec, debugFinishSoon, timeLeft: () => ({ remainingSec, totalSec, running: !!timerId }) };
 }
 
 function startTimer() {

@@ -36,6 +36,7 @@ import { initTimer } from "./timer.js";
 import { initWeek } from "./week.js";
 import { initWallpaper } from "./wallpaper.js";
 import { initGlass } from "./glass.js";
+import { initWorkmode } from "./workmode.js";
 
 window.initTasks = initTasks;
 window.initJournal = initJournal;
@@ -54,6 +55,7 @@ window.initToday = initToday;
 window.loadEntryIntoCapture = loadEntryIntoCapture;
 window.renderNext = renderNext;
 window.openFocus = openFocus;
+window.initWorkmode = initWorkmode;
 
 const NAV_LABELS = {
   home: "Inicio",
@@ -66,6 +68,7 @@ const NAV_LABELS = {
   shopping: "Compras",
   habits: "Hábitos",
   ideas: "Ideas",
+  workmode: "Enfoque",
 };
 
 const NAV_SECTIONS = {
@@ -79,6 +82,7 @@ const NAV_SECTIONS = {
   shopping: ["#shopping-section"],
   habits: ["#habits-section"],
   ideas: ["#ideas-section"],
+  workmode: ["#workmode-section"],
 };
 
 const ALL_SECTIONS = [
@@ -96,6 +100,7 @@ const ALL_SECTIONS = [
   "#shopping-section",
   "#habits-section",
   "#ideas-section",
+  "#workmode-section",
   "#week-section",
 ];
 
@@ -173,6 +178,7 @@ async function main() {
   ]);
   initToday();
   renderNext();
+  await initWorkmode();
   initWeek();
   initUpcoming();
   initWeather();
