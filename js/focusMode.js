@@ -558,12 +558,16 @@ async function completeTask() {
   if (window.initToday) window.initToday();
 
   const link = takeLink(doneId);
-  if (link && link.kind === "verify") {
+  if (link && (link.kind === "verify" || link.kind === "split")) {
     const parent = await resolveTask(link.parentId);
     if (parent && !parent.is_completed) {
       currentTask = parent;
       document.querySelector("#focus-title").textContent = parent.title;
-      renderVerifyResult(currentTask, parent);
+      if (link.kind === "verify") {
+        renderVerifyResult(currentTask, parent);
+      } else {
+        renderStep(currentTask, {});
+      }
       return;
     }
   }
