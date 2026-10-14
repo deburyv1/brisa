@@ -75,6 +75,9 @@ export async function openFocus(taskId, opts = {}) {
 
   if (opts.skipFriction) {
     renderStep(task, {});
+  } else if (opts.friction) {
+    // Explicitly stuck: always show the friction menu, even mid-session
+    renderFriction(task);
   } else if (window.brisaTimer && window.brisaTimer.hasSession()) {
     // Paused or running session: continue where left, don't restart friction
     renderStep(task, {});

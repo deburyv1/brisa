@@ -171,7 +171,7 @@ function render(section) {
   });
 
   section.querySelector("#workmode-stuck")?.addEventListener("click", () => {
-    if (window.openFocus) window.openFocus(task.id);
+    if (window.openFocus) window.openFocus(task.id, { friction: true });
   });
 
   section.querySelector("#workmode-done")?.addEventListener("click", async () => {
