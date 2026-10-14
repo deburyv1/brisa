@@ -57,7 +57,7 @@ function stopTick() {
 
 function saveRun() {
   try {
-    if (endAt) localStorage.setItem(TIMER_RUN_KEY, JSON.stringify({ endAt, totalSec }));
+    localStorage.setItem(TIMER_RUN_KEY, JSON.stringify({ endAt: endAt || null, totalSec, remainingSec }));
   } catch {
     // storage unavailable: no resume across reloads
   }
@@ -548,7 +548,8 @@ function pauseTimer() {
   if (!timerId) return;
   tick();
   stopTick();
-  clearRun();
+  endAt = null;
+  saveRun();
   syncButtons(false);
   paint();
 }
@@ -560,18 +561,27 @@ function resumeRun() {
   } catch {
     saved = null;
   }
-  if (!saved || typeof saved.endAt !== "number") return;
-  if (saved.endAt <= Date.now()) {
-    // It finished while away: show 00:00, no surprise alarm.
-    clearRun();
-    totalSec = saved.totalSec || totalSec;
-    remainingSec = 0;
+  if (!saved || typeof saved.totalSec !== "number") return;
+  totalSec = saved.totalSec;
+  if (saved.endAt && saved.endAt > Date.now()) {
+    endAt = saved.endAt;
+    syncButtons(true);
+    timerId = setInterval(tick, 250);
+    tick();
+    return;
+  }
+  if (typeof saved.remainingSec === "number" && saved.remainingSec < totalSec) {
+    // Paused session survives reload: restore where it was left
+    remainingSec = Math.max(0, saved.remainingSec);
+    endAt = null;
+    syncButtons(false);
     paint();
     return;
   }
-  totalSec = saved.totalSec || totalSec;
-  endAt = saved.endAt;
-  syncButtons(true);
-  timerId = setInterval(tick, 250);
-  tick();
+  if (saved.endAt && saved.endAt <= Date.now()) {
+    // It finished while away: show 00:00, no surprise alarm.
+    clearRun();
+    remainingSec = 0;
+    paint();
+  }
 }
