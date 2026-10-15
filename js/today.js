@@ -521,6 +521,11 @@ function wireMarkers(section, dayTasks, events, isToday, key) {
 
   if (!section.dataset.dismissBound) {
     section.dataset.dismissBound = "1";
+    document.addEventListener("dragend", () => {
+      const h = document.querySelector("#today-drop-time");
+      if (h) h.style.display = "none";
+      document.querySelector(".today-timeline.drop-hint")?.classList.remove("drop-hint");
+    });
     document.addEventListener("click", function dismiss(e) {
       const p = section.querySelector("#today-pop");
       if (!p) return;

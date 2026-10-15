@@ -130,22 +130,27 @@
 .clock-label {
   font-size: 9px;
   font-weight: 300;
-  color: #588094;
+  color: var(--ink);
+  opacity: 0.75;
   letter-spacing: .1em;
+  text-shadow: var(--text-glow);
 }
 
 .clock-time {
   font-size: 36px;
   line-height: 1;
   font-weight: 300;
-  color: #07587f;
+  color: var(--ink);
+  text-shadow: var(--text-glow);
   margin: 4px 0;
 }
 
 .clock-date {
   font-size: 9px;
-  color: #648594;
+  color: var(--ink);
+  opacity: 0.75;
   text-transform: capitalize;
+  text-shadow: var(--text-glow);
 }
 
 .clock-weather {
@@ -155,7 +160,8 @@
   margin-top: 8px;
   font-size: 10px;
   font-weight: 600;
-  color: #17617f;
+  color: var(--ink);
+  text-shadow: var(--text-glow);
 }
 
 .clock-weather img {
