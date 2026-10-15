@@ -79,10 +79,10 @@ export function renderNext() {
       <button class="next-start" data-start="${current.id}">Empezar</button>
     </div>
     ${alternatives.length > 0 ? `
-      <div class="next-also-label">También podrías…</div>
+      <div class="next-also-label">Otras pendientes <span class="next-also-hint">(no son parte de esta tarea)</span></div>
       <div class="next-also">
         ${alternatives.map(t => `
-          <button class="next-alt" data-start="${t.id}">
+          <button class="next-alt" data-start="${t.id}" title="Empezar esta en vez de la sugerida">
             ${escapeHtml(t.title)}${t.estimated_minutes ? ` · ${t.estimated_minutes} min` : ""}
           </button>
         `).join("")}

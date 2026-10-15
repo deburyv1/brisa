@@ -74,8 +74,20 @@
 
 .next-also-label {
   font-size: 10px;
-  color: rgba(22, 75, 105, 0.62);
-  margin: 12px 0 6px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(22, 75, 105, 0.55);
+  margin: 16px 0 6px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(22, 75, 105, 0.25);
+}
+
+.next-also-hint {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  opacity: 0.75;
 }
 
 .next-also {
