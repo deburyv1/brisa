@@ -36,7 +36,7 @@ import { initTimer } from "./timer.js";
 import { initWeek } from "./week.js";
 import { initWallpaper } from "./wallpaper.js";
 import { initGlass } from "./glass.js";
-import { initWorkmode, startWorkmode } from "./workmode.js";
+import { initWorkmode, startWorkmode, initTaskNotes } from "./workmode.js";
 import { initQuickCapture } from "./quickCapture.js";
 import { initStudio } from "./studio.js";
 
@@ -162,6 +162,7 @@ async function main() {
   initCalendar();
   initEventModal();
   initEventDetail();
+  initTaskNotes();
   initShopping();
   initReadiness();
   initHabits();

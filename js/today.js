@@ -319,6 +319,7 @@ function wireMarkers(section, dayTasks, events, isToday, key) {
         <div class="today-pop-time">${overdue ? `⏰ ${overdueText(t.scheduled_datetime)} · ¿lo hiciste o se reprograma?` : `Hoy ${formatTime(d)}`}</div>
         <div class="today-pop-actions">
           <button class="modal-btn modal-btn-primary" data-act="focus" title="Abrir en Enfoque: fricción, guía y bloc">▶ Enfocar</button>
+          <button class="modal-btn modal-btn-secondary" data-act="note" title="Anotar un avance sin salir de aquí">✎ Anotar</button>
           <button class="modal-btn modal-btn-primary" data-act="done">✓ Hecho</button>
           <button class="modal-btn modal-btn-secondary" data-act="plus1">+1 h</button>
           <button class="modal-btn modal-btn-secondary" data-act="tomorrow">Mañana</button>
@@ -326,6 +327,10 @@ function wireMarkers(section, dayTasks, events, isToday, key) {
       pop.querySelector('[data-act="focus"]')?.addEventListener("click", () => {
         closePop();
         if (window.openFocus) window.openFocus(t.id);
+      });
+      pop.querySelector('[data-act="note"]')?.addEventListener("click", () => {
+        closePop();
+        if (window.openTaskNotes) window.openTaskNotes(t.id);
       });
       pop.querySelector('[data-act="done"]')?.addEventListener("click", () =>
         updateTask(t.id, { is_completed: true, completed_at: new Date().toISOString() }));

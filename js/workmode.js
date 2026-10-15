@@ -6,6 +6,7 @@
 import { state } from "./state.js";
 import { pickNextAction } from "./nextAction.js";
 import { createEditor, editorHTML, isHTML } from "./richtext.js";
+import { confirmDiscard } from "./modalGuard.js";
 
 const API_BASE = "/api";
 
@@ -488,6 +489,74 @@ export async function initWorkmode() {
       }
     });
   }
+}
+
+// Task notes modal: the same bloc Enfoque edits, reachable from
+// anywhere (timeline popover). One store: task.description.
+let notesQuill = null;
+let notesTaskId = null;
+let notesPristine = "";
+
+export function initTaskNotes() {
+  const overlay = document.querySelector("#task-note-modal");
+  if (!overlay) return;
+  notesQuill = createEditor(overlay.querySelector("#task-note-quill"), {
+    placeholder: "Avances, opciones, lo que no quieres perder…",
+  });
+
+  const close = () => {
+    if (notesQuill && editorHTML(notesQuill) !== notesPristine && !confirmDiscard()) return;
+    overlay.classList.remove("active");
+    notesTaskId = null;
+  };
+
+  overlay.querySelector("#task-note-close")?.addEventListener("click", close);
+  overlay.querySelector("#task-note-cancel")?.addEventListener("click", close);
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) close();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && overlay.classList.contains("active")) close();
+  });
+  overlay.querySelector("#task-note-save")?.addEventListener("click", async () => {
+    if (!notesTaskId || !notesQuill) return;
+    const html = editorHTML(notesQuill);
+    try {
+      await fetch(`${API_BASE}/tasks/${notesTaskId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description: html }),
+      });
+      const t = (state.tasks || []).find(x => String(x.id) === String(notesTaskId));
+      if (t) t.description = html;
+      notesPristine = html;
+      overlay.classList.remove("active");
+      notesTaskId = null;
+      if (String(currentId) === String(t?.id) && document.querySelector("#workmode-section")?.offsetParent) {
+        render(document.querySelector("#workmode-section"));
+      }
+    } catch (e) {
+      console.error("Error guardando nota:", e);
+      alert("No se pudo guardar. Intenta de nuevo.");
+    }
+  });
+
+  window.openTaskNotes = async (taskId) => {
+    const task = (state.tasks || []).find(t => String(t.id) === String(taskId));
+    if (!task || !notesQuill) return;
+    notesTaskId = task.id;
+    overlay.querySelector("#task-note-title").textContent = task.title || "Anotar avance";
+    try {
+      const html = task.description || "";
+      if (html && isHTML(html)) notesQuill.setContents(notesQuill.clipboard.convert(html));
+      else notesQuill.setText(html || "");
+    } catch {
+      notesQuill.setText("");
+    }
+    notesPristine = editorHTML(notesQuill);
+    overlay.classList.add("active");
+    notesQuill.focus();
+  };
 }
 
 // Enters work mode on a specific task (e.g. from Empezar buttons):

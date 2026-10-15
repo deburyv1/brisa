@@ -155,7 +155,7 @@
   </main>
 </div>
 <script src="vendor/quill.min.js"></script>
-<script type="module" src="js/app.js?v=20261014ao"></script>
+<script type="module" src="js/app.js?v=20261014ap"></script>
 
 <!-- Floating timer: round, solid, draggable -->
 <div class="timer-pill" id="timer-pill" title="Temporizador (arrástrame)">
@@ -329,6 +329,24 @@
         <button type="submit" class="modal-btn modal-btn-primary">Guardar</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- Modal: Anotar avance en tarea (bloc compartido con Enfoque) -->
+<div class="modal-overlay" id="task-note-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="task-note-title">Anotar avance</div>
+      <button class="modal-close" title="Cerrar" id="task-note-close">✕</button>
+    </div>
+    <div class="form-group">
+      <div id="task-note-quill"></div>
+    </div>
+    <p class="focus-note">Se guarda en el bloc de la tarea: lo verás igual en Enfoque.</p>
+    <div class="modal-actions">
+      <button type="button" class="modal-btn modal-btn-secondary" id="task-note-cancel">Cancelar</button>
+      <button type="button" class="modal-btn modal-btn-primary" id="task-note-save">Guardar</button>
+    </div>
   </div>
 </div>
 
