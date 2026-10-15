@@ -657,7 +657,7 @@ async function openDoneDetail() {
       return null;
     }
     const done = sibs.filter(x => x.is_completed).length;
-    return { label: `${done}/${sibs.length} · paso de ${name}`, originDone };
+    return { label: `${done}/${sibs.length}`, full: `paso de ${name}`, originDone };
   };
   const evOpen = todayEvents
     .filter(e => e.status !== "done")
@@ -695,7 +695,7 @@ async function openDoneDetail() {
   const pct = dayTotal === 0 ? 0 : Math.round((doneCount / dayTotal) * 100);
 
   const itemRow = (t, right, done = false, sub = null) => `
-    <div class="done-item${done ? " is-done" : ""}" title="${escapeHtml(t.title)}${sub ? ` · ${escapeHtml(sub.label)}` : ""}${right ? ` · ${escapeHtml(right)}` : ""}">
+    <div class="done-item${done ? " is-done" : ""}" title="${escapeHtml(t.title)}${sub ? ` · ${escapeHtml(sub.full || sub.label)}` : ""}${right ? ` · ${escapeHtml(right)}` : ""}">
       <span class="done-check">${done ? "✓" : "○"}</span>
       <span class="done-title${sub ? " is-step" : ""}">${escapeHtml(t.title)}${sub ? ` <em class="done-stepof${sub.originDone ? " origin-done" : ""}">· ${escapeHtml(sub.label)}</em>` : ""}</span>
       ${right ? `<small>${escapeHtml(right)}</small>` : ""}
