@@ -124,8 +124,9 @@ export async function initToday() {
       ${events.map(ev => {
         const d = new Date(ev.start);
         const percent = ((d.getHours() + d.getMinutes() / 60) / 24) * 100;
-        const evOverdue = isToday && d.getTime() < Date.now() && !missAcked(ev.id);
-        return `<div class="today-event${evOverdue ? " overdue" : ""}" style="left: ${percent}%" draggable="${isToday ? "true" : "false"}" data-event-id="${ev.id}" title="${escapeHtml(ev.title || "Evento")} · arrástrame para cambiar la hora"></div>`;
+        const evDone = ev.status === "done";
+        const evOverdue = isToday && !evDone && d.getTime() < Date.now() && !missAcked(ev.id);
+        return `<div class="today-event${evDone ? " done" : ""}${evOverdue ? " overdue" : ""}" style="left: ${percent}%" draggable="${isToday && !evDone ? "true" : "false"}" data-event-id="${ev.id}" title="${escapeHtml(ev.title || "Evento")}${evDone ? " (hecho)" : " · arrástrame para cambiar la hora"}"></div>`;
       }).join("")}
       <div class="today-pop" id="today-pop" style="display:none"></div>
     </div>
@@ -318,7 +319,7 @@ function wireMarkers(section, dayTasks, events, isToday, key) {
         return;
       }
       const ev = (events || []).find(x => String(x.id) === String(el.dataset.eventId));
-      const overdue = ev && ev.start && new Date(ev.start).getTime() < Date.now() && !missAcked(ev.id);
+      const overdue = ev && ev.start && ev.status !== "done" && new Date(ev.start).getTime() < Date.now() && !missAcked(ev.id);
       if (!overdue) {
         if (window.openEventDetail) window.openEventDetail(el.dataset.eventId);
         return;

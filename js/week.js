@@ -726,6 +726,7 @@ function wireDayCards(board) {
     });
   });
   // Inline done toggle: mark here, it stays green in the list.
+  // The list scroll is preserved across the refresh.
   board.querySelectorAll(".day-check").forEach(btn => {
     btn.addEventListener("click", async (e) => {
       e.stopPropagation();
@@ -733,6 +734,8 @@ function wireDayCards(board) {
       const id = btn.dataset.checkId;
       const turnOn = !btn.classList.contains("done");
       btn.disabled = true;
+      const scroller = board.querySelector("#day-order");
+      const scrollTop = scroller ? scroller.scrollTop : 0;
       try {
         if (kind === "habit") {
           await fetch(`/api/habits/${id}/check`, {
@@ -755,6 +758,8 @@ function wireDayCards(board) {
         if (window.renderNext) window.renderNext();
         if (window.initToday) window.initToday();
         if (window.initWeek) await window.initWeek();
+        const fresh = document.querySelector("#day-order");
+        if (fresh) fresh.scrollTop = scrollTop;
       } catch (err) {
         console.error("Error marcando:", err);
         btn.disabled = false;

@@ -372,6 +372,10 @@
   animation: overdue-diamond 1.6s ease-out infinite;
 }
 
+.today-event.done {
+  opacity: 0.45;
+}
+
 @keyframes overdue-diamond {
   0% { box-shadow: 0 0 0 0 rgba(255, 77, 77, 0.8); }
   100% { box-shadow: 0 0 0 10px rgba(255, 77, 77, 0); }

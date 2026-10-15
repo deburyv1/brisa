@@ -180,6 +180,27 @@ export function initEventDetail() {
     if (window.initWeek) window.initWeek();
     if (window.initToday) window.initToday();
   });
+  overlay.querySelector("#event-detail-done")?.addEventListener("click", async () => {
+    if (!currentEventId) return;
+    const btn = overlay.querySelector("#event-detail-done");
+    const toDone = btn?.textContent !== "Devolver";
+    btn.disabled = true;
+    try {
+      await fetch(`${API_BASE}/events/${currentEventId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: toDone ? "done" : "open" }),
+      });
+      if (window.initCalendar) window.initCalendar();
+      if (window.initWeek) window.initWeek();
+      if (window.initToday) window.initToday();
+      if (window.openEventDetail) await window.openEventDetail(currentEventId);
+    } catch (e) {
+      console.error("Error actualizando evento:", e);
+    } finally {
+      btn.disabled = false;
+    }
+  });
   overlay.addEventListener("click", (e) => {
     if (e.target === overlay) close();
   });
@@ -210,6 +231,8 @@ export function initEventDetail() {
     overlay.querySelector("#event-detail-when").textContent = ev.start ? formatWhen(ev) : "";
     overlay.querySelector("#event-detail-location").textContent = ev.location ? `📍 ${ev.location}` : "";
     overlay.querySelector("#event-detail-desc").textContent = ev.description || "";
+    const doneBtn = overlay.querySelector("#event-detail-done");
+    if (doneBtn) doneBtn.textContent = ev.status === "done" ? "Devolver" : "Hecho ✓";
     renderTravelRow(overlay, ev);
     const prepInput = overlay.querySelector("#event-prep-input");
     if (prepInput) prepInput.value = "";
