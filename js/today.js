@@ -90,6 +90,11 @@ export async function initToday() {
   const metricText = isToday
     ? `Hoy: ${plural(doneTarget, "cerrada", "cerradas")} · ${plural(pending, "pendiente", "pendientes")}`
     : `${dayLabel(target)}: ${plural(doneTarget, "cerrada", "cerradas")}`;
+  // Unscheduled pool: due today (or undated), still open. Drag onto
+  // the line to hook an hour; the marker appears (addition only).
+  const poolTasks = isToday ? tasks.filter(t =>
+    !t.is_completed && !t.scheduled_datetime &&
+    (!t.due_datetime || sameDay(t.due_datetime, target))).slice(0, 30) : [];
 
   let summaryHtml = "";
   if (isPast) {
@@ -129,6 +134,11 @@ export async function initToday() {
       <span class="today-label">18</span>
       <span class="today-label">24</span>
     </div>
+    ${poolTasks.length > 0 ? `
+    <div class="today-pool-label">Sin hora (${poolTasks.length}) · arrastra a la línea para agendar</div>
+    <div class="today-pool" id="today-pool">
+      ${poolTasks.map(t => `<button class="today-chip" draggable="true" data-chip="${t.id}" title="Arrastra a la hora que quieras">${escapeHtml(t.title)}</button>`).join("")}
+    </div>` : ""}
     <div class="today-legend">
       <div class="today-legend-item"><span class="today-legend-dot high"></span> Alta</div>
       <div class="today-legend-item"><span class="today-legend-dot medium"></span> Media</div>
@@ -265,6 +275,45 @@ function wireMarkers(section, dayTasks, events, isToday, key) {
       if (window.openEventDetail) window.openEventDetail(el.dataset.eventId);
     });
   });
+
+  // Pool → timeline: drop a chip on the line to hook an hour (snap :00/:30)
+  const line = section.querySelector(".today-timeline");
+  section.querySelectorAll(".today-chip").forEach(chip => {
+    chip.addEventListener("dragstart", (e) => {
+      e.dataTransfer.setData("text/plain", chip.dataset.chip);
+      e.dataTransfer.effectAllowed = "move";
+    });
+  });
+  if (line && isToday) {
+    line.addEventListener("dragover", (e) => {
+      if (![...e.dataTransfer.types].includes("text/plain")) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      line.classList.add("drop-hint");
+    });
+    line.addEventListener("dragleave", () => line.classList.remove("drop-hint"));
+    line.addEventListener("drop", async (e) => {
+      const id = e.dataTransfer.getData("text/plain");
+      line.classList.remove("drop-hint");
+      if (!id || !section.querySelector(`.today-chip[data-chip="${id}"]`)) return;
+      e.preventDefault();
+      const r = line.getBoundingClientRect();
+      const pct = Math.min(0.99, Math.max(0, (e.clientX - r.left) / r.width));
+      const mins = Math.round((pct * 24 * 60) / 30) * 30;
+      const at = new Date(key + "T00:00:00");
+      at.setMinutes(mins);
+      try {
+        await fetch(`/api/tasks/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ scheduled_datetime: at.toISOString() }),
+        });
+        await refreshAll();
+      } catch (err) {
+        console.error("Error agendando:", err);
+      }
+    });
+  }
 
   if (!section.dataset.dismissBound) {
     section.dataset.dismissBound = "1";

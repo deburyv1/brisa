@@ -85,6 +85,48 @@
   white-space: nowrap;
 }
 
+.today-timeline.drop-hint {
+  outline: 2px dashed rgba(8, 127, 176, 0.8);
+  outline-offset: 2px;
+}
+
+.today-pool-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(22, 75, 105, 0.7);
+  text-shadow: var(--text-glow);
+  margin: 8px 0 4px;
+}
+
+.today-pool {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 76px;
+  overflow-y: auto;
+}
+
+.today-chip {
+  border: 1px solid rgba(22, 75, 105, 0.3);
+  border-radius: 99px;
+  padding: 4px 12px;
+  font-size: 10px;
+  font-weight: 600;
+  font-family: inherit;
+  color: rgba(22, 75, 105, 0.9);
+  text-shadow: var(--text-glow);
+  background: rgba(255, 255, 255, 0.35);
+  cursor: grab;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.today-chip:active {
+  cursor: grabbing;
+}
+
 /* Timeline bar - Windows 7 glossy solid */
 .today-timeline {
   position: relative;
