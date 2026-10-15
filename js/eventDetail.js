@@ -210,16 +210,42 @@ export function initEventDetail() {
     const toDone = btn?.textContent !== "Devolver";
     btn.disabled = true;
     try {
+      // The event and its linked tasks are one commitment in two views:
+      // closing the event closes its open tasks, reopening restores
+      // only those closed alongside it (older completions stay done).
+      const ev = await fetch(`${API_BASE}/events/${currentEventId}`).then(r => r.json()).catch(() => null);
+      const linked = await fetch(`${API_BASE}/tasks`).then(r => r.ok ? r.json() : []).catch(() => []);
+      const mine = (linked || []).filter(t => String(t.event_id) === String(currentEventId));
+      const now = new Date().toISOString();
+      if (toDone) {
+        for (const t of mine.filter(t => !t.is_completed)) {
+          await fetch(`${API_BASE}/tasks/${t.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ is_completed: true, completed_at: now }),
+          });
+        }
+      } else if (ev && ev.completed_at) {
+        for (const t of mine.filter(t => t.is_completed && t.completed_at && t.completed_at >= ev.completed_at)) {
+          await fetch(`${API_BASE}/tasks/${t.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ is_completed: false, completed_at: null }),
+          });
+        }
+      }
       await fetch(`${API_BASE}/events/${currentEventId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(toDone
-          ? { status: "done", completed_at: new Date().toISOString() }
+          ? { status: "done", completed_at: now }
           : { status: "open", completed_at: null }),
       });
       if (window.initCalendar) window.initCalendar();
       if (window.initWeek) window.initWeek();
       if (window.initToday) window.initToday();
+      if (window.initTasks) await window.initTasks();
+      if (window.renderNext) window.renderNext();
       if (window.openEventDetail) await window.openEventDetail(currentEventId);
     } catch (e) {
       console.error("Error actualizando evento:", e);
