@@ -153,9 +153,11 @@ async function capture(section) {
     renderSuggestion(section, pendingEntry);
     if (window.initInbox) window.initInbox();
     if (window.renderGuidanceBanner) window.renderGuidanceBanner();
+    return true;
   } catch (err) {
     console.error("Error capturando:", err);
     alert("No se pudo guardar. Intenta de nuevo.");
+    return false;
   } finally {
     if (saveBtn) saveBtn.disabled = false;
   }
@@ -210,6 +212,7 @@ function renderSuggestion(section, entry) {
       <div class="capture-actions">
         <button class="modal-btn modal-btn-secondary" id="capture-discard">Descartar</button>
         <button class="modal-btn modal-btn-secondary" id="capture-later">Después</button>
+        <button class="modal-btn modal-btn-secondary" id="capture-done" title="Ya está hecho">Hecho ✓</button>
         <button class="modal-btn modal-btn-primary" id="capture-confirm">Guardar</button>
       </div>
     </div>
@@ -224,6 +227,8 @@ function renderSuggestion(section, entry) {
       if (when) when.style.display = needsDate(selectedType) ? "" : "none";
       const extremeRow = section.querySelector("#capture-extreme-row");
       if (extremeRow) extremeRow.style.display = selectedType === "reminder" ? "" : "none";
+      const doneBtn = section.querySelector("#capture-done");
+      if (doneBtn) doneBtn.style.display = ["action", "idea", "reminder", "purchase"].includes(selectedType) ? "" : "none";
     });
   });
 
@@ -245,6 +250,11 @@ function renderSuggestion(section, entry) {
   });
 
   section.querySelector("#capture-confirm")?.addEventListener("click", () => confirmEntry(section, entry));
+  const doneBtn = section.querySelector("#capture-done");
+  if (doneBtn) {
+    doneBtn.style.display = ["action", "idea", "reminder", "purchase"].includes(selectedType) ? "" : "none";
+    doneBtn.addEventListener("click", () => confirmDone(section, entry));
+  }
 
   findSimilar(entry.raw_text, entry.id).then(sim => {
     if (!sim) return;
@@ -355,6 +365,56 @@ async function confirmEntry(section, entry) {
     console.error("Error procesando entrada:", err);
     alert("No se pudo guardar. Intenta de nuevo.");
     return false;
+  }
+}
+
+// "Ya está hecho": creates the target already completed.
+async function confirmDone(section, entry) {
+  const text = plainText(entry.raw_text).slice(0, 255) || entry.raw_text;
+  const now = new Date().toISOString();
+  try {
+    let targetType = selectedType;
+    let targetId = null;
+    if (selectedType === "action") {
+      const t = await postJson("/api/tasks", { title: text });
+      await fetch(`${API_BASE}/tasks/${t.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_completed: true, completed_at: now }),
+      });
+      targetId = t.id;
+    } else if (selectedType === "idea") {
+      const idea = await postJson("/api/ideas", { title: text, entry_id: entry.id });
+      await fetch(`${API_BASE}/ideas/${idea.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "done" }),
+      });
+      targetId = idea.id;
+    } else if (selectedType === "reminder") {
+      const rem = await postJson("/api/reminders", { title: text, remind_at: now, entry_id: entry.id });
+      await fetch(`${API_BASE}/reminders/${rem.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ done: true }),
+      });
+      targetId = rem.id;
+    } else if (selectedType === "purchase") {
+      const item = text.replace(/^(comprar|cómprame|comprame)\s+/i, "").trim() || text;
+      const shop = await postJson("/api/shopping", { description: item });
+      await fetch(`${API_BASE}/shopping/${shop.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_purchased: true }),
+      });
+      targetId = shop.id;
+    } else {
+      return;
+    }
+    await finishEntry(section, entry, targetType, targetId);
+  } catch (err) {
+    console.error("Error marcando hecho:", err);
+    alert("No se pudo guardar. Intenta de nuevo.");
   }
 }
 
