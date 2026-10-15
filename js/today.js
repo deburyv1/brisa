@@ -626,15 +626,22 @@ async function openDoneDetail() {
   for (const e of allEvents) eventById[e.id] = e;
   const taskById = {};
   for (const t of all) taskById[t.id] = t;
-  // Steps read as steps: whose action or event they belong to.
+  // Steps read as steps: whose action or event they belong to,
+  // with sibling progress (x/y) so they never inflate the reading.
   const stepOf = (t) => {
+    let sibs = null;
+    let name = "";
     if (t.parent_task_id && taskById[t.parent_task_id]) {
-      return `paso de ${taskById[t.parent_task_id].title}`;
+      name = taskById[t.parent_task_id].title;
+      sibs = all.filter(x => String(x.parent_task_id) === String(t.parent_task_id));
+    } else if (t.event_id && eventById[t.event_id]) {
+      name = eventById[t.event_id].title;
+      sibs = all.filter(x => String(x.event_id) === String(t.event_id));
+    } else {
+      return "";
     }
-    if (t.event_id && eventById[t.event_id]) {
-      return `paso de ${eventById[t.event_id].title}`;
-    }
-    return "";
+    const done = sibs.filter(x => x.is_completed).length;
+    return `${done}/${sibs.length} · paso de ${name}`;
   };
   const evOpen = todayEvents
     .filter(e => e.status !== "done")
