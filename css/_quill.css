@@ -31,6 +31,23 @@
   line-height: 1.6;
 }
 
+.ql-container.ql-snow .ql-editor img {
+  max-width: 100%;
+  height: auto;
+  cursor: zoom-in;
+  border-radius: 8px;
+}
+
+/* Long sessions scroll inside the editor instead of the page.
+   Quill puts ql-container on the holder itself. */
+#workmode-quill.ql-container, #workmode-quill .ql-container.ql-snow,
+#task-note-quill.ql-container, #task-note-quill .ql-container.ql-snow,
+#journal-quill.ql-container, #journal-quill .ql-container.ql-snow,
+#editor-text.ql-container, #editor-text .ql-container.ql-snow {
+  max-height: 55vh;
+  overflow-y: auto;
+}
+
 .ql-container.ql-snow .ql-editor.ql-blank::before {
   color: rgba(22, 75, 105, 0.55);
   font-style: normal;

@@ -34,6 +34,19 @@ export function createEditor(container, { placeholder = "" } = {}) {
     placeholder,
     modules: { toolbar: TOOLBAR },
   });
+  // Images: never overflow, click cycles display size.
+  // The width persists in the saved HTML.
+  const SIZES = ["", "320px", "180px"];
+  quill.root.addEventListener("click", (e) => {
+    const img = e.target?.closest?.("img");
+    if (!img || !quill.root.contains(img)) return;
+    const cur = SIZES.indexOf(img.dataset.size || "");
+    const next = SIZES[(cur + 1) % SIZES.length];
+    img.dataset.size = next;
+    img.style.width = next;
+    img.style.height = "auto";
+    img.style.maxWidth = "100%";
+  });
   // Image button: file picker → downscaled embed (never raw megabytes)
   try {
     const toolbar = quill.getModule("toolbar");
