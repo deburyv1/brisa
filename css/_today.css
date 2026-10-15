@@ -127,6 +127,41 @@
   cursor: grabbing;
 }
 
+.today-chip-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  max-width: 100%;
+}
+
+.today-chip-wrap .today-chip {
+  border-radius: 99px 0 0 99px;
+  border-right: 0;
+}
+
+.today-later {
+  border: 1px solid rgba(22, 75, 105, 0.3);
+  border-radius: 0 99px 99px 0;
+  padding: 4px 10px 4px 6px;
+  font-size: 9px;
+  font-weight: 700;
+  font-family: inherit;
+  color: rgba(22, 75, 105, 0.75);
+  text-shadow: var(--text-glow);
+  background: rgba(255, 255, 255, 0.25);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.today-later:hover {
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.today-later:disabled {
+  opacity: 0.5;
+}
+
 /* Timeline bar - Windows 7 glossy solid */
 .today-timeline {
   position: relative;

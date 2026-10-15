@@ -90,11 +90,11 @@ export async function initToday() {
   const metricText = isToday
     ? `Hoy: ${plural(doneTarget, "cerrada", "cerradas")} · ${plural(pending, "pendiente", "pendientes")}`
     : `${dayLabel(target)}: ${plural(doneTarget, "cerrada", "cerradas")}`;
-  // Unscheduled pool: due today (or undated), still open. Drag onto
-  // the line to hook an hour; the marker appears (addition only).
+  // Unscheduled pool: open, no hour hooked yet. Drag onto the line
+  // to schedule today; →mañana pushes it out of today explicitly.
   const poolTasks = isToday ? tasks.filter(t =>
     !t.is_completed && !t.scheduled_datetime &&
-    (!t.due_datetime || sameDay(t.due_datetime, target))).slice(0, 30) : [];
+    (!t.due_datetime || dateKey(t.due_datetime) <= key)).slice(0, 30) : [];
 
   let summaryHtml = "";
   if (isPast) {
@@ -135,9 +135,12 @@ export async function initToday() {
       <span class="today-label">24</span>
     </div>
     ${poolTasks.length > 0 ? `
-    <div class="today-pool-label">Sin hora (${poolTasks.length}) · arrastra a la línea para agendar</div>
+    <div class="today-pool-label">Sin hora (${poolTasks.length}) · arrastra a la línea para hoy · →mañana si no es pa hoy</div>
     <div class="today-pool" id="today-pool">
-      ${poolTasks.map(t => `<button class="today-chip" draggable="true" data-chip="${t.id}" title="Arrastra a la hora que quieras">${escapeHtml(t.title)}</button>`).join("")}
+      ${poolTasks.map(t => `
+      <span class="today-chip-wrap">
+        <button class="today-chip" draggable="true" data-chip="${t.id}" title="Arrastra a la hora · clic para editar fecha">${escapeHtml(t.title)}</button><button class="today-later" data-later="${t.id}" title="No es pa hoy → pasa a mañana">→mañana</button>
+      </span>`).join("")}
     </div>` : ""}
     <div class="today-legend">
       <div class="today-legend-item"><span class="today-legend-dot high"></span> Alta</div>
@@ -278,10 +281,38 @@ function wireMarkers(section, dayTasks, events, isToday, key) {
 
   // Pool → timeline: drop a chip on the line to hook an hour (snap :00/:30)
   const line = section.querySelector(".today-timeline");
+  let poolDragging = false;
   section.querySelectorAll(".today-chip").forEach(chip => {
     chip.addEventListener("dragstart", (e) => {
+      poolDragging = true;
       e.dataTransfer.setData("text/plain", chip.dataset.chip);
       e.dataTransfer.effectAllowed = "move";
+    });
+    chip.addEventListener("dragend", () => {
+      setTimeout(() => { poolDragging = false; }, 100);
+    });
+    chip.addEventListener("click", () => {
+      if (poolDragging) return;
+      if (window.openTaskModal) window.openTaskModal(Number(chip.dataset.chip));
+    });
+  });
+  section.querySelectorAll(".today-later").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const at = new Date(key + "T00:00:00");
+      at.setDate(at.getDate() + 1);
+      at.setHours(23, 59, 0, 0);
+      btn.disabled = true;
+      try {
+        await fetch(`/api/tasks/${btn.dataset.later}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ scheduled_datetime: null, due_datetime: at.toISOString() }),
+        });
+        await refreshAll();
+      } catch (err) {
+        console.error("Error posponiendo:", err);
+        btn.disabled = false;
+      }
     });
   });
   if (line && isToday) {
