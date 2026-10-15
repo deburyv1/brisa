@@ -10,8 +10,18 @@ const TOOLBAR = [
   ["bold", "italic", "underline", "strike"],
   ["blockquote", "code-block"],
   [{ list: "ordered" }, { list: "bullet" }],
-  ["link", "clean"],
+  ["link", "image", "clean"],
 ];
+
+// Downscale any image file to a light JPEG data URL.
+export function fileToLightDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => downscale(String(reader.result)).then(resolve, reject);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 export function createEditor(container, { placeholder = "" } = {}) {
   if (!container || container.dataset.quillReady) return container?._quill || null;
@@ -24,6 +34,30 @@ export function createEditor(container, { placeholder = "" } = {}) {
     placeholder,
     modules: { toolbar: TOOLBAR },
   });
+  // Image button: file picker → downscaled embed (never raw megabytes)
+  try {
+    const toolbar = quill.getModule("toolbar");
+    toolbar.addHandler("image", () => {
+      const picker = document.createElement("input");
+      picker.type = "file";
+      picker.accept = "image/*";
+      picker.onchange = async () => {
+        const file = picker.files && picker.files[0];
+        if (!file) return;
+        try {
+          const url = await fileToLightDataURL(file);
+          const range = quill.getSelection(true);
+          quill.insertEmbed(range.index, "image", url, "user");
+          quill.setSelection(range.index + 1, 0, "user");
+        } catch (e) {
+          console.error("Error agregando imagen:", e);
+        }
+      };
+      picker.click();
+    });
+  } catch {
+    // toolbar module missing: paste still works
+  }
   container.dataset.quillReady = "1";
   container._quill = quill;
   return quill;
@@ -31,7 +65,8 @@ export function createEditor(container, { placeholder = "" } = {}) {
 
 export function editorHTML(quill) {
   const html = quill?.root?.innerHTML || "";
-  return quill?.getText()?.trim() ? html : "";
+  const hasContent = quill?.getText()?.trim() || quill?.root?.querySelector("img, video, audio");
+  return hasContent ? html : "";
 }
 
 // Pasted photos arrive as huge data URLs. Downscale them in the
