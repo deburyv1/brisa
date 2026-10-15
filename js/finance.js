@@ -252,12 +252,14 @@ async function fetchBudgets(month) {
 function netByCategory(txs, byId) {
   const net = {};
   const gross = {};
+  const reimb = {};
   for (const t of txs) {
     if (t.type === "income") {
       const parent = t.linked_id ? byId[t.linked_id] : null;
       if (parent && parent.category) {
         const cat = parent.category;
         net[cat] = (net[cat] || 0) - Number(t.amount);
+        reimb[cat] = (reimb[cat] || 0) + Number(t.amount);
       }
       continue;
     }
@@ -265,11 +267,11 @@ function netByCategory(txs, byId) {
     gross[cat] = (gross[cat] || 0) + Number(t.amount);
     net[cat] = (net[cat] || 0) + Number(t.amount);
   }
-  return { net, gross };
+  return { net, gross, reimb };
 }
 
 function renderBreakdown(monthPosted, plannedByCat, byId, budgetMap) {
-  const { net, gross } = netByCategory(monthPosted, byId);
+  const { net, gross, reimb } = netByCategory(monthPosted, byId);
   let rows = Object.entries(net).sort((a, b) => b[1] - a[1]);
   if (budgetEdit) {
     // In edit mode show every known category so topes can be set proactively
@@ -300,7 +302,7 @@ function renderBreakdown(monthPosted, plannedByCat, byId, budgetMap) {
           <input class="budget-input" data-budget-cat="${escapeHtml(cat)}" type="number" min="0" step="any"
             placeholder="Tope" value="${cap != null ? cap : ""}">
         ` : `
-          <div class="breakdown-val">${formatMoney(val)}${planned > 0 ? `<small> +${formatMoney(planned)} previsto</small>` : ""}${cap != null ? `<small> de ${formatMoney(cap)}${over ? ` · +${formatMoney(progress - cap)} sobre tope` : ""}</small>` : ""}</div>
+          <div class="breakdown-val">${formatMoney(val)}${planned > 0 ? `<small> +${formatMoney(planned)} previsto</small>` : ""}${reimb[cat] > 0 ? `<small> −${formatMoney(reimb[cat])} reembolso</small>` : ""}${cap != null ? `<small> de ${formatMoney(cap)}${over ? ` · +${formatMoney(progress - cap)} sobre tope` : ""}</small>` : ""}</div>
         `}
       </div>`;
     }).join("")}
