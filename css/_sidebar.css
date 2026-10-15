@@ -61,6 +61,19 @@
   padding: 0 10px 8px;
 }
 
+/* The nav scrolls so the clock card never overflows the panel */
+.sidebar nav {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.sidebar-clock,
+.player-panel {
+  flex-shrink: 0;
+}
+
 .nav {
   position: relative;
   width: 100%;
