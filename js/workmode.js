@@ -175,6 +175,27 @@ async function fillOrigin(task) {
   }
 }
 
+// Navbar presence: while a focus task is set and the user is
+// elsewhere, the chip says what they should be working on.
+function paintFocusChip() {
+  const chip = document.querySelector("#focus-chip");
+  if (!chip) return;
+  const task = (state.tasks || []).find(t => String(t.id) === String(currentId) && !t.is_completed);
+  const inWorkmode = !!document.querySelector("#workmode-section")?.offsetParent;
+  if (!task || inWorkmode) {
+    chip.style.display = "none";
+    return;
+  }
+  chip.style.display = "";
+  const title = chip.querySelector("#focus-chip-title");
+  if (title) title.textContent = task.title;
+  const time = chip.querySelector("#focus-chip-time");
+  const t = window.brisaTimer && window.brisaTimer.timeLeft ? window.brisaTimer.timeLeft() : null;
+  if (time) time.textContent = t ? ` · ${fmt(t.remainingSec)}` : "";
+  chip.classList.toggle("running", !!(t && t.running));
+  chip.title = `Volver al enfoque: ${task.title}`;
+}
+
 function render(section) {
   clearPatio();
   const task = resolveTask();
@@ -436,6 +457,7 @@ function render(section) {
 
   paintTimer();
   fillOrigin(task);
+  paintFocusChip();
 }
 
 export async function initWorkmode() {
@@ -446,6 +468,7 @@ export async function initWorkmode() {
   if (!pollTimer) {
     pollTimer = setInterval(() => {
       if (document.querySelector("#workmode-section #workmode-clock")) paintTimer();
+      paintFocusChip();
     }, 500);
   }
   if (!unloadBound) {
@@ -474,4 +497,11 @@ export async function startWorkmode(taskId) {
   if (taskId != null) currentId = taskId;
   document.querySelector('.nav[data-nav="workmode"]')?.click();
   await initWorkmode();
+}
+
+if (typeof window !== "undefined") {
+  window.paintFocusChip = paintFocusChip;
+  document.querySelector("#focus-chip")?.addEventListener("click", () => {
+    document.querySelector('.nav[data-nav="workmode"]')?.click();
+  });
 }

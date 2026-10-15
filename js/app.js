@@ -37,6 +37,7 @@ import { initWeek } from "./week.js";
 import { initWallpaper } from "./wallpaper.js";
 import { initGlass } from "./glass.js";
 import { initWorkmode, startWorkmode } from "./workmode.js";
+import { initQuickCapture } from "./quickCapture.js";
 
 window.initTasks = initTasks;
 window.initJournal = initJournal;
@@ -121,6 +122,8 @@ function initNavigation() {
     navButtons.forEach(btn => {
       btn.classList.toggle("active", btn.dataset.nav === nav);
     });
+
+    if (window.paintFocusChip) window.paintFocusChip();
   }
 
   navButtons.forEach(btn => {
@@ -161,6 +164,7 @@ async function main() {
   initIdeas();
   initTimer();
   initPlayer();
+  initQuickCapture();
   initNavigation();
 
   // Load data first so Today markers, badges and guidance see fresh state

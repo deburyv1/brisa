@@ -62,6 +62,33 @@
   animation: timer-pulse 0.65s ease;
 }
 
+/* Focus presence: what you should be working on, from anywhere */
+.focus-chip {
+  max-width: 240px;
+}
+
+.focus-chip #focus-chip-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.focus-chip #focus-chip-time {
+  font-variant-numeric: tabular-nums;
+}
+
+.focus-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #1a8a4a;
+  flex-shrink: 0;
+}
+
+.focus-chip.running .focus-dot {
+  animation: timer-pulse 1.6s ease infinite;
+}
+
 @keyframes timer-pulse {
   0% { box-shadow: 0 0 0 0 rgba(93, 242, 255, 0.7); }
   100% { box-shadow: 0 0 0 14px rgba(93, 242, 255, 0); }

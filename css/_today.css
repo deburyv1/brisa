@@ -35,6 +35,55 @@
   font-variant-numeric: tabular-nums;
 }
 
+.today-metric {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: inherit;
+  color: rgba(22, 75, 105, 0.8);
+  cursor: pointer;
+  text-align: left;
+}
+
+.today-metric:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+.done-day {
+  margin-bottom: 12px;
+}
+
+.done-day-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: capitalize;
+  color: rgba(22, 75, 105, 0.85);
+  border-bottom: 1px dashed rgba(22, 75, 105, 0.25);
+  padding-bottom: 4px;
+  margin-bottom: 4px;
+}
+
+.done-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--ink);
+  padding: 2px 0;
+}
+
+.done-item small {
+  color: rgba(22, 75, 105, 0.6);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 /* Timeline bar - Windows 7 glossy solid */
 .today-timeline {
   position: relative;

@@ -77,6 +77,20 @@ export async function initToday() {
 
   const dayTasks = tasks.filter(t => t.scheduled_datetime && sameDay(t.scheduled_datetime, target));
 
+  const doneByDay = {};
+  for (const t of tasks) {
+    if (t.is_completed && t.completed_at) {
+      const k = dateKey(new Date(t.completed_at));
+      (doneByDay[k] = doneByDay[k] || []).push(t);
+    }
+  }
+  const doneTarget = (doneByDay[key] || []).length;
+  const pending = tasks.filter(t => !t.is_completed).length;
+  const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+  const metricText = isToday
+    ? `Hoy: ${plural(doneTarget, "cerrada", "cerradas")} · ${plural(pending, "pendiente", "pendientes")}`
+    : `${dayLabel(target)}: ${plural(doneTarget, "cerrada", "cerradas")}`;
+
   let summaryHtml = "";
   if (isPast) {
     summaryHtml = await renderSummary(key);
@@ -92,6 +106,7 @@ export async function initToday() {
       </div>
       <div class="today-time">${isToday ? formatTime(new Date()) : ""}</div>
     </div>
+    <button class="today-metric" id="today-metric" title="Ver qué se completó cada día">${escapeHtml(metricText)}</button>
     <div class="today-timeline ${isPast ? "past" : ""}">
       ${isToday ? `<div class="today-now" style="left: ${getCurrentTimePercent()}%"></div>` : ""}
       ${dayTasks.map(t => {
@@ -128,6 +143,7 @@ export async function initToday() {
   section.querySelector("#today-reset")?.addEventListener("click", () => resetToday());
 
   wireMarkers(section, dayTasks, events, isToday, key);
+  section.querySelector("#today-metric")?.addEventListener("click", () => openDoneDetail());
 
   const timeEl = section.querySelector(".today-time");
   if (section.dataset.clockId) {
@@ -319,6 +335,48 @@ function summaryRow(icon, label, value) {
       <span class="summary-value">${value}</span>
     </div>
   `;
+}
+
+// Read-only detail: what got done each of the last 7 days.
+// Evidence, never score: no totals-as-goals, no streaks.
+function openDoneDetail() {
+  const overlay = document.querySelector("#done-modal");
+  const list = document.querySelector("#done-list");
+  if (!overlay || !list) return;
+  const rows = [];
+  for (let back = 0; back < 7; back++) {
+    const d = new Date();
+    d.setDate(d.getDate() - back);
+    const k = dateKey(d);
+    const done = (state.tasks || [])
+      .filter(t => t.is_completed && t.completed_at && dateKey(new Date(t.completed_at)) === k)
+      .sort((a, b) => new Date(a.completed_at) - new Date(b.completed_at));
+    const label = back === 0 ? "Hoy" : d.toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "short" });
+    rows.push(`
+      <div class="done-day">
+        <div class="done-day-head"><span>${escapeHtml(label)}</span><span>${done.length === 0 ? "—" : done.length === 1 ? "1 cerrada" : `${done.length} cerradas`}</span></div>
+        ${done.map(t => `
+          <div class="done-item">
+            <span>${escapeHtml(t.title)}</span>
+            <small>${new Date(t.completed_at).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}</small>
+          </div>`).join("")}
+      </div>`);
+  }
+  list.innerHTML = rows.join("");
+  overlay.classList.add("active");
+}
+
+if (typeof window !== "undefined") {
+  window.openDoneDetail = openDoneDetail;
+  document.querySelector("#done-modal-close")?.addEventListener("click", () => {
+    document.querySelector("#done-modal")?.classList.remove("active");
+  });
+  document.querySelector("#done-modal")?.addEventListener("click", (e) => {
+    if (e.target.id === "done-modal") e.target.classList.remove("active");
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") document.querySelector("#done-modal")?.classList.remove("active");
+  });
 }
 
 function escapeHtml(str) {
