@@ -5,7 +5,7 @@
    ============================================ */
 import { state } from "./state.js";
 import { pickNextAction } from "./nextAction.js";
-import { createEditor, editorHTML, isHTML } from "./richtext.js";
+import { createEditor, editorHTML, htmlWithLightImages, isHTML } from "./richtext.js";
 import { confirmDiscard } from "./modalGuard.js";
 
 const API_BASE = "/api";
@@ -67,13 +67,14 @@ async function flushSave() {
   dirty = false;
   paintSaveState("saving");
   try {
+    const html = await htmlWithLightImages(editorHTML(quill));
     await fetch(`${API_BASE}/tasks/${currentId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ description: editorHTML(quill) }),
+      body: JSON.stringify({ description: html }),
     });
     const t = (state.tasks || []).find(x => String(x.id) === String(currentId));
-    if (t) t.description = editorHTML(quill);
+    if (t) t.description = html;
     paintSaveState("saved");
   } catch (e) {
     console.warn("No se pudo guardar el bloc:", e);
@@ -520,7 +521,7 @@ export function initTaskNotes() {
   });
   overlay.querySelector("#task-note-save")?.addEventListener("click", async () => {
     if (!notesTaskId || !notesQuill) return;
-    const html = editorHTML(notesQuill);
+    const html = await htmlWithLightImages(editorHTML(notesQuill));
     try {
       await fetch(`${API_BASE}/tasks/${notesTaskId}`, {
         method: "PUT",

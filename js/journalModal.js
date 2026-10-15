@@ -4,7 +4,7 @@
    ============================================ */
 const API_BASE = "/api";
 import { snapshotForm, isDirty, confirmDiscard } from "./modalGuard.js";
-import { createEditor, editorHTML, isHTML, sanitizeHTML } from "./richtext.js";
+import { createEditor, editorHTML, htmlWithLightImages, isHTML, sanitizeHTML } from "./richtext.js";
 import { renderMarkdown } from "./markdown.js";
 
 export function initJournalModal() {
@@ -125,6 +125,7 @@ export function initJournalModal() {
     if (!data.title || !data.title.trim()) return;
 
     try {
+      data.content = await htmlWithLightImages(data.content || "");
       if (editingId) {
         await fetch(`${API_BASE}/journal/${editingId}`, {
           method: "PUT",
