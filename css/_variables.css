@@ -2,7 +2,7 @@
    BRISA - Variables & Design Tokens
    ============================================ */
 :root {
-  --ink: #164b69;
+  --ink: #1f3d4d;
   --blue: #087ead;
   --cyan: #11b9df;
   --glass: rgba(232, 248, 255, .68);
@@ -10,8 +10,8 @@
   --edge: rgba(255, 255, 255, .9);
   --shadow: 0 18px 45px rgba(0, 58, 94, .18);
   --sidebar-width: 255px;
-  --radius-panel: 25px;
-  --radius-card: 18px;
+  --radius-panel: 20px;
+  --radius-card: 16px;
   --transition-speed: .16s;
   /* Glass theme (overridden live by Personalizar) */
   --glass-blur: 28px;
@@ -29,5 +29,5 @@
    so letters survive bright wallpapers */
 body.clear-glass {
   --text-glow: 0 0 12px rgba(255, 255, 255, .95), 0 1px 3px rgba(255, 255, 255, .75);
-  --ink: #0e3a54;
+  --ink: #16303e;
 }

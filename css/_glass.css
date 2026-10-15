@@ -60,7 +60,9 @@ body {
   pointer-events: none;
   border-radius: inherit;
   inset: 1px;
-  background: linear-gradient(110deg, rgba(255, 255, 255, .32), transparent 25%, transparent 70%, rgba(255, 255, 255, .16));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .38), transparent 42%),
+    linear-gradient(110deg, rgba(255, 255, 255, .28), transparent 25%, transparent 70%, rgba(255, 255, 255, .14));
 }
 
 /* Reusable glass card */

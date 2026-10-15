@@ -36,10 +36,10 @@ export function saveTheme(theme) {
 
 export function applyTheme(theme, { full = false } = {}) {
   const root = document.documentElement.style;
-  // Retro-gloss floor: panels never go fully clear, so letters read
-  // on any wallpaper. The slider still modulates above the floor.
-  const a1 = 0.30 + (theme.alpha / 100) * 0.65;
-  const a2 = 0.18 + (theme.alpha / 100) * 0.40;
+  // Milky retro-gloss: panels stay milky like the reference,
+  // the slider modulates above the floor.
+  const a1 = 0.45 + (theme.alpha / 100) * 0.50;
+  const a2 = 0.30 + (theme.alpha / 100) * 0.35;
   root.setProperty("--glass-blur", `${theme.blur}px`);
   root.setProperty("--glass-sat", `${theme.sat}%`);
   root.setProperty("--glass-a1", a1.toFixed(2));
