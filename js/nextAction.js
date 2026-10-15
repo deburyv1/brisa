@@ -127,10 +127,15 @@ async function fillNextIdeas(section) {
       btn.addEventListener("click", async () => {
         btn.disabled = true;
         try {
-          await fetch(`${API_BASE}/tasks`, {
+          const task = await fetch(`${API_BASE}/tasks`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ title: btn.dataset.title }),
+          }).then(r => r.json());
+          await fetch(`${API_BASE}/ideas/${btn.dataset.derive}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: "done", task_id: task?.id || null }),
           });
         } catch (e) {
           console.error("Error derivando acción:", e);

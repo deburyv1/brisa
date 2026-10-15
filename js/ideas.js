@@ -59,10 +59,15 @@ export async function initIdeas() {
 
     row.querySelector('[data-action="derive"]')?.addEventListener("click", async () => {
       try {
-        await fetch(`${API_BASE}/tasks`, {
+        const task = await fetch(`${API_BASE}/tasks`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ title }),
+        }).then(r => r.json());
+        await fetch(`${API_BASE}/ideas/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "done", task_id: task?.id || null }),
         });
       } catch (e) {
         console.error("Error derivando acción:", e);
