@@ -343,7 +343,21 @@ function openDoneDetail() {
   const overlay = document.querySelector("#done-modal");
   const list = document.querySelector("#done-list");
   if (!overlay || !list) return;
-  const rows = [];
+  const pending = (state.tasks || []).filter(t => !t.is_completed);
+  const rows = [`
+    <div class="done-day">
+      <div class="done-day-head"><span>Pendientes ahora</span><span>${pending.length === 0 ? "—" : pending.length === 1 ? "1 pendiente" : `${pending.length} pendientes`}</span></div>
+      ${pending.map(t => {
+        const when = t.scheduled_datetime
+          ? new Date(t.scheduled_datetime).toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" })
+          : "sin hora";
+        return `
+        <div class="done-item">
+          <span>${escapeHtml(t.title)}</span>
+          <small>${escapeHtml(when)}</small>
+        </div>`;
+      }).join("")}
+    </div>`];
   for (let back = 0; back < 7; back++) {
     const d = new Date();
     d.setDate(d.getDate() - back);
