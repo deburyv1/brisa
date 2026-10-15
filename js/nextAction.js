@@ -88,6 +88,7 @@ export function renderNext() {
         `).join("")}
       </div>
     ` : ""}
+    <div class="next-event" id="next-event" style="display:none"></div>
   `;
 
   section.querySelectorAll("[data-start]").forEach(btn => {
@@ -95,6 +96,37 @@ export function renderNext() {
       if (window.openFocus) window.openFocus(btn.dataset.start);
     });
   });
+
+  fillNextEvent(section);
+}
+
+// Next event nudge: what is coming + do you need to prepare
+// anything (opens the event detail with its prep checklist).
+async function fillNextEvent(section) {
+  const box = section.querySelector("#next-event");
+  if (!box) return;
+  try {
+    const res = await fetch(`${API_BASE}/events`);
+    if (!res.ok) return;
+    const now = Date.now();
+    const upcoming = (await res.json())
+      .filter(e => e.start && new Date(e.start).getTime() > now)
+      .sort((a, b) => new Date(a.start) - new Date(b.start))[0];
+    if (!upcoming || !section.isConnected || section.querySelector("#next-event") !== box) return;
+    const when = new Date(upcoming.start).toLocaleDateString("es-ES", {
+      weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
+    });
+    box.style.display = "";
+    box.innerHTML = `
+      <span>Próximo evento: <strong>${escapeHtml(upcoming.title)}</strong> · ${escapeHtml(when)}</span>
+      <button class="next-alt" id="next-event-prep" title="Ver el evento y su preparación">¿Preparar algo?</button>
+    `;
+    box.querySelector("#next-event-prep")?.addEventListener("click", () => {
+      if (window.openEventDetail) window.openEventDetail(upcoming.id);
+    });
+  } catch {
+    // ignore: the nudge is optional
+  }
 }
 
 function escapeHtml(str) {

@@ -236,6 +236,12 @@ function renderSuggestion(section, entry) {
     b.addEventListener("click", () => {
       section.querySelectorAll(".capture-when-btn").forEach(x =>
         x.classList.toggle("selected", x === b));
+      const dateInput = section.querySelector("#capture-date");
+      if (b.dataset.when === "today" && dateInput && !dateInput.value) {
+        const now = new Date();
+        const pad = (n) => String(n).padStart(2, "0");
+        dateInput.value = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+      }
     }));
 
   section.querySelector("#capture-discard")?.addEventListener("click", async () => {
