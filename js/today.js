@@ -123,7 +123,8 @@ export async function initToday() {
       ${events.map(ev => {
         const d = new Date(ev.start);
         const percent = ((d.getHours() + d.getMinutes() / 60) / 24) * 100;
-        return `<div class="today-event" style="left: ${percent}%" data-event-id="${ev.id}" title="${escapeHtml(ev.title || "Evento")}"></div>`;
+        const evOverdue = isToday && d.getTime() < Date.now();
+        return `<div class="today-event${evOverdue ? " overdue" : ""}" style="left: ${percent}%" draggable="${isToday ? "true" : "false"}" data-event-id="${ev.id}" title="${escapeHtml(ev.title || "Evento")} · arrástrame para cambiar la hora"></div>`;
       }).join("")}
       <div class="today-pop" id="today-pop" style="display:none"></div>
     </div>
@@ -287,9 +288,64 @@ function wireMarkers(section, dayTasks, events, isToday, key) {
   });
 
   section.querySelectorAll(".today-event").forEach(el => {
+    el.addEventListener("dragstart", (e) => {
+      if (el.getAttribute("draggable") !== "true") {
+        e.preventDefault();
+        return;
+      }
+      markerDragging = true;
+      e.dataTransfer.setData("text/plain", `event:${el.dataset.eventId}`);
+      e.dataTransfer.effectAllowed = "move";
+    });
+    el.addEventListener("dragend", () => {
+      setTimeout(() => { markerDragging = false; }, 100);
+    });
     el.addEventListener("click", (e) => {
+      if (markerDragging) return;
       e.stopPropagation();
-      if (window.openEventDetail) window.openEventDetail(el.dataset.eventId);
+      if (!isToday) {
+        if (window.openEventDetail) window.openEventDetail(el.dataset.eventId);
+        return;
+      }
+      const ev = (events || []).find(x => String(x.id) === String(el.dataset.eventId));
+      const overdue = ev && ev.start && new Date(ev.start).getTime() < Date.now();
+      if (!overdue) {
+        if (window.openEventDetail) window.openEventDetail(el.dataset.eventId);
+        return;
+      }
+      // Missed event feedback: what happened + move it or leave it
+      showPop(el, `
+        <div class="today-pop-title">${escapeHtml(ev.title || "Evento")}</div>
+        <div class="today-pop-time">⏰ ${overdueText(ev.start)} · ¿lo hiciste o se reprograma?</div>
+        <div class="today-pop-actions">
+          <button class="modal-btn modal-btn-secondary" data-act="plus1">+1 h</button>
+          <button class="modal-btn modal-btn-secondary" data-act="tomorrow">Mañana</button>
+          <button class="modal-btn modal-btn-secondary" data-act="leave">Dejar así</button>
+        </div>`);
+      const shift = async (fn) => {
+        try {
+          const cur = await fetch(`/api/events/${ev.id}`).then(r => r.json());
+          const s = new Date(cur.start);
+          const dur = cur.end ? new Date(cur.end).getTime() - s.getTime() : 0;
+          fn(s);
+          const body = { start: s.toISOString() };
+          if (cur.end) body.end = new Date(s.getTime() + dur).toISOString();
+          await fetch(`/api/events/${ev.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          closePop();
+          await refreshAll();
+        } catch (err) {
+          console.error("Error reprogramando evento:", err);
+        }
+      };
+      pop.querySelector('[data-act="plus1"]')?.addEventListener("click", () =>
+        shift(s => s.setTime(s.getTime() + 60 * 60000)));
+      pop.querySelector('[data-act="tomorrow"]')?.addEventListener("click", () =>
+        shift(s => s.setDate(s.getDate() + 1)));
+      pop.querySelector('[data-act="leave"]')?.addEventListener("click", closePop);
     });
   });
 
@@ -341,16 +397,35 @@ function wireMarkers(section, dayTasks, events, isToday, key) {
       const raw = e.dataTransfer.getData("text/plain");
       line.classList.remove("drop-hint");
       if (!raw) return;
+      const isEvent = raw.startsWith("event:");
       const isMarker = raw.startsWith("task:");
-      const id = isMarker ? raw.slice(5) : raw;
+      const id = isEvent ? raw.slice(6) : isMarker ? raw.slice(5) : raw;
+      if (isEvent && !section.querySelector(`.today-event[data-event-id="${id}"]`)) return;
       if (isMarker && !section.querySelector(`.today-task[data-task-id="${id}"]`)) return;
-      if (!isMarker && !section.querySelector(`.today-chip[data-chip="${id}"]`)) return;
+      if (!isEvent && !isMarker && !section.querySelector(`.today-chip[data-chip="${id}"]`)) return;
       e.preventDefault();
       const r = line.getBoundingClientRect();
       const pct = Math.min(0.99, Math.max(0, (e.clientX - r.left) / r.width));
       const mins = Math.round((pct * 24 * 60) / 30) * 30;
       const at = new Date(key + "T00:00:00");
       at.setMinutes(mins);
+      if (isEvent) {
+        try {
+          const cur = await fetch(`/api/events/${id}`).then(r => r.json());
+          const dur = cur.end ? new Date(cur.end).getTime() - new Date(cur.start).getTime() : 0;
+          const body = { start: at.toISOString() };
+          if (cur.end) body.end = new Date(at.getTime() + dur).toISOString();
+          await fetch(`/api/events/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          await refreshAll();
+        } catch (err) {
+          console.error("Error moviendo evento:", err);
+        }
+        return;
+      }
       try {
         await fetch(`/api/tasks/${id}`, {
           method: "PUT",

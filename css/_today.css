@@ -350,6 +350,17 @@
   z-index: 4;
 }
 
+.today-event.overdue {
+  background: #ff4d4d;
+  box-shadow: 0 0 10px rgba(255, 77, 77, 0.9);
+  animation: overdue-diamond 1.6s ease-out infinite;
+}
+
+@keyframes overdue-diamond {
+  0% { box-shadow: 0 0 0 0 rgba(255, 77, 77, 0.8); }
+  100% { box-shadow: 0 0 0 10px rgba(255, 77, 77, 0); }
+}
+
 /* Past days: gray timeline, no present marker */
 .today-timeline.past {
   filter: grayscale(.9) brightness(1.06);
