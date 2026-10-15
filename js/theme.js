@@ -19,10 +19,10 @@ export function loadTheme() {
     saved = null;
   }
   const theme = { ...PRESETS.normal, ...(saved || {}) };
-  // Migration: themes saved before the readability flip had low alpha,
-  // which made panels dark over dark wallpapers. Bump to readable.
-  if (theme.alpha < 50) theme.alpha = 55;
-  if (theme.blur < 24) theme.blur = 28;
+  // Floor only absurd values; readability at clear settings
+  // is handled by the clear-glass armor in applyTheme.
+  if (theme.alpha < 10) theme.alpha = 10;
+  if (theme.blur < 4) theme.blur = 4;
   return theme;
 }
 
@@ -42,6 +42,8 @@ export function applyTheme(theme, { full = false } = {}) {
   root.setProperty("--glass-a2", (theme.alpha / 200).toFixed(2));
   document.body.classList.toggle("sheen", !!theme.sheen);
   document.body.classList.toggle("full-glass", full);
+  // Clear glass keeps the look but needs stronger text armor
+  document.body.classList.toggle("clear-glass", theme.alpha < 35 || theme.blur < 16);
   const btn = document.querySelector("#glass-toggle");
   if (btn) btn.textContent = full ? "◑ Normal" : "◐ Vidrio";
 }

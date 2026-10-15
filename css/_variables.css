@@ -24,3 +24,10 @@
   /* Win7 glow: light halo for dark ink text on glass */
   --text-glow: 0 0 7px rgba(255, 255, 255, .8), 0 1px 1px rgba(255, 255, 255, .45);
 }
+
+/* Clear-glass armor: same look, stronger halo + deeper ink
+   so letters survive bright wallpapers */
+body.clear-glass {
+  --text-glow: 0 0 12px rgba(255, 255, 255, .95), 0 1px 3px rgba(255, 255, 255, .75);
+  --ink: #0e3a54;
+}
