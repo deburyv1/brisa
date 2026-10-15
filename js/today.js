@@ -588,8 +588,23 @@ async function openDoneDetail() {
   const floating = all
     .filter(t => !t.is_completed && !t.scheduled_datetime && !t.due_datetime);
 
+  // Midnight means date-only (no real hour): last, with a dash.
+  const hasHour = (iso) => {
+    if (!iso) return false;
+    const d = new Date(iso);
+    return d.getHours() !== 0 || d.getMinutes() !== 0;
+  };
+  const programmed = [
+    ...scheduledToday.map(t => ({ title: t.title, iso: t.scheduled_datetime, timed: hasHour(t.scheduled_datetime) })),
+    ...evOpen.map(e => ({ title: e.title, iso: e.start, timed: hasHour(e.start) })),
+  ].sort((a, b) => {
+    if (a.timed !== b.timed) return a.timed ? -1 : 1;
+    if (!a.timed) return String(a.title).localeCompare(String(b.title));
+    return new Date(a.iso) - new Date(b.iso);
+  });
+
   const doneCount = doneToday.length + evDone.length;
-  const dayTotal = doneCount + scheduledToday.length + evOpen.length;
+  const dayTotal = doneCount + programmed.length;
   const pct = dayTotal === 0 ? 0 : Math.round((doneCount / dayTotal) * 100);
 
   const itemRow = (t, right, done = false) => `
@@ -623,11 +638,10 @@ async function openDoneDetail() {
       <div class="done-bar"><span style="width:${pct}%"></span></div>
       ${doneCount > 0 ? `<div class="done-cheer">Lo hecho, hecho está. ✓</div>` : ""}
     </div>
-    ${scheduledToday.length + evOpen.length > 0 ? `
+    ${programmed.length > 0 ? `
     <div class="done-day">
-      <div class="done-day-head"><span>Programadas para hoy</span><span>${scheduledToday.length + evOpen.length}</span></div>
-      ${scheduledToday.map(t => itemRow(t, timeOf(t.scheduled_datetime))).join("")}
-      ${evOpen.map(e => itemRow(e, timeOf(e.start))).join("")}
+      <div class="done-day-head"><span>Programadas para hoy</span><span>${programmed.length}</span></div>
+      ${programmed.map(p => itemRow({ title: p.title }, p.timed ? timeOf(p.iso) : "—")).join("")}
     </div>` : ""}
     ${floating.length > 0 ? `
     <div class="done-day">
