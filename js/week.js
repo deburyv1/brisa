@@ -226,7 +226,11 @@ function dayCard(item, readonly = false, dayKey = "") {
   const mark = kind === "habit"
     ? `<span class="planner-icon">${data.icon ? escapeHtml(data.icon) : "·"}</span>`
     : `<span class="week-dot ${kind === "event" ? "event" : (data.priority || "medium")}"></span>`;
-  const done = kind === "habit" && data.done_today ? " done" : "";
+  const isDone = kind === "habit" ? !!data.done_today : !!data.is_completed;
+  const done = isDone ? " done" : "";
+  const checkBtn = (!readonly && (kind === "task" || kind === "habit"))
+    ? `<button class="day-check${isDone ? " done" : ""}" data-check-kind="${kind}" data-check-id="${data.id}" title="${isDone ? "Quitar marca" : "Marcar hecho"}">✓</button>`
+    : "";
   const correctBtn = (readonly && kind === "habit")
     ? `<button class="day-correct${data.done_today ? " done" : ""}" data-correct-habit="${data.id}" data-done="${data.done_today ? "1" : "0"}" data-day="${dayKey}" title="${data.done_today ? "Quitar marca (no lo hice)" : "Marcar como hecho"}">${data.done_today ? "✓" : ""}</button>`
     : "";
@@ -239,6 +243,7 @@ function dayCard(item, readonly = false, dayKey = "") {
       ${mark}
       <span class="week-item-title">${escapeHtml(kind === "habit" ? data.name : data.title)}</span>
       <span class="week-item-time${at ? "" : " unscheduled"}">${time}</span>
+      ${checkBtn}
     </div>`;
 }
 
@@ -449,11 +454,13 @@ function wireHourDrop(board, dayKey) {
 }
 
 // ---- Por orden: secuencia sin horas, el orden se guarda ----
+const DAY_CLOSE_VISIBLE = false; // temporal: cierre oculto, el registro sigue en API
+
 async function renderOrderList(board, dayKey, dayTasks, dayEvents, dueHabits, readonly = false, reopened = false) {
   // Past days show everything including done items (review mode).
-  // Today shows done items only right after a reopen, so mistakes can be fixed.
-  const openHabits = (readonly || reopened) ? dueHabits : dueHabits.filter(h => !h.done_today);
-  const openTasks = (readonly || reopened) ? dayTasks : dayTasks.filter(t => !t.is_completed);
+  // Today keeps done items visible in green so progress reads at a glance.
+  const openHabits = dueHabits;
+  const openTasks = dayTasks;
   const items = [
     ...openTasks.map(t => ({ kind: "task", data: t, at: t.scheduled_datetime })),
     ...dayEvents.map(ev => ({ kind: "event", data: ev, at: ev.start })),
@@ -711,10 +718,46 @@ function wireDayCards(board) {
     };
     el.addEventListener("click", open);
     el.addEventListener("keydown", (e) => {
-      if (e.target.closest(".day-correct")) return;
+      if (e.target.closest(".day-correct") || e.target.closest(".day-check")) return;
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
         open();
+      }
+    });
+  });
+  // Inline done toggle: mark here, it stays green in the list.
+  board.querySelectorAll(".day-check").forEach(btn => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const kind = btn.dataset.checkKind;
+      const id = btn.dataset.checkId;
+      const turnOn = !btn.classList.contains("done");
+      btn.disabled = true;
+      try {
+        if (kind === "habit") {
+          await fetch(`/api/habits/${id}/check`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ done: turnOn }),
+          });
+        } else {
+          await fetch(`/api/tasks/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(turnOn
+              ? { is_completed: true, completed_at: new Date().toISOString() }
+              : { is_completed: false, completed_at: null }),
+          });
+        }
+        if (window.initTasks) await window.initTasks();
+        if (window.initHabits) window.initHabits();
+        if (window.initReadiness) window.initReadiness();
+        if (window.renderNext) window.renderNext();
+        if (window.initToday) window.initToday();
+        if (window.initWeek) await window.initWeek();
+      } catch (err) {
+        console.error("Error marcando:", err);
+        btn.disabled = false;
       }
     });
   });
@@ -749,6 +792,7 @@ function wireDayCards(board) {
 async function renderDayClose(body, dayKey, offset, dayTasks, habits) {
   const slot = body.querySelector("#day-close-slot");
   if (!slot) return;
+  if (!DAY_CLOSE_VISIBLE) return; // temporal
   if (offset > 0) return; // future: nothing to review
 
   let info = { misses: [], closed: false };
