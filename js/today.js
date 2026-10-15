@@ -636,28 +636,17 @@ async function openDoneDetail() {
   for (const e of allEvents) eventById[e.id] = e;
   const taskById = {};
   for (const t of all) taskById[t.id] = t;
-  // Steps read as steps: whose action or event they belong to,
-  // with sibling progress (x/y) so they never inflate the reading.
-  // originDone flags when the parent itself is done.
+  // Steps read as steps: only the origin name, no numbering.
   const stepOf = (t) => {
-    let sibs = null;
-    let name = "";
-    let originDone = false;
     if (t.parent_task_id && taskById[t.parent_task_id]) {
       const p = taskById[t.parent_task_id];
-      name = p.title;
-      originDone = !!p.is_completed;
-      sibs = all.filter(x => String(x.parent_task_id) === String(t.parent_task_id));
-    } else if (t.event_id && eventById[t.event_id]) {
-      const e = eventById[t.event_id];
-      name = e.title;
-      originDone = e.status === "done";
-      sibs = all.filter(x => String(x.event_id) === String(t.event_id));
-    } else {
-      return null;
+      return { origin: p.title, originDone: !!p.is_completed };
     }
-    const done = sibs.filter(x => x.is_completed).length;
-    return { prog: `${done}/${sibs.length}`, origin: name, originDone };
+    if (t.event_id && eventById[t.event_id]) {
+      const e = eventById[t.event_id];
+      return { origin: e.title, originDone: e.status === "done" };
+    }
+    return null;
   };
   const evOpen = todayEvents
     .filter(e => e.status !== "done")
@@ -695,9 +684,9 @@ async function openDoneDetail() {
   const pct = dayTotal === 0 ? 0 : Math.round((doneCount / dayTotal) * 100);
 
   const itemRow = (t, right, done = false, sub = null) => `
-    <div class="done-item${done ? " is-done" : ""}" title="${escapeHtml(t.title)}${sub ? ` · ${escapeHtml(sub.prog)} · paso de ${escapeHtml(sub.origin)}` : ""}${right ? ` · ${escapeHtml(right)}` : ""}">
+    <div class="done-item${done ? " is-done" : ""}" title="${escapeHtml(t.title)}${sub ? ` · paso de ${escapeHtml(sub.origin)}` : ""}${right ? ` · ${escapeHtml(right)}` : ""}">
       <span class="done-check">${done ? "✓" : "○"}</span>
-      <span class="done-title${sub ? " is-step" : ""}">${escapeHtml(t.title)}${sub ? ` <em class="done-stepof">· ${escapeHtml(sub.prog)} · </em><em class="done-stepof${sub.originDone ? " origin-done" : ""}">${escapeHtml(sub.origin)}</em>` : ""}</span>
+      <span class="done-title${sub ? " is-step" : ""}">${escapeHtml(t.title)}${sub ? ` <em class="done-stepof${sub.originDone ? " origin-done" : ""}">· ${escapeHtml(sub.origin)}</em>` : ""}</span>
       ${right ? `<small>${escapeHtml(right)}</small>` : ""}
     </div>`;
   const timeOf = (iso) => new Date(iso).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
