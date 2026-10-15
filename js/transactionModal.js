@@ -126,7 +126,7 @@ export function initTransactionModal() {
           form.type.value = preset.type;
           fillCategories(form, preset.type, preset.category || "");
         }
-        form.is_recurring.checked = true;
+        form.is_recurring.checked = !!preset.lockDescription;
         if (preset.lockDescription) {
           // The description identifies the fixed series: changing it would
           // spawn a second series. Alias/details stay editable.
@@ -220,7 +220,8 @@ export function initTransactionModal() {
         return;
       }
       close();
-      if (window.initFinance) window.initFinance();
+      if (window.initFinance) await window.initFinance();
+      if (window.renderGuidanceBanner) window.renderGuidanceBanner();
     } catch (err) {
       console.error("Error guardando movimiento:", err);
       alert("No se pudo guardar. Intenta de nuevo.");

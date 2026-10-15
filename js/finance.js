@@ -3,6 +3,7 @@
    Accounts + import + quick categorize via /api
    ============================================ */
 import { state } from "./state.js";
+import { readBankCheck, writeBankCheck, bankDiff, brisaBalance } from "./reconcile.js";
 
 const API_BASE = "/api";
 
@@ -344,6 +345,36 @@ function renderCompare(monthTxs, allTxs, byId) {
   </div>`;
 }
 
+function reconcileHtml(account, allTxs) {
+  const check = readBankCheck();
+  const d = bankDiff(account, allTxs, check);
+  const diffLine = !d ? ""
+    : d.diff === 0
+      ? `<div class="reconcile-ok">Cuadrado con el banco ✓ <small>(${escapeHtml(d.date || "")})</small></div>`
+      : `<div class="reconcile-diff">
+          <span>Diferencia de $${formatMoney(Math.abs(d.diff))}: ${d.diff < 0
+            ? "en Brisa hay más de lo que dice el banco."
+            : "el banco tiene más de lo que dice Brisa."}</span>
+          <button class="finance-mini-btn" id="reconcile-register">
+            Registrar ${d.diff < 0 ? "gasto" : "ingreso"} por la diferencia
+          </button>
+        </div>`;
+  return `
+  <div class="finance-breakdown reconcile-card">
+    <div class="finance-breakdown-title">Conciliación con el banco</div>
+    <div class="reconcile-row">
+      <span>Brisa <strong>$${formatMoney(d ? d.brisa : brisaBalance(account, allTxs))}</strong></span>
+      ${d ? `<span>Banco <strong>$${formatMoney(d.bank)}</strong> <small>(${escapeHtml(d.date || "")})</small></span>` : `<span>Banco <strong>—</strong></span>`}
+    </div>
+    <div class="reconcile-row">
+      <input type="number" id="reconcile-bank" class="reconcile-input" min="0" step="any"
+        placeholder="Saldo que dice el banco" value="${d ? d.bank : ""}">
+      <button class="finance-mini-btn" id="reconcile-compare">Comparar</button>
+    </div>
+    ${diffLine}
+  </div>`;
+}
+
 function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncategorized, imports, budgets, allUncat, people) {
   const budgetMap = {};
   for (const b of budgets || []) budgetMap[b.category] = Number(b.amount);
@@ -418,6 +449,7 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
       </div>
     </div>
 
+    ${reconcileHtml(account, allTxs)}
     ${(() => {
       const groups = {};
       for (const t of allTxs) {
@@ -583,6 +615,25 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
 
   section.querySelector("#add-tx")?.addEventListener("click", () => {
     if (window.openTransactionModal) window.openTransactionModal(activeAccountId);
+  });
+
+  section.querySelector("#reconcile-compare")?.addEventListener("click", () => {
+    const val = section.querySelector("#reconcile-bank")?.value;
+    if (val === "" || val == null || Number.isNaN(Number(val))) return;
+    writeBankCheck(activeAccountId, Number(val));
+    if (window.initFinance) window.initFinance();
+    if (window.renderGuidanceBanner) window.renderGuidanceBanner();
+  });
+
+  section.querySelector("#reconcile-register")?.addEventListener("click", () => {
+    const d = bankDiff(activeAccount, allTxs, readBankCheck());
+    if (!d || d.diff === 0 || !window.openTransactionModal) return;
+    window.openTransactionModal(activeAccountId, null, {
+      description: "Ajuste conciliación",
+      amount: Math.abs(d.diff),
+      type: d.diff < 0 ? "expense" : "income",
+      category: "Otro",
+    });
   });
 
   section.querySelector("#add-account")?.addEventListener("click", () => {

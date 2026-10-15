@@ -337,6 +337,48 @@
 .available-pos { color: #1a8a4a; }
 .available-neg { color: rgba(22, 75, 105, 0.85); }
 
+.reconcile-card { margin-top: 10px; }
+.reconcile-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: rgba(22, 75, 105, 0.85);
+  margin-bottom: 8px;
+}
+.reconcile-input {
+  width: 170px;
+  border: 1px solid rgba(22, 75, 105, 0.3);
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-family: inherit;
+  color: var(--ink);
+  background: rgba(255, 255, 255, .5);
+  outline: none;
+}
+.reconcile-diff {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(22, 75, 105, 0.9);
+  border-top: 1px dashed rgba(22, 75, 105, 0.25);
+  padding-top: 8px;
+  margin-top: 4px;
+}
+.reconcile-ok {
+  font-size: 11px;
+  font-weight: 700;
+  color: #1a8a4a;
+  border-top: 1px dashed rgba(22, 75, 105, 0.25);
+  padding-top: 8px;
+  margin-top: 4px;
+}
+
 .budget-input {
   width: 90px;
   border: 1px solid rgba(22, 75, 105, 0.3);

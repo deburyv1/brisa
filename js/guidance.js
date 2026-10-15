@@ -3,6 +3,7 @@
    Neutral nudges as clickable shortcuts (never punishment)
    ============================================ */
 import { state } from "./state.js";
+import { readBankCheck, bankDiff } from "./reconcile.js";
 
 export function checkGuidance() {
   const tasks = state.tasks || [];
@@ -41,6 +42,17 @@ export function checkGuidance() {
         : `${overdue.length} tareas vencidas — reprogramar`,
       nav: "tasks",
     });
+  }
+  const bankCheck = readBankCheck();
+  const bankAccount = (state.accounts || []).find(a => String(a.id) === String(bankCheck?.accountId));
+  if (bankCheck && bankAccount) {
+    const d = bankDiff(bankAccount, transactions, bankCheck);
+    if (d && d.diff !== 0) {
+      items.push({
+        text: `Descuadre de $${Math.abs(d.diff).toLocaleString("es-ES")} con el banco — conciliar`,
+        nav: "finance",
+      });
+    }
   }
   return items;
 }
