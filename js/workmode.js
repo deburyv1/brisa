@@ -177,14 +177,16 @@ async function fillOrigin(task) {
   }
 }
 
-// Navbar presence: while a focus task is set and the user is
-// elsewhere, the chip says what they should be working on.
+// Navbar presence: only when the running timer actually belongs to
+// a task. A free timer never borrows a task's name.
 function paintFocusChip() {
   const chip = document.querySelector("#focus-chip");
   if (!chip) return;
-  const task = (state.tasks || []).find(t => String(t.id) === String(currentId) && !t.is_completed);
+  const link = window.brisaTimer && window.brisaTimer.linkedTask ? window.brisaTimer.linkedTask() : null;
+  const task = link ? (state.tasks || []).find(t => String(t.id) === String(link) && !t.is_completed) : null;
+  const live = task && window.brisaTimer && window.brisaTimer.hasSession();
   const inWorkmode = !!document.querySelector("#workmode-section")?.offsetParent;
-  if (!task || inWorkmode) {
+  if (!live || inWorkmode) {
     chip.style.display = "none";
     return;
   }
@@ -196,6 +198,7 @@ function paintFocusChip() {
   if (time) time.textContent = t ? ` · ${fmt(t.remainingSec)}` : "";
   chip.classList.toggle("running", !!(t && t.running));
   chip.title = `Volver al enfoque: ${task.title}`;
+  chip.dataset.taskId = task.id;
 }
 
 function render(section) {
@@ -283,8 +286,12 @@ function render(section) {
 
   section.querySelector("#workmode-toggle")?.addEventListener("click", () => {
     if (!window.brisaTimer) return;
-    if (window.brisaTimer.isRunning()) window.brisaTimer.stop();
-    else window.brisaTimer.start();
+    if (window.brisaTimer.isRunning()) {
+      window.brisaTimer.stop();
+    } else {
+      if (window.brisaTimer.setTask) window.brisaTimer.setTask(currentId);
+      window.brisaTimer.start();
+    }
     paintTimer();
   });
 
@@ -573,6 +580,8 @@ export async function startWorkmode(taskId) {
 if (typeof window !== "undefined") {
   window.paintFocusChip = paintFocusChip;
   document.querySelector("#focus-chip")?.addEventListener("click", () => {
-    document.querySelector('.nav[data-nav="workmode"]')?.click();
+    const id = document.querySelector("#focus-chip")?.dataset.taskId;
+    if (id && window.startWorkmode) window.startWorkmode(id);
+    else document.querySelector('.nav[data-nav="workmode"]')?.click();
   });
 }

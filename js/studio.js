@@ -53,6 +53,7 @@ export function initStudio() {
 
   section.querySelector("#studio-start")?.addEventListener("click", () => {
     if (!window.brisaTimer) return;
+    if (window.brisaTimer.clearTask) window.brisaTimer.clearTask();
     window.brisaTimer.setMinutes(2);
     window.brisaTimer.start();
   });

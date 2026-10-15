@@ -776,6 +776,7 @@ async function handoffToTimer(minutes) {
     setTimeout(() => pill.classList.remove("timer-handoff"), 1300);
   });
   if (window.brisaTimer) window.brisaTimer.start();
+  if (taskId && window.brisaTimer && window.brisaTimer.setTask) window.brisaTimer.setTask(taskId);
   if (taskId && window.startWorkmode) {
     try {
       await window.startWorkmode(taskId);

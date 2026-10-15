@@ -11,8 +11,22 @@ let timerId = null;
 // so background-tab throttling or drift never steals time.
 let endAt = null;
 const TIMER_RUN_KEY = "brisa.timerRun";
+const TIMER_TASK_KEY = "brisa.timerTask";
 let alarmTimers = [];
 let originalTitle = document.title;
+// Which task this run belongs to (null = free timer).
+// Set only from task contexts; a fresh duration/reset/finish clears it.
+let linkedTaskId = null;
+
+function setTask(id) {
+  linkedTaskId = id != null ? Number(id) : null;
+  try {
+    if (linkedTaskId) localStorage.setItem(TIMER_TASK_KEY, String(linkedTaskId));
+    else localStorage.removeItem(TIMER_TASK_KEY);
+  } catch {
+    // ignore
+  }
+}
 
 function fmt(sec) {
   const m = Math.floor(sec / 60);
@@ -70,6 +84,7 @@ function clearRun() {
   } catch {
     // ignore
   }
+  setTask(null);
 }
 
 function tick() {
@@ -528,7 +543,7 @@ export function initTimer() {
   });
   resumeRun();
 
-  window.brisaTimer = { setMinutes, start: startTimer, stop: pauseTimer, isRunning: () => !!timerId, hasSession: () => !!timerId || remainingSec < totalSec, debugFinishSoon, timeLeft: () => ({ remainingSec, totalSec, running: !!timerId }) };
+  window.brisaTimer = { setMinutes, start: startTimer, stop: pauseTimer, isRunning: () => !!timerId, hasSession: () => !!timerId || remainingSec < totalSec, debugFinishSoon, timeLeft: () => ({ remainingSec, totalSec, running: !!timerId }), setTask, clearTask: () => setTask(null), linkedTask: () => linkedTaskId };
 }
 
 function startTimer() {
@@ -572,6 +587,12 @@ function resumeRun() {
   }
   if (!saved || typeof saved.totalSec !== "number") return;
   totalSec = saved.totalSec;
+  try {
+    const t = localStorage.getItem(TIMER_TASK_KEY);
+    linkedTaskId = t ? Number(t) : null;
+  } catch {
+    linkedTaskId = null;
+  }
   if (saved.endAt && saved.endAt > Date.now()) {
     endAt = saved.endAt;
     syncButtons(true);
