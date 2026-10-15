@@ -31,6 +31,7 @@ export async function initWeather() {
       cityEl.textContent = "—";
       tempEl.textContent = "—";
       labelEl.textContent = res.status === 503 ? "No configurado" : "Sin conexión";
+      hideSideWeather();
       return;
     }
     const data = await res.json();
@@ -44,10 +45,18 @@ export async function initWeather() {
     if (sideTemp) sideTemp.textContent = data.temp + "°C · " + label;
     const sideIcon = document.querySelector("#sideWeatherIcon");
     if (sideIcon) sideIcon.innerHTML = `<img src="https://openweathermap.org/img/wn/${data.icon}.png" alt="" style="width:22px;height:22px">`;
+    const sideRow = document.querySelector(".clock-weather");
+    if (sideRow) sideRow.style.display = "";
   } catch (e) {
     console.error("Error clima:", e);
     cityEl.textContent = "—";
     tempEl.textContent = "—";
     labelEl.textContent = "Sin conexión";
+    hideSideWeather();
   }
+}
+
+function hideSideWeather() {
+  const sideRow = document.querySelector(".clock-weather");
+  if (sideRow) sideRow.style.display = "none";
 }
