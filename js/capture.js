@@ -3,7 +3,7 @@
    Fast inbox capture with reversible suggestion
    ============================================ */
 import { suggestType, TYPE_LABELS } from "./suggest.js";
-import { createEditor, editorHTML, plainText, renderRich } from "./richtext.js";
+import { createEditor, editorHTML, htmlWithLightImages, plainText, renderRich } from "./richtext.js";
 
 const API_BASE = "/api";
 const TYPES = ["action", "event", "note", "idea", "reminder", "purchase"];
@@ -99,7 +99,7 @@ function openEditor(section) {
     document.querySelector("#editor-cancel")?.click();
   }});
 
-  const save = () => {
+  const save = async () => {
     const html = editorHTML(quill);
     if (!html) {
       closeEditor();
@@ -107,10 +107,14 @@ function openEditor(section) {
     }
     const input = section.querySelector("#capture-input");
     if (input) input.value = plainText(html).slice(0, 255);
-    pendingHTML = html;
-    quill.setText("");
-    closeEditor();
-    capture(section);
+    pendingHTML = await htmlWithLightImages(html);
+    // Only clear the editor once the entry is safe: on failure
+    // the text (and photos) stay put for a retry.
+    const ok = await capture(section);
+    if (ok) {
+      quill.setText("");
+      closeEditor();
+    }
   };
   document.querySelector("#editor-save").onclick = save;
   const cancel = () => {
@@ -295,7 +299,7 @@ async function confirmEntry(section, entry) {
   // Actions pass through the readiness gate first
   if (selectedType === "action") {
     renderReadiness(section, entry, text, iso);
-    return;
+    return true;
   }
 
   try {
@@ -346,9 +350,11 @@ async function confirmEntry(section, entry) {
     if (window.initIdeas) window.initIdeas();
     if (window.initShopping) window.initShopping();
     if (window.renderNext) window.renderNext();
+    return true;
   } catch (err) {
     console.error("Error procesando entrada:", err);
     alert("No se pudo guardar. Intenta de nuevo.");
+    return false;
   }
 }
 

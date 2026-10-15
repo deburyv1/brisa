@@ -155,7 +155,7 @@
   </main>
 </div>
 <script src="vendor/quill.min.js"></script>
-<script type="module" src="js/app.js?v=20261014k"></script>
+<script type="module" src="js/app.js?v=20261014l"></script>
 
 <!-- Floating timer: round, solid, draggable -->
 <div class="timer-pill" id="timer-pill" title="Temporizador (arrástrame)">
@@ -474,8 +474,8 @@
         <input type="number" name="travel_minutes" min="0" max="480" placeholder="Ej: 30">
       </div>
       <div class="form-group">
-        <label>Descripción<span class="optional">(opcional)</span></label>
-        <input type="text" name="description" placeholder="Detalles...">
+        <label>Descripción<span class="optional">(opcional, una idea por línea)</span></label>
+        <textarea name="description" rows="3" placeholder="Ej:&#10;- Comprar unas flores lindas, no amarillas&#10;- Pasar al metro con tiempo"></textarea>
       </div>
       <div class="modal-actions">
         <button type="button" class="modal-btn modal-btn-secondary" id="event-modal-cancel">Cancelar</button>

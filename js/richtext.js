@@ -34,6 +34,53 @@ export function editorHTML(quill) {
   return quill?.getText()?.trim() ? html : "";
 }
 
+// Pasted photos arrive as huge data URLs. Downscale them in the
+// HTML string (never touches the live editor), so saves stop
+// failing and entries stay light. Results are cached by source.
+const MAX_IMG_DIM = 1200;
+const lightCache = new Map();
+
+function downscale(src) {
+  return new Promise((resolve, reject) => {
+    const im = new Image();
+    im.onload = () => {
+      try {
+        const s = Math.min(1, MAX_IMG_DIM / Math.max(im.width, im.height));
+        if (s >= 1) return resolve(src);
+        const c = document.createElement("canvas");
+        c.width = Math.round(im.width * s);
+        c.height = Math.round(im.height * s);
+        c.getContext("2d").drawImage(im, 0, 0, c.width, c.height);
+        resolve(c.toDataURL("image/jpeg", 0.82));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    im.onerror = reject;
+    im.src = src;
+  });
+}
+
+export async function htmlWithLightImages(html) {
+  if (!html || !html.includes("<img")) return html;
+  const doc = document.createElement("div");
+  doc.innerHTML = html;
+  const imgs = [...doc.querySelectorAll("img")].filter(i => (i.src || "").startsWith("data:"));
+  for (const img of imgs) {
+    const key = img.src.slice(0, 64) + "|" + img.src.length;
+    if (!lightCache.has(key)) {
+      try {
+        lightCache.set(key, await downscale(img.src));
+      } catch {
+        continue;
+      }
+      if (lightCache.size > 20) lightCache.delete(lightCache.keys().next().value);
+    }
+    img.src = lightCache.get(key);
+  }
+  return doc.innerHTML;
+}
+
 export function plainText(html) {
   const d = document.createElement("div");
   d.innerHTML = html || "";

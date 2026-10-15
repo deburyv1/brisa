@@ -98,7 +98,7 @@ async function renderPrepList(overlay, eventId) {
   const done = tasks.filter(t => t.is_completed).length;
   box.innerHTML = tasks.length === 0
     ? `<div class="focus-note">Sin pasos todavía. Agrega el primero arriba.</div>`
-    : `<div class="focus-note">${done} de ${tasks.length} listos</div>` + tasks.map(t => `
+    : `<div class="focus-note">Antes del evento · ${done} de ${tasks.length} listos</div>` + tasks.map(t => `
       <label class="prep-row">
         <input type="checkbox" data-prep-toggle="${t.id}" ${t.is_completed ? "checked" : ""}>
         <span class="${t.is_completed ? "prep-done" : ""}">${escapeHtml(t.title)}</span>

@@ -427,6 +427,10 @@ button.focus-step-box.as-complete:hover .focus-step-check::after {
   line-height: 1.5;
 }
 
+#event-detail-desc {
+  white-space: pre-line;
+}
+
 .focus-options {
   display: flex;
   flex-direction: column;
