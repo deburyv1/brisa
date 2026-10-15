@@ -203,6 +203,7 @@ export function initEventDetail() {
     if (window.initCalendar) window.initCalendar();
     if (window.initWeek) window.initWeek();
     if (window.initToday) window.initToday();
+    if (window.renderNext) window.renderNext();
   });
   overlay.querySelector("#event-detail-done")?.addEventListener("click", async () => {
     if (!currentEventId) return;

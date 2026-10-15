@@ -217,8 +217,10 @@ function renderTasks(section, tasks) {
         is_completed: completing,
         completed_at: completing ? new Date().toISOString() : null,
       });
-      if (window.initTasks) window.initTasks();
+      if (window.initTasks) await window.initTasks();
       if (window.initReadiness) window.initReadiness();
+      if (window.renderNext) window.renderNext();
+      if (window.initToday) window.initToday();
     });
     item.querySelector('[data-action="toggle"]')?.addEventListener("keydown", (e) => {
       if (e.key === "Enter" || e.key === " ") {
@@ -267,7 +269,10 @@ function renderTasks(section, tasks) {
     item.querySelector('[data-action="delete"]')?.addEventListener("click", async () => {
       if (confirm("¿Eliminar esta tarea?")) {
         await deleteTask(id);
-        if (window.initTasks) window.initTasks();
+        if (window.initTasks) await window.initTasks();
+        if (window.renderNext) window.renderNext();
+        if (window.initToday) window.initToday();
+        if (window.initWeek) window.initWeek();
       }
     });
   });

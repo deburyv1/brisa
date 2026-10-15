@@ -73,7 +73,7 @@ export async function initIdeas() {
         console.error("Error derivando acción:", e);
       }
       if (window.initIdeas) window.initIdeas();
-      if (window.initTasks) window.initTasks();
+      if (window.initTasks) await window.initTasks();
       if (window.renderNext) window.renderNext();
     });
 
@@ -90,7 +90,7 @@ export async function initIdeas() {
         console.error("Error devolviendo idea:", e);
       }
       if (window.initIdeas) window.initIdeas();
-      if (window.initTasks) window.initTasks();
+      if (window.initTasks) await window.initTasks();
       if (window.renderNext) window.renderNext();
     });
 
@@ -98,6 +98,7 @@ export async function initIdeas() {
       if (!confirm("¿Descartar esta idea?")) return;
       await fetch(`${API_BASE}/ideas/${id}`, { method: "DELETE" });
       if (window.initIdeas) window.initIdeas();
+      if (window.renderNext) window.renderNext();
     });
   });
 }
