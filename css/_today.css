@@ -160,6 +160,18 @@
   font-weight: 700;
 }
 
+/* Steps read softer than actions; the origin goes green only
+   when that action/event itself is done. */
+.done-item.is-done .done-title.is-step {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.done-stepof.origin-done {
+  color: #1a8a4a;
+  font-weight: 700;
+}
+
 .done-title {
   flex: 1;
   min-width: 0;
