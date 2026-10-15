@@ -85,6 +85,89 @@
   white-space: nowrap;
 }
 
+.done-hero {
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: var(--radius-card);
+  background: linear-gradient(135deg, rgba(46, 213, 115, 0.22), rgba(0, 198, 255, 0.18));
+  border: 1px solid rgba(46, 213, 115, 0.35);
+}
+
+.done-hero-top {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--ink);
+  text-shadow: var(--text-glow);
+  margin-bottom: 8px;
+}
+
+.done-bar {
+  height: 10px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.45);
+  overflow: hidden;
+}
+
+.done-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #2ed573, #00c6ff);
+  transition: width 0.5s ease;
+}
+
+.done-cheer {
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #1a8a4a;
+  text-shadow: var(--text-glow);
+}
+
+.done-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+  font-size: 11px;
+  color: var(--ink);
+  min-width: 0;
+}
+
+.done-check {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 800;
+  border: 2px solid rgba(22, 75, 105, 0.3);
+  color: transparent;
+}
+
+.done-item.is-done .done-check {
+  background: linear-gradient(145deg, #2ed573, #1a8a4a);
+  border-color: transparent;
+  color: #fff;
+}
+
+.done-item.is-done .done-title {
+  color: #1a8a4a;
+  font-weight: 700;
+}
+
+.done-title {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .today-timeline.drop-hint {
   outline: 2px dashed rgba(8, 127, 176, 0.8);
   outline-offset: 2px;

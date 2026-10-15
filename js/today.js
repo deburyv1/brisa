@@ -552,46 +552,79 @@ function summaryRow(icon, label, value) {
   `;
 }
 
-// Read-only detail: what got done each of the last 7 days.
-// Evidence, never score: no totals-as-goals, no streaks.
+// Read-only detail: today at a glance (done, scheduled, floating)
+// plus the 6 previous days. Evidence, never score: no totals
+// as goals, no streaks — just a satisfying progress bar.
 function openDoneDetail() {
   const overlay = document.querySelector("#done-modal");
   const list = document.querySelector("#done-list");
   if (!overlay || !list) return;
-  const pending = (state.tasks || []).filter(t => !t.is_completed);
-  const rows = [`
-    <div class="done-day">
-      <div class="done-day-head"><span>Pendientes ahora</span><span>${pending.length === 0 ? "—" : pending.length === 1 ? "1 pendiente" : `${pending.length} pendientes`}</span></div>
-      ${pending.map(t => {
-        const when = t.scheduled_datetime
-          ? new Date(t.scheduled_datetime).toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" })
-          : "sin hora";
-        return `
-        <div class="done-item">
-          <span>${escapeHtml(t.title)}</span>
-          <small>${escapeHtml(when)}</small>
-        </div>`;
-      }).join("")}
-    </div>`];
-  for (let back = 0; back < 7; back++) {
-    const d = new Date();
+  const all = state.tasks || [];
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  const keyOf = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const todayKey = keyOf(now);
+
+  const doneToday = all
+    .filter(t => t.is_completed && t.completed_at && keyOf(new Date(t.completed_at)) === todayKey)
+    .sort((a, b) => new Date(a.completed_at) - new Date(b.completed_at));
+  const scheduledToday = all
+    .filter(t => !t.is_completed && t.scheduled_datetime && keyOf(new Date(t.scheduled_datetime)) === todayKey)
+    .sort((a, b) => new Date(a.scheduled_datetime) - new Date(b.scheduled_datetime));
+  const floating = all
+    .filter(t => !t.is_completed && !t.scheduled_datetime && !t.due_datetime);
+
+  const dayTotal = doneToday.length + scheduledToday.length;
+  const pct = dayTotal === 0 ? 0 : Math.round((doneToday.length / dayTotal) * 100);
+
+  const itemRow = (t, right, done = false) => `
+    <div class="done-item${done ? " is-done" : ""}" title="${escapeHtml(t.title)}${right ? ` · ${escapeHtml(right)}` : ""}">
+      <span class="done-check">${done ? "✓" : "○"}</span>
+      <span class="done-title">${escapeHtml(t.title)}</span>
+      ${right ? `<small>${escapeHtml(right)}</small>` : ""}
+    </div>`;
+  const timeOf = (iso) => new Date(iso).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+
+  const past = [];
+  for (let back = 1; back < 7; back++) {
+    const d = new Date(now);
     d.setDate(d.getDate() - back);
-    const k = dateKey(d);
-    const done = (state.tasks || [])
-      .filter(t => t.is_completed && t.completed_at && dateKey(new Date(t.completed_at)) === k)
+    const k = keyOf(d);
+    const done = all
+      .filter(t => t.is_completed && t.completed_at && keyOf(new Date(t.completed_at)) === k)
       .sort((a, b) => new Date(a.completed_at) - new Date(b.completed_at));
-    const label = back === 0 ? "Hoy" : d.toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "short" });
-    rows.push(`
+    if (done.length === 0) continue;
+    const label = d.toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "short" });
+    past.push(`
       <div class="done-day">
-        <div class="done-day-head"><span>${escapeHtml(label)}</span><span>${done.length === 0 ? "—" : done.length === 1 ? "1 cerrada" : `${done.length} cerradas`}</span></div>
-        ${done.map(t => `
-          <div class="done-item">
-            <span>${escapeHtml(t.title)}</span>
-            <small>${new Date(t.completed_at).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}</small>
-          </div>`).join("")}
+        <div class="done-day-head"><span>${escapeHtml(label)}</span><span>${done.length === 1 ? "1 cerrada" : `${done.length} cerradas`}</span></div>
+        ${done.map(t => itemRow(t, timeOf(t.completed_at), true)).join("")}
       </div>`);
   }
-  list.innerHTML = rows.join("");
+
+  list.innerHTML = `
+    <div class="done-hero">
+      <div class="done-hero-top"><span>Hoy</span><span>${doneToday.length === 1 ? "1 cerrada" : `${doneToday.length} cerradas`}</span></div>
+      <div class="done-bar"><span style="width:${pct}%"></span></div>
+      ${doneToday.length > 0 ? `<div class="done-cheer">Lo hecho, hecho está. ✓</div>` : ""}
+    </div>
+    ${scheduledToday.length > 0 ? `
+    <div class="done-day">
+      <div class="done-day-head"><span>Programadas para hoy</span><span>${scheduledToday.length}</span></div>
+      ${scheduledToday.map(t => itemRow(t, timeOf(t.scheduled_datetime))).join("")}
+    </div>` : ""}
+    ${floating.length > 0 ? `
+    <div class="done-day">
+      <div class="done-day-head"><span>Flotantes · sin fecha</span><span>${floating.length}</span></div>
+      ${floating.map(t => itemRow(t, "")).join("")}
+    </div>` : ""}
+    ${doneToday.length > 0 ? `
+    <div class="done-day">
+      <div class="done-day-head"><span>Cerradas hoy</span><span>✓</span></div>
+      ${doneToday.map(t => itemRow(t, timeOf(t.completed_at), true)).join("")}
+    </div>` : ""}
+    ${past.join("")}
+  `;
   overlay.classList.add("active");
 }
 
