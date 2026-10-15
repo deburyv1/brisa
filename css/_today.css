@@ -459,7 +459,9 @@
 }
 
 .today-event.done {
-  opacity: 0.45;
+  background: radial-gradient(circle at 35% 30%, #a9f0c6, #1a8a4a 70%);
+  box-shadow: 0 0 8px rgba(46, 213, 115, 0.9);
+  opacity: 1;
 }
 
 @keyframes overdue-diamond {
