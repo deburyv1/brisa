@@ -11,7 +11,8 @@ export function checkGuidance() {
   const entries = state.entries || [];
 
   const pendingInbox = entries.filter(e => e.status === "inbox");
-  const uncategorized = transactions.filter(t => !t.category);
+  const month = new Date().toISOString().slice(0, 7); // YYYY-MM, same rule as finance
+  const uncategorized = transactions.filter(t => !t.category && typeof t.date === "string" && t.date.slice(0, 7) === month);
   const overdue = tasks.filter(t => {
     if (t.is_completed || !t.due_datetime) return false;
     return new Date(t.due_datetime) < new Date();
@@ -29,8 +30,8 @@ export function checkGuidance() {
   if (uncategorized.length > 0) {
     items.push({
       text: uncategorized.length === 1
-        ? "1 transacción sin categorizar"
-        : `${uncategorized.length} transacciones sin categorizar`,
+        ? "1 transacción sin categorizar este mes"
+        : `${uncategorized.length} transacciones sin categorizar este mes`,
       nav: "finance",
       filterUncategorized: true,
     });
