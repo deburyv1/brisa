@@ -138,10 +138,12 @@ export async function initToday() {
   const metricText = isToday
     ? `Hoy: ${plural(doneTarget, "cerrada", "cerradas")} · ${plural(pending, "pendiente", "pendientes")}`
     : `${dayLabel(target)}: ${plural(doneTarget, "cerrada", "cerradas")}`;
-  // Unscheduled pool: open, no hour hooked yet. Drag onto the line
+  // Unscheduled pool: open, no hour hooked yet. Steps are excluded:
+  // child steps live in their parent's checklist, event prep in the
+  // event detail — here they only add noise. Drag onto the line
   // to schedule today; →mañana pushes it out of today explicitly.
   const poolTasks = isToday ? tasks.filter(t =>
-    !t.is_completed && !t.scheduled_datetime &&
+    !t.is_completed && !t.scheduled_datetime && !t.parent_task_id && !t.event_id &&
     (!t.due_datetime || dateKey(t.due_datetime) <= key)).slice(0, 30) : [];
 
   let summaryHtml = "";
@@ -622,7 +624,7 @@ async function openDoneDetail() {
     .filter(t => !t.is_completed && t.scheduled_datetime && keyOf(new Date(t.scheduled_datetime)) === todayKey)
     .sort((a, b) => new Date(a.scheduled_datetime) - new Date(b.scheduled_datetime));
   const floating = all
-    .filter(t => !t.is_completed && !t.scheduled_datetime && !t.due_datetime);
+    .filter(t => !t.is_completed && !t.scheduled_datetime && !t.due_datetime && !t.parent_task_id && !t.event_id);
 
   // Midnight means date-only (no real hour): last, with a dash.
   const hasHour = (iso) => {
