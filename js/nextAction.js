@@ -89,6 +89,7 @@ export function renderNext() {
       </div>
     ` : ""}
     <div class="next-event" id="next-event" style="display:none"></div>
+    <div class="next-ideas" id="next-ideas" style="display:none"></div>
   `;
 
   section.querySelectorAll("[data-start]").forEach(btn => {
@@ -98,8 +99,54 @@ export function renderNext() {
   });
 
   fillNextEvent(section);
+  fillNextIdeas(section);
 }
 
+// Home seeds: latest open ideas with one-tap derive to action
+// (the idea stays; same rule as the Ideas view).
+async function fillNextIdeas(section) {
+  const box = section.querySelector("#next-ideas");
+  if (!box) return;
+  try {
+    const res = await fetch(`${API_BASE}/ideas`);
+    if (!res.ok) return;
+    const open = (await res.json()).filter(i => i.status !== "done").slice(0, 3);
+    if (open.length === 0) return;
+    if (!section.isConnected || section.querySelector("#next-ideas") !== box) return;
+    box.style.display = "";
+    box.innerHTML = `
+      <div class="next-also-label">Últimas ideas <span class="next-also-hint">(el semillero sigue en Ideas)</span></div>
+      ${open.map(i => `
+        <div class="next-idea-row">
+          <span class="next-idea-title">${escapeHtml(i.title)}</span>
+          <button class="next-alt" data-derive="${i.id}" data-title="${escapeHtml(i.title)}" title="Crear una acción desde esta idea (la idea queda)">→ acción</button>
+        </div>`).join("")}
+      <button class="next-ideas-all" id="next-ideas-all">Ver todas en Ideas</button>
+    `;
+    box.querySelectorAll("[data-derive]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        btn.disabled = true;
+        try {
+          await fetch(`${API_BASE}/tasks`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title: btn.dataset.title }),
+          });
+        } catch (e) {
+          console.error("Error derivando acción:", e);
+        }
+        if (window.initIdeas) window.initIdeas();
+        if (window.initTasks) await window.initTasks();
+        if (window.renderNext) window.renderNext();
+      });
+    });
+    box.querySelector("#next-ideas-all")?.addEventListener("click", () => {
+      document.querySelector('.nav[data-nav="ideas"]')?.click();
+    });
+  } catch {
+    // ignore: the seeds are optional
+  }
+}
 // Next event nudge: what is coming + do you need to prepare
 // anything (opens the event detail with its prep checklist).
 async function fillNextEvent(section) {

@@ -119,11 +119,56 @@
   gap: 8px;
   flex-wrap: wrap;
   margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 198, 255, 0.55);
+  background: linear-gradient(135deg, rgba(0, 198, 255, 0.22), rgba(0, 114, 255, 0.22));
+  box-shadow: 0 0 14px rgba(0, 198, 255, 0.25);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink);
+  text-shadow: var(--text-glow);
+}
+
+.next-ideas {
+  margin-top: 10px;
   padding-top: 8px;
   border-top: 1px dashed rgba(22, 75, 105, 0.25);
-  font-size: 10px;
-  color: rgba(22, 75, 105, 0.85);
+}
+
+.next-idea-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.next-idea-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 11px;
+  color: rgba(22, 75, 105, 0.9);
   text-shadow: var(--text-glow);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.next-ideas-all {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: inherit;
+  color: rgba(22, 75, 105, 0.75);
+  text-shadow: var(--text-glow);
+  cursor: pointer;
+}
+
+.next-ideas-all:hover {
+  color: var(--ink);
+  text-decoration: underline;
 }
 
 .next-empty {
