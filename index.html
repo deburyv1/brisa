@@ -155,7 +155,7 @@
   </main>
 </div>
 <script src="vendor/quill.min.js"></script>
-<script type="module" src="js/app.js?v=20261014y"></script>
+<script type="module" src="js/app.js?v=20261014z"></script>
 
 <!-- Floating timer: round, solid, draggable -->
 <div class="timer-pill" id="timer-pill" title="Temporizador (arrástrame)">
@@ -239,13 +239,25 @@
         <label>Primer paso físico<span class="optional">(opcional)</span></label>
         <input type="text" name="first_step" placeholder="Ej: saca una prenda y ponla en la cama">
       </div>
-      <div class="form-group">
-        <label>Fecha programada<span class="optional">(opcional)</span></label>
-        <input type="datetime-local" name="scheduled_datetime">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Fecha programada<span class="optional">(opcional)</span></label>
+          <input type="date" name="scheduled_date">
+        </div>
+        <div class="form-group">
+          <label>Hora<span class="optional">(opcional)</span></label>
+          <input type="time" name="scheduled_time">
+        </div>
       </div>
-      <div class="form-group">
-        <label>Fecha límite<span class="optional">(opcional)</span></label>
-        <input type="datetime-local" name="due_datetime">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Fecha límite<span class="optional">(opcional)</span></label>
+          <input type="date" name="due_date">
+        </div>
+        <div class="form-group">
+          <label>Hora<span class="optional">(opcional)</span></label>
+          <input type="time" name="due_time">
+        </div>
       </div>
       <div class="form-group">
         <label>Prioridad<span class="optional">(opcional)</span></label>

@@ -5,11 +5,23 @@
 const API_BASE = "/api";
 import { snapshotForm, isDirty, confirmDiscard, toISODateTime } from "./modalGuard.js";
 
-function toLocalInput(dt) {
+function toLocalDate(dt) {
   if (!dt) return "";
   const d = new Date(dt);
   const pad = n => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function toLocalTime(dt) {
+  if (!dt) return "";
+  const d = new Date(dt);
+  const pad = n => String(n).padStart(2, "0");
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function combineDateTime(date, time) {
+  if (!date) return null;
+  return toISODateTime(`${date}T${time || "00:00"}`);
 }
 
 export function initTaskModal() {
@@ -84,8 +96,10 @@ export function initTaskModal() {
           form.title.value = task.title || "";
           form.description.value = task.description || "";
           form.first_step.value = task.first_step || "";
-          form.scheduled_datetime.value = toLocalInput(task.scheduled_datetime);
-          form.due_datetime.value = toLocalInput(task.due_datetime);
+          form.scheduled_date.value = toLocalDate(task.scheduled_datetime);
+          form.scheduled_time.value = toLocalTime(task.scheduled_datetime);
+          form.due_date.value = toLocalDate(task.due_datetime);
+          form.due_time.value = toLocalTime(task.due_datetime);
           form.priority.value = task.priority || "medium";
           form.estimated_minutes.value = task.estimated_minutes ?? "";
           const linked = await linkedReadinessItem(taskId);
@@ -135,27 +149,27 @@ export function initTaskModal() {
 
     if (!data.title || !data.title.trim()) return;
 
+    const payload = { ...data };
+    delete payload.scheduled_date;
+    delete payload.scheduled_time;
+    delete payload.due_date;
+    delete payload.due_time;
+    payload.scheduled_datetime = combineDateTime(data.scheduled_date, data.scheduled_time);
+    payload.due_datetime = combineDateTime(data.due_date, data.due_time);
+
     try {
       let savedId = editingId;
       if (editingId) {
         await fetch(`${API_BASE}/tasks/${editingId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ...data,
-            scheduled_datetime: toISODateTime(data.scheduled_datetime),
-            due_datetime: toISODateTime(data.due_datetime),
-          }),
+          body: JSON.stringify(payload),
         });
       } else {
         const res = await fetch(`${API_BASE}/tasks`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ...data,
-            scheduled_datetime: toISODateTime(data.scheduled_datetime),
-            due_datetime: toISODateTime(data.due_datetime),
-          }),
+          body: JSON.stringify(payload),
         });
         const created = await res.json().catch(() => null);
         if (created?.id) savedId = created.id;
