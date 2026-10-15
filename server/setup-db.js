@@ -191,24 +191,34 @@ try {
     ) AS x(label, pos)
     WHERE NOT EXISTS (SELECT 1 FROM readiness_items WHERE user_id = 1 AND label = x.label)`);
 
-  // Default habits for a new account (idempotent)
-  await pool.query(`INSERT INTO habits (user_id, name, icon, freq_type, freq_days, position)
-    SELECT 1, x.name, x.icon, x.ftype, x.fdays, x.pos FROM (VALUES
-      ('Dormir', '😴', 'daily', NULL::int[], 1),
-      ('Levantarse', '🌅', 'daily', NULL::int[], 2),
-      ('Higiene dental', '🪥', 'custom', ARRAY[0,1,2,3,4,5,6], 3),
-      ('Higiene personal / ducha', '🚿', 'custom', ARRAY[0,1,2,3,4,5,6], 4),
-      ('Comer comidas principales', '🍽️', 'daily', NULL::int[], 5),
-      ('Beber líquidos', '💧', 'daily', NULL::int[], 6),
-      ('Usar ropa limpia', '👕', 'daily', NULL::int[], 7),
-      ('Orden mínimo del espacio', '🧹', 'daily', NULL::int[], 8),
-      ('Ropa / lavado', '🧺', 'custom', ARRAY[1], 9),
-      ('Sacar basura', '🗑️', 'custom', ARRAY[3], 10),
-      ('Limpieza básica', '🧽', 'custom', ARRAY[6], 11),
-      ('Abastecer comida', '🛒', 'custom', ARRAY[5], 12),
-      ('Revisar semana', '📅', 'custom', ARRAY[0], 13)
-    ) AS x(name, icon, ftype, fdays, pos)
-    WHERE NOT EXISTS (SELECT 1 FROM habits WHERE user_id = 1 AND name = x.name)`);
+  // Default habits: seeded ONCE ever (flagged), so deleting
+  // one never resurrects it on the next boot.
+  await pool.query(`CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value BYTEA,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
+  const seeded = await pool.query("SELECT 1 FROM settings WHERE key = 'habits_seeded'");
+  if (seeded.rows.length === 0) {
+    await pool.query(`INSERT INTO habits (user_id, name, icon, freq_type, freq_days, position)
+      SELECT 1, x.name, x.icon, x.ftype, x.fdays, x.pos FROM (VALUES
+        ('Dormir', '😴', 'daily', NULL::int[], 1),
+        ('Levantarse', '🌅', 'daily', NULL::int[], 2),
+        ('Higiene dental', '🪥', 'custom', ARRAY[0,1,2,3,4,5,6], 3),
+        ('Higiene personal / ducha', '🚿', 'custom', ARRAY[0,1,2,3,4,5,6], 4),
+        ('Comer comidas principales', '🍽️', 'daily', NULL::int[], 5),
+        ('Beber líquidos', '💧', 'daily', NULL::int[], 6),
+        ('Usar ropa limpia', '👕', 'daily', NULL::int[], 7),
+        ('Orden mínimo del espacio', '🧹', 'daily', NULL::int[], 8),
+        ('Ropa / lavado', '🧺', 'custom', ARRAY[1], 9),
+        ('Sacar basura', '🗑️', 'custom', ARRAY[3], 10),
+        ('Limpieza básica', '🧽', 'custom', ARRAY[6], 11),
+        ('Abastecer comida', '🛒', 'custom', ARRAY[5], 12),
+        ('Revisar semana', '📅', 'custom', ARRAY[0], 13)
+      ) AS x(name, icon, ftype, fdays, pos)
+      WHERE NOT EXISTS (SELECT 1 FROM habits WHERE user_id = 1 AND name = x.name)`);
+    await pool.query("INSERT INTO settings (key, value) VALUES ('habits_seeded', '1') ON CONFLICT DO NOTHING");
+  }
 
   await pool.query(`CREATE TABLE IF NOT EXISTS imports (
     id SERIAL PRIMARY KEY,
