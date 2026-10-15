@@ -1,0 +1,39 @@
+/* ============================================
+   BRISA - Studio (music production corner)
+   ============================================ */
+.studio-header {
+  margin-bottom: 12px;
+}
+
+.studio-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  text-shadow: var(--text-glow);
+}
+
+.studio-sub {
+  font-size: 11px;
+  color: rgba(22, 75, 105, 0.75);
+  text-shadow: var(--text-glow);
+}
+
+.studio-challenge {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.5;
+  margin: 4px 0 12px;
+}
+
+.studio-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.studio-hint {
+  font-size: 10px;
+  color: rgba(22, 75, 105, 0.7);
+  margin: 8px 0 0;
+}

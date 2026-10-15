@@ -38,6 +38,7 @@ import { initWallpaper } from "./wallpaper.js";
 import { initGlass } from "./glass.js";
 import { initWorkmode, startWorkmode } from "./workmode.js";
 import { initQuickCapture } from "./quickCapture.js";
+import { initStudio } from "./studio.js";
 
 window.initTasks = initTasks;
 window.initJournal = initJournal;
@@ -70,6 +71,7 @@ const NAV_LABELS = {
   shopping: "Compras",
   habits: "Hábitos",
   ideas: "Ideas",
+  studio: "Estudio",
   workmode: "Enfoque",
 };
 
@@ -84,6 +86,7 @@ const NAV_SECTIONS = {
   shopping: ["#shopping-section"],
   habits: ["#habits-section"],
   ideas: ["#ideas-section"],
+  studio: ["#studio-section"],
   workmode: ["#workmode-section"],
 };
 
@@ -102,6 +105,7 @@ const ALL_SECTIONS = [
   "#shopping-section",
   "#habits-section",
   "#ideas-section",
+  "#studio-section",
   "#workmode-section",
   "#week-section",
 ];
@@ -162,6 +166,7 @@ async function main() {
   initReadiness();
   initHabits();
   initIdeas();
+  initStudio();
   initTimer();
   initPlayer();
   initQuickCapture();
