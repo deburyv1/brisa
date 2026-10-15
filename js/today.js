@@ -615,6 +615,27 @@ async function openDoneDetail() {
   } catch {
     todayEvents = [];
   }
+  let allEvents = todayEvents;
+  try {
+    const res = await fetch("/api/events");
+    if (res.ok) allEvents = await res.json();
+  } catch {
+    // today-only fallback
+  }
+  const eventById = {};
+  for (const e of allEvents) eventById[e.id] = e;
+  const taskById = {};
+  for (const t of all) taskById[t.id] = t;
+  // Steps read as steps: whose action or event they belong to.
+  const stepOf = (t) => {
+    if (t.parent_task_id && taskById[t.parent_task_id]) {
+      return `paso de ${taskById[t.parent_task_id].title}`;
+    }
+    if (t.event_id && eventById[t.event_id]) {
+      return `paso de ${eventById[t.event_id].title}`;
+    }
+    return "";
+  };
   const evOpen = todayEvents
     .filter(e => e.status !== "done")
     .sort((a, b) => new Date(a.start) - new Date(b.start));
@@ -650,10 +671,10 @@ async function openDoneDetail() {
   const dayTotal = doneCount + programmed.length;
   const pct = dayTotal === 0 ? 0 : Math.round((doneCount / dayTotal) * 100);
 
-  const itemRow = (t, right, done = false) => `
-    <div class="done-item${done ? " is-done" : ""}" title="${escapeHtml(t.title)}${right ? ` · ${escapeHtml(right)}` : ""}">
+  const itemRow = (t, right, done = false, sub = "") => `
+    <div class="done-item${done ? " is-done" : ""}" title="${escapeHtml(t.title)}${sub ? ` · ${escapeHtml(sub)}` : ""}${right ? ` · ${escapeHtml(right)}` : ""}">
       <span class="done-check">${done ? "✓" : "○"}</span>
-      <span class="done-title">${escapeHtml(t.title)}</span>
+      <span class="done-title">${escapeHtml(t.title)}${sub ? ` <em class="done-stepof">· ${escapeHtml(sub)}</em>` : ""}</span>
       ${right ? `<small>${escapeHtml(right)}</small>` : ""}
     </div>`;
   const timeOf = (iso) => new Date(iso).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
@@ -671,7 +692,7 @@ async function openDoneDetail() {
     past.push(`
       <div class="done-day">
         <div class="done-day-head"><span>${escapeHtml(label)}</span><span>${done.length === 1 ? "1 cerrada" : `${done.length} cerradas`}</span></div>
-        ${done.map(t => itemRow(t, timeOf(t.completed_at), true)).join("")}
+        ${done.map(t => itemRow(t, timeOf(t.completed_at), true, stepOf(t))).join("")}
       </div>`);
   }
 
@@ -694,7 +715,7 @@ async function openDoneDetail() {
     ${doneCount > 0 ? `
     <div class="done-day">
       <div class="done-day-head"><span>Cerradas hoy</span><span>✓</span></div>
-      ${doneToday.map(t => itemRow(t, timeOf(t.completed_at), true)).join("")}
+      ${doneToday.map(t => itemRow(t, timeOf(t.completed_at), true, stepOf(t))).join("")}
       ${evDone.map(e => itemRow(e, timeOf(e.completed_at), true)).join("")}
     </div>` : ""}
     ${past.join("")}
