@@ -494,6 +494,7 @@ export async function initWorkmode() {
 // selects it, navigates to the view, renders fresh.
 export async function startWorkmode(taskId) {
   await flushSave();
+  if (window.initTasks) await window.initTasks();
   if (taskId != null) currentId = taskId;
   document.querySelector('.nav[data-nav="workmode"]')?.click();
   await initWorkmode();

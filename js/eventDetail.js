@@ -96,13 +96,30 @@ async function renderPrepList(overlay, eventId) {
     console.error("Error cargando preparación:", e);
   }
   const done = tasks.filter(t => t.is_completed).length;
+  const open = tasks.filter(t => !t.is_completed);
   box.innerHTML = tasks.length === 0
     ? `<div class="focus-note">Sin pasos todavía. Agrega el primero arriba.</div>`
     : `<div class="focus-note">Antes del evento · ${done} de ${tasks.length} listos</div>` + tasks.map(t => `
       <label class="prep-row">
         <input type="checkbox" data-prep-toggle="${t.id}" ${t.is_completed ? "checked" : ""}>
         <span class="${t.is_completed ? "prep-done" : ""}">${escapeHtml(t.title)}</span>
-      </label>`).join("");
+      </label>`).join("") + (open.length > 0 ? `
+      <button class="modal-btn modal-btn-secondary" id="event-prep-focus" style="margin-top:8px" title="Abrir el siguiente paso en Enfoque">▶ Enfocar: ${escapeHtml(open[0].title.slice(0, 40))}</button>` : "");;
+  box.querySelector("#event-prep-focus")?.addEventListener("click", async () => {
+    try {
+      const res = await fetch(`${API_BASE}/tasks`);
+      if (!res.ok) return;
+      const next = (await res.json())
+        .filter(t => !t.is_completed && String(t.event_id) === String(eventId))
+        .sort((a, b) => String(a.created_at) > String(b.created_at) ? 1 : -1)[0];
+      if (next && window.startWorkmode) {
+        document.querySelector("#event-detail-modal")?.classList.remove("active");
+        window.startWorkmode(next.id);
+      }
+    } catch (e) {
+      console.error("Error enfocando:", e);
+    }
+  });
   box.querySelectorAll("[data-prep-toggle]").forEach(cb => {
     cb.addEventListener("change", async () => {
       try {
