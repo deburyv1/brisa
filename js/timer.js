@@ -159,6 +159,8 @@ function startAlarm() {
     if (e.target === overlay) stopAlarm();
   });
   document.body.appendChild(overlay);
+  // Focus the stop button: Enter/Space accept natively from anywhere
+  overlay.querySelector("#timer-alarm-stop")?.focus({ preventScroll: true });
   // Flashing tab title
   let on = false;
   alarmTimers.push(setInterval(() => {

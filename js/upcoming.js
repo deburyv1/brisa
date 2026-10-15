@@ -181,6 +181,8 @@ function showTakeover(item, kind, lateLeave, started = false) {
     hidePill();
   });
   document.body.appendChild(overlay);
+  // Focus the primary action: Enter/Space accept natively
+  overlay.querySelector("#upcoming-go, #upcoming-done")?.focus({ preventScroll: true });
 }
 
 function stopTakeover() {
