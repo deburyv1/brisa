@@ -217,9 +217,8 @@ button.week-item:hover .week-item-title {
 .day-card:active { cursor: grabbing; }
 
 .day-card.done {
-  opacity: .55;
-  background: linear-gradient(135deg, rgba(255, 255, 255, .2), rgba(255, 255, 255, .1));
-  border-color: rgba(255, 255, 255, .3);
+  background: linear-gradient(135deg, rgba(46, 213, 115, 0.32), rgba(46, 213, 115, 0.18));
+  border-color: rgba(26, 138, 74, 0.45);
 }
 .day-card.done .week-item-title {
   text-decoration: line-through;

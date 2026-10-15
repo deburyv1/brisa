@@ -226,7 +226,7 @@ function dayCard(item, readonly = false, dayKey = "") {
   const mark = kind === "habit"
     ? `<span class="planner-icon">${data.icon ? escapeHtml(data.icon) : "·"}</span>`
     : `<span class="week-dot ${kind === "event" ? "event" : (data.priority || "medium")}"></span>`;
-  const isDone = kind === "habit" ? !!data.done_today : !!data.is_completed;
+  const isDone = kind === "habit" ? !!data.done_today : kind === "event" ? data.status === "done" : !!data.is_completed;
   const done = isDone ? " done" : "";
   const checkBtn = (!readonly && (kind === "task" || kind === "habit"))
     ? `<button class="day-check${isDone ? " done" : ""}" data-check-kind="${kind}" data-check-id="${data.id}" title="${isDone ? "Quitar marca" : "Marcar hecho"}">✓</button>`
