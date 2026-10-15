@@ -254,6 +254,31 @@ export function initEventDetail() {
       btn.disabled = false;
     }
   });
+  overlay.querySelector("#event-move")?.addEventListener("click", async () => {
+    const v = overlay.querySelector("#event-move-date")?.value;
+    if (!v || !currentEventId) return;
+    try {
+      const cur = await fetch(`${API_BASE}/events/${currentEventId}`).then(r => r.json());
+      const s = new Date(cur.start);
+      const [y, m, d] = v.split("-").map(Number);
+      const at = new Date(y, (m || 1) - 1, d || 1, s.getHours(), s.getMinutes(), 0, 0);
+      const dur = cur.end ? new Date(cur.end).getTime() - s.getTime() : 0;
+      const body = { start: at.toISOString() };
+      if (cur.end) body.end = new Date(at.getTime() + dur).toISOString();
+      await fetch(`${API_BASE}/events/${currentEventId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (window.initCalendar) window.initCalendar();
+      if (window.initWeek) window.initWeek();
+      if (window.initToday) window.initToday();
+      if (window.renderNext) window.renderNext();
+      if (window.openEventDetail) await window.openEventDetail(currentEventId);
+    } catch (e) {
+      console.error("Error moviendo evento:", e);
+    }
+  });
   overlay.addEventListener("click", (e) => {
     if (e.target === overlay) close();
   });
@@ -287,6 +312,12 @@ export function initEventDetail() {
     const doneBtn = overlay.querySelector("#event-detail-done");
     if (doneBtn) doneBtn.textContent = ev.status === "done" ? "Devolver" : "Hecho ✓";
     renderTravelRow(overlay, ev);
+    const moveInput = overlay.querySelector("#event-move-date");
+    if (moveInput) {
+      const s = new Date(ev.start);
+      const pad = (n) => String(n).padStart(2, "0");
+      moveInput.value = `${s.getFullYear()}-${pad(s.getMonth() + 1)}-${pad(s.getDate())}`;
+    }
     const prepInput = overlay.querySelector("#event-prep-input");
     if (prepInput) prepInput.value = "";
     await renderPrepList(overlay, ev.id);

@@ -155,7 +155,7 @@
   </main>
 </div>
 <script src="vendor/quill.min.js"></script>
-<script type="module" src="js/app.js?v=20261014ax"></script>
+<script type="module" src="js/app.js?v=20261014ay"></script>
 
 <!-- Floating timer: round, solid, draggable -->
 <div class="timer-pill" id="timer-pill" title="Temporizador (arrástrame)">
@@ -523,6 +523,10 @@
       <button class="modal-close" title="Cerrar" id="event-detail-close">✕</button>
     </div>
     <p id="event-detail-when" class="focus-note"></p>
+    <div class="event-move-row" id="event-move-row">
+      <input type="date" id="event-move-date" class="capture-datetime" title="Cambiar de día (conserva la hora)">
+      <button class="tx-btn tx-btn-edit" id="event-move" title="Mover a ese día">Mover día</button>
+    </div>
     <p id="event-detail-travel" class="focus-note"></p>
     <p id="event-detail-location" class="focus-note"></p>
     <p id="event-detail-desc" class="focus-note"></p>

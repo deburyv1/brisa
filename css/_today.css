@@ -280,6 +280,13 @@
   opacity: 0.5;
 }
 
+.event-move-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 0 0 10px;
+}
+
 /* Timeline bar - Windows 7 glossy solid */
 .today-timeline {
   position: relative;
