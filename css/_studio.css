@@ -62,6 +62,66 @@
 }
 
 .clip-row audio {
-  width: 180px;
-  height: 28px;
+  display: none;
+}
+
+.clip-player {
+  flex: 2;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.clip-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid rgba(22, 75, 105, 0.3);
+  background: rgba(255, 255, 255, 0.4);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.clip-btn:hover {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.clip-play {
+  color: #fff;
+  background: linear-gradient(180deg, #00c6ff, #0072ff);
+  border-color: transparent;
+}
+
+.clip-seek {
+  flex: 1;
+  min-width: 60px;
+  height: 14px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.45);
+  border: 1px solid rgba(22, 75, 105, 0.2);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.clip-seek span {
+  display: block;
+  height: 100%;
+  width: 0%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #00c6ff, #0072ff);
+}
+
+.clip-time {
+  font-size: 10px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: rgba(22, 75, 105, 0.8);
+  text-shadow: var(--text-glow);
+  white-space: nowrap;
 }

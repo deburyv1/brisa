@@ -98,11 +98,62 @@ async function renderClips(section) {
     return;
   }
   box.innerHTML = clips.map(c => `
-    <div class="clip-row">
+    <div class="clip-row" data-clip="${c.id}">
       <div class="clip-title">${escapeHtml(c.title)}</div>
-      <audio controls preload="none" src="/api/clips/${c.id}/audio"></audio>
+      <div class="clip-player">
+        <button class="clip-btn clip-play" title="Reproducir / pausar">▶</button>
+        <button class="clip-btn" data-seek="-10" title="Atrás 10 segundos">↺</button>
+        <div class="clip-seek" title="Adelantar / retroceder"><span></span></div>
+        <div class="clip-time">0:00</div>
+        <button class="clip-btn" data-seek="10" title="Adelante 10 segundos">↻</button>
+      </div>
+      <audio preload="metadata" src="/api/clips/${c.id}/audio"></audio>
       <button class="tx-btn tx-btn-delete" data-clip-del="${c.id}" title="Eliminar clip">✕</button>
     </div>`).join("");
+  const fmt = (s) => {
+    if (!Number.isFinite(s) || s < 0) s = 0;
+    return `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+  };
+  box.querySelectorAll(".clip-row").forEach(row => {
+    const audio = row.querySelector("audio");
+    const play = row.querySelector(".clip-play");
+    const seek = row.querySelector(".clip-seek");
+    const fill = row.querySelector(".clip-seek span");
+    const time = row.querySelector(".clip-time");
+    const paint = () => {
+      const d = audio.duration || 0;
+      const t = audio.currentTime || 0;
+      if (fill) fill.style.width = d > 0 ? `${(t / d) * 100}%` : "0%";
+      if (time) time.textContent = d > 0 ? `${fmt(t)} / ${fmt(d)}` : fmt(t);
+      if (play) play.textContent = audio.paused ? "▶" : "⏸";
+    };
+    play?.addEventListener("click", async () => {
+      box.querySelectorAll("audio").forEach(a => { if (a !== audio) a.pause(); });
+      try {
+        if (audio.paused) await audio.play();
+        else audio.pause();
+      } catch {
+        // autoplay blocked: user taps again
+      }
+      paint();
+    });
+    row.querySelectorAll("[data-seek]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        audio.currentTime = Math.max(0, Math.min(audio.duration || 0, audio.currentTime + Number(btn.dataset.seek)));
+        paint();
+      });
+    });
+    seek?.addEventListener("click", (e) => {
+      const r = seek.getBoundingClientRect();
+      const pct = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+      if (audio.duration) audio.currentTime = pct * audio.duration;
+      paint();
+    });
+    audio.addEventListener("timeupdate", paint);
+    audio.addEventListener("loadedmetadata", paint);
+    audio.addEventListener("ended", paint);
+    paint();
+  });
   box.querySelectorAll("[data-clip-del]").forEach(btn => {
     btn.addEventListener("click", async () => {
       if (!confirm(`¿Eliminar "${btn.closest(".clip-row")?.querySelector(".clip-title")?.textContent || ""}" de Brisa? Tu archivo original no se toca.`)) return;
