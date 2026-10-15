@@ -115,7 +115,7 @@ function stopTakeoverSound() {
   alarmTimers = [];
 }
 
-function showTakeover(item, kind, lateLeave) {
+function showTakeover(item, kind, lateLeave, started = false) {
   stopTakeoverSound();
   document.querySelector("#upcoming-takeover")?.remove();
   chime(4);
@@ -123,10 +123,11 @@ function showTakeover(item, kind, lateLeave) {
 
   const isEvent = kind === "event";
   const isReminder = kind === "reminder";
-  const heading = isReminder ? "🔔 ¡Recuerda!" : !isEvent ? "⏰ ¡Ahora!" : item.travel_minutes ? "🚌 ¡Sal ya!" : "📅 ¡Ahora!";
+  const heading = isReminder ? "🔔 ¡Recuerda!" : !isEvent ? "⏰ ¡Ahora!" : started ? "📅 ¿Estás en eso?" : item.travel_minutes ? "🚌 ¡Sal ya!" : "📅 ¡Ahora!";
   const sub = lateLeave && item.travel_minutes
     ? `Debiste salir hace ${Math.max(1, Math.round(-(new Date(item.start).getTime() - Number(item.travel_minutes) * 60000 - Date.now()) / 60000))} min. Sin culpa: parte ahora.`
     : isReminder ? "No se calla hasta que lo marques hecho o lo pospongas."
+    : started ? "Si ya partió, abre Ver. Si no, pospón 5 min o descártalo sin culpa."
     : "Lo que hiciste cuenta, aunque no esté terminado.";
 
   const overlay = document.createElement("div");
@@ -216,22 +217,34 @@ async function check() {
     .sort((a, b) => a.min - b.min)[0];
 
   let eventHit = null;
+  // Fresh fetch every poll: a tab left open sees events created
+  // later the same day (the session cache is only fallback).
+  let dayEvents = [];
   try {
-    const cached = JSON.parse(sessionStorage.getItem("brisa.todayEvents") || "[]");
-    eventHit = cached
-      .map(ev => {
-        const leave = leaveTime(ev);
-        if (!leave) return null;
-        const minLeave = (leave.getTime() - now) / 60000;
-        const minStart = minutesUntil(ev.start);
-        if (minStart <= 0) return null;
-        return { kind: "event", item: ev, min: minLeave, leave: true };
-      })
-      .filter(x => x && x.min <= WINDOW_MIN && !dismissed.has(snoozeKey("event", x.item.id)) && !snoozed.has(snoozeKey("event", x.item.id)))
-      .sort((a, b) => a.min - b.min)[0];
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, "0");
+    const key = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const res = await fetch(`/api/events?date=${key}`);
+    if (res.ok) dayEvents = await res.json();
+    else throw new Error("fallback");
   } catch {
-    eventHit = null;
+    try {
+      dayEvents = JSON.parse(sessionStorage.getItem("brisa.todayEvents") || "[]");
+    } catch {
+      dayEvents = [];
+    }
   }
+  eventHit = dayEvents
+    .map(ev => {
+      const leave = leaveTime(ev);
+      if (!leave) return null;
+      const minLeave = (leave.getTime() - now) / 60000;
+      const minStart = minutesUntil(ev.start);
+      if (minStart <= -5) return null;
+      return { kind: "event", item: ev, min: minLeave, leave: true, started: minStart <= 0 };
+    })
+    .filter(x => x && x.min <= WINDOW_MIN && !dismissed.has(snoozeKey("event", x.item.id)) && !snoozed.has(snoozeKey("event", x.item.id)))
+    .sort((a, b) => a.min - b.min)[0];
 
   // Reminders: extreme ones jump straight to takeover at due time,
   // normal ones follow the same 3-stage escalation.
@@ -327,7 +340,7 @@ async function check() {
 
   // Stage 3: fullscreen takeover at zero
   if (upcoming.min <= 0 && !document.querySelector("#upcoming-takeover")) {
-    showTakeover(upcoming.item, upcoming.kind, lateLeave);
+    showTakeover(upcoming.item, upcoming.kind, lateLeave, !!upcoming.started);
   }
 }
 

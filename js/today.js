@@ -118,7 +118,7 @@ export async function initToday() {
         const d = new Date(t.scheduled_datetime);
         const percent = ((d.getHours() + d.getMinutes() / 60) / 24) * 100;
         const overdue = isToday && !t.is_completed && d.getTime() < Date.now();
-        return `<div class="today-task ${t.priority || "medium"}${t.is_completed ? " done" : ""}${overdue ? " overdue" : ""}" style="left: ${percent}%" data-task-id="${t.id}" title="${escapeHtml(t.title || "Tarea")}"></div>`;
+        return `<div class="today-task ${t.priority || "medium"}${t.is_completed ? " done" : ""}${overdue ? " overdue" : ""}" style="left: ${percent}%" draggable="${isToday && !t.is_completed ? "true" : "false"}" data-task-id="${t.id}" title="${escapeHtml(t.title || "Tarea")} · arrástrame para cambiar la hora"></div>`;
       }).join("")}
       ${events.map(ev => {
         const d = new Date(ev.start);
@@ -196,6 +196,7 @@ function overdueText(dt) {
 }
 
 function wireMarkers(section, dayTasks, events, isToday, key) {
+  let markerDragging = false;
   const pop = section.querySelector("#today-pop");
   if (!pop) return;
 
@@ -232,7 +233,20 @@ function wireMarkers(section, dayTasks, events, isToday, key) {
   };
 
   section.querySelectorAll(".today-task").forEach(el => {
+    el.addEventListener("dragstart", (e) => {
+      if (el.getAttribute("draggable") !== "true") {
+        e.preventDefault();
+        return;
+      }
+      markerDragging = true;
+      e.dataTransfer.setData("text/plain", `task:${el.dataset.taskId}`);
+      e.dataTransfer.effectAllowed = "move";
+    });
+    el.addEventListener("dragend", () => {
+      setTimeout(() => { markerDragging = false; }, 100);
+    });
     el.addEventListener("click", (e) => {
+      if (markerDragging) return;
       e.stopPropagation();
       const t = (state.tasks || []).find(x => String(x.id) === String(el.dataset.taskId));
       if (!t) return;
@@ -324,9 +338,13 @@ function wireMarkers(section, dayTasks, events, isToday, key) {
     });
     line.addEventListener("dragleave", () => line.classList.remove("drop-hint"));
     line.addEventListener("drop", async (e) => {
-      const id = e.dataTransfer.getData("text/plain");
+      const raw = e.dataTransfer.getData("text/plain");
       line.classList.remove("drop-hint");
-      if (!id || !section.querySelector(`.today-chip[data-chip="${id}"]`)) return;
+      if (!raw) return;
+      const isMarker = raw.startsWith("task:");
+      const id = isMarker ? raw.slice(5) : raw;
+      if (isMarker && !section.querySelector(`.today-task[data-task-id="${id}"]`)) return;
+      if (!isMarker && !section.querySelector(`.today-chip[data-chip="${id}"]`)) return;
       e.preventDefault();
       const r = line.getBoundingClientRect();
       const pct = Math.min(0.99, Math.max(0, (e.clientX - r.left) / r.width));
