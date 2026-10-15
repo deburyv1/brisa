@@ -114,6 +114,7 @@ export async function initToday() {
     <button class="today-metric" id="today-metric" title="Ver qué se completó cada día">${escapeHtml(metricText)}</button>
     <div class="today-timeline ${isPast ? "past" : ""}">
       ${isToday ? `<div class="today-now" style="left: ${getCurrentTimePercent()}%"></div>` : ""}
+      <div class="today-drop-time" id="today-drop-time" style="display:none"></div>
       ${dayTasks.map(t => {
         const d = new Date(t.scheduled_datetime);
         const percent = ((d.getHours() + d.getMinutes() / 60) / 24) * 100;
@@ -123,7 +124,7 @@ export async function initToday() {
       ${events.map(ev => {
         const d = new Date(ev.start);
         const percent = ((d.getHours() + d.getMinutes() / 60) / 24) * 100;
-        const evOverdue = isToday && d.getTime() < Date.now();
+        const evOverdue = isToday && d.getTime() < Date.now() && !missAcked(ev.id);
         return `<div class="today-event${evOverdue ? " overdue" : ""}" style="left: ${percent}%" draggable="${isToday ? "true" : "false"}" data-event-id="${ev.id}" title="${escapeHtml(ev.title || "Evento")} · arrástrame para cambiar la hora"></div>`;
       }).join("")}
       <div class="today-pop" id="today-pop" style="display:none"></div>
@@ -194,6 +195,15 @@ function overdueText(dt) {
   if (mins < 60) return `vencida hace ${mins} min`;
   const h = Math.floor(mins / 60);
   return `vencida hace ${h} h${mins % 60 ? ` ${mins % 60} min` : ""}`;
+}
+
+// Events acknowledged as done today (session only): no red, no nag.
+function missAcked(id) {
+  try {
+    return (JSON.parse(sessionStorage.getItem("brisa.missAck") || "[]") || []).some(x => String(x) === String(id));
+  } catch {
+    return false;
+  }
 }
 
 function wireMarkers(section, dayTasks, events, isToday, key) {
@@ -308,19 +318,22 @@ function wireMarkers(section, dayTasks, events, isToday, key) {
         return;
       }
       const ev = (events || []).find(x => String(x.id) === String(el.dataset.eventId));
-      const overdue = ev && ev.start && new Date(ev.start).getTime() < Date.now();
+      const overdue = ev && ev.start && new Date(ev.start).getTime() < Date.now() && !missAcked(ev.id);
       if (!overdue) {
         if (window.openEventDetail) window.openEventDetail(el.dataset.eventId);
         return;
       }
-      // Missed event feedback: what happened + move it or leave it
+      // Missed event feedback: what happened + move it or leave it.
+      // "Hecho" acknowledges it for today (stops the red, no model
+      // change: events have no done state). "Dejar así" only closes.
       showPop(el, `
         <div class="today-pop-title">${escapeHtml(ev.title || "Evento")}</div>
         <div class="today-pop-time">⏰ ${overdueText(ev.start)} · ¿lo hiciste o se reprograma?</div>
         <div class="today-pop-actions">
+          <button class="modal-btn modal-btn-primary" data-act="done">✓ Hecho</button>
           <button class="modal-btn modal-btn-secondary" data-act="plus1">+1 h</button>
           <button class="modal-btn modal-btn-secondary" data-act="tomorrow">Mañana</button>
-          <button class="modal-btn modal-btn-secondary" data-act="leave">Dejar así</button>
+          <button class="modal-btn modal-btn-secondary" data-act="leave" title="Solo cierra este aviso">Dejar así</button>
         </div>`);
       const shift = async (fn) => {
         try {
@@ -346,6 +359,17 @@ function wireMarkers(section, dayTasks, events, isToday, key) {
       pop.querySelector('[data-act="tomorrow"]')?.addEventListener("click", () =>
         shift(s => s.setDate(s.getDate() + 1)));
       pop.querySelector('[data-act="leave"]')?.addEventListener("click", closePop);
+      pop.querySelector('[data-act="done"]')?.addEventListener("click", () => {
+        try {
+          const acked = JSON.parse(sessionStorage.getItem("brisa.missAck") || "[]");
+          if (!acked.includes(ev.id)) acked.push(ev.id);
+          sessionStorage.setItem("brisa.missAck", JSON.stringify(acked));
+        } catch {
+          // ignore
+        }
+        closePop();
+        if (window.initToday) window.initToday();
+      });
     });
   });
 
@@ -386,16 +410,33 @@ function wireMarkers(section, dayTasks, events, isToday, key) {
     });
   });
   if (line && isToday) {
+    const dropHint = section.querySelector("#today-drop-time");
+    const paintDropTime = (clientX) => {
+      if (!dropHint) return;
+      const r = line.getBoundingClientRect();
+      const pct = Math.min(0.99, Math.max(0, (clientX - r.left) / r.width));
+      const mins = Math.round((pct * 24 * 60) / 30) * 30;
+      const hh = String(Math.floor(mins / 60)).padStart(2, "0");
+      const mm = String(mins % 60).padStart(2, "0");
+      dropHint.textContent = `${hh}:${mm}`;
+      dropHint.style.left = `${pct * 100}%`;
+      dropHint.style.display = "";
+    };
+    const hideDropTime = () => {
+      if (dropHint) dropHint.style.display = "none";
+    };
     line.addEventListener("dragover", (e) => {
       if (![...e.dataTransfer.types].includes("text/plain")) return;
       e.preventDefault();
       e.dataTransfer.dropEffect = "move";
       line.classList.add("drop-hint");
+      paintDropTime(e.clientX);
     });
-    line.addEventListener("dragleave", () => line.classList.remove("drop-hint"));
+    line.addEventListener("dragleave", () => { line.classList.remove("drop-hint"); hideDropTime(); });
     line.addEventListener("drop", async (e) => {
       const raw = e.dataTransfer.getData("text/plain");
       line.classList.remove("drop-hint");
+      hideDropTime();
       if (!raw) return;
       const isEvent = raw.startsWith("event:");
       const isMarker = raw.startsWith("task:");
