@@ -151,6 +151,30 @@ function openPatio(section) {
   });
 }
 
+function stripHtml(html) {
+  const div = document.createElement("div");
+  div.innerHTML = String(html ?? "");
+  return (div.textContent || "").replace(/\s+/g, " ").trim();
+}
+
+// The capture entry this task was born from. Processed entries
+// never sit in state, so this fills in async after render.
+async function fillOrigin(task) {
+  const el = document.querySelector("#workmode-origin");
+  if (!el) return;
+  try {
+    const res = await fetch(`${API_BASE}/entries?target_type=action&target_id=${task.id}`);
+    if (!res.ok) return;
+    const rows = await res.json();
+    if (!rows.length) return;
+    const raw = stripHtml(rows[0].raw_text);
+    el.textContent = `Viene de: “${raw.slice(0, 90)}”`;
+    el.title = raw;
+  } catch {
+    // ignore
+  }
+}
+
 function render(section) {
   clearPatio();
   const task = resolveTask();
@@ -179,6 +203,7 @@ function render(section) {
       <div class="workmode-task aero-panel">
         ${parentContext(task)}
         <div class="workmode-task-title">${escapeHtml(task.title)}</div>
+        <div class="workmode-origin" id="workmode-origin"></div>
         ${task.first_step ? `<div class="workmode-step">Ahora mismo, solo esto: <strong>${escapeHtml(task.first_step)}</strong></div>` : `<div class="workmode-step dim">Sin primer paso definido.</div>`}
         <div class="workmode-timer">
           <div class="workmode-clock" id="workmode-clock">--:--</div>
@@ -196,6 +221,8 @@ function render(section) {
           </div>
           <div class="workmode-switch-panel" id="workmode-switch-panel"></div>
           <button class="modal-btn modal-btn-secondary" id="workmode-done">Marcar hecha ✓</button>
+          <button class="modal-btn modal-btn-secondary" id="workmode-discard" title="Descartar este paso o la tarea">Descartar</button>
+          <div class="workmode-switch-panel" id="workmode-discard-panel"></div>
         </div>
       </div>
       <div class="workmode-notes aero-panel">
@@ -289,6 +316,82 @@ function render(section) {
     openPatio(section);
   });
 
+  async function refreshAfterChange() {
+    if (window.initTasks) await window.initTasks();
+    if (window.renderNext) window.renderNext();
+    if (window.initToday) window.initToday();
+  }
+
+  async function deleteTask(id) {
+    await fetch(`${API_BASE}/tasks/${id}`, { method: "DELETE" });
+  }
+
+  // Discard: a step asks step-vs-parent, a parent warns about its steps.
+  section.querySelector("#workmode-discard")?.addEventListener("click", () => {
+    const panel = section.querySelector("#workmode-discard-panel");
+    if (!panel) return;
+    if (panel.dataset.open === "1") {
+      panel.innerHTML = "";
+      panel.dataset.open = "";
+      return;
+    }
+    panel.dataset.open = "1";
+    const parent = task.parent_task_id != null
+      ? (state.tasks || []).find(t => String(t.id) === String(task.parent_task_id))
+      : null;
+    const kids = (state.tasks || []).filter(t =>
+      t.parent_task_id != null && String(t.parent_task_id) === String(task.id) && !t.is_completed);
+    if (parent) {
+      const siblings = (state.tasks || []).filter(t =>
+        t.parent_task_id != null && String(t.parent_task_id) === String(parent.id)
+        && !t.is_completed && String(t.id) !== String(task.id));
+      panel.innerHTML = `
+        <p class="workmode-switch-note">¿Descartas solo este paso o la acción completa?</p>
+        <button class="workmode-alt" id="discard-step">Solo este paso${siblings.length > 0 ? " → ir al siguiente" : ""}</button>
+        <button class="workmode-alt" id="discard-parent">Toda la acción “${escapeHtml(parent.title)}”</button>
+        <button class="workmode-alt" id="discard-back">Volver</button>
+      `;
+      panel.querySelector("#discard-back")?.addEventListener("click", () => {
+        panel.innerHTML = "";
+        panel.dataset.open = "";
+      });
+      panel.querySelector("#discard-step")?.addEventListener("click", async () => {
+        await deleteTask(task.id);
+        await refreshAfterChange();
+        currentId = siblings.length > 0 ? siblings[0].id : parent.id;
+        render(section);
+      });
+      panel.querySelector("#discard-parent")?.addEventListener("click", async () => {
+        const all = (state.tasks || []).filter(t =>
+          t.parent_task_id != null && String(t.parent_task_id) === String(parent.id));
+        for (const k of all) await deleteTask(k.id);
+        await deleteTask(parent.id);
+        await refreshAfterChange();
+        currentId = null;
+        render(section);
+      });
+    } else {
+      panel.innerHTML = `
+        <p class="workmode-switch-note">${kids.length > 0
+          ? `Esta tarea tiene ${kids.length} paso(s). ¿Eliminar todo?`
+          : "¿Eliminar esta tarea?"}</p>
+        <button class="workmode-alt" id="discard-all">Eliminar${kids.length > 0 ? " todo" : ""}</button>
+        <button class="workmode-alt" id="discard-back">Volver</button>
+      `;
+      panel.querySelector("#discard-back")?.addEventListener("click", () => {
+        panel.innerHTML = "";
+        panel.dataset.open = "";
+      });
+      panel.querySelector("#discard-all")?.addEventListener("click", async () => {
+        for (const k of kids) await deleteTask(k.id);
+        await deleteTask(task.id);
+        await refreshAfterChange();
+        currentId = null;
+        render(section);
+      });
+    }
+  });
+
   section.querySelector("#workmode-done")?.addEventListener("click", async () => {
     await flushSave();
     try {
@@ -332,6 +435,7 @@ function render(section) {
   }
 
   paintTimer();
+  fillOrigin(task);
 }
 
 export async function initWorkmode() {

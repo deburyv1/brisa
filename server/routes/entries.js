@@ -3,15 +3,20 @@ import pool from '../db.js';
 
 const router = Router();
 
-// GET /api/entries?status=inbox
+// GET /api/entries?status=inbox[&target_type=&target_id=]
 router.get('/', async (req, res) => {
   try {
     const params = [];
-    let where = '';
+    const clauses = [];
     if (req.query.status) {
       params.push(req.query.status);
-      where = `WHERE status = $${params.length}`;
+      clauses.push(`status = $${params.length}`);
     }
+    if (req.query.target_type && req.query.target_id) {
+      params.push(req.query.target_type, Number(req.query.target_id));
+      clauses.push(`target_type = $${params.length - 1} AND target_id = $${params.length}`);
+    }
+    const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
     const result = await pool.query(`SELECT * FROM entries ${where} ORDER BY created_at DESC`, params);
     res.json(result.rows);
   } catch (err) {
