@@ -101,7 +101,58 @@ function paintTimer() {
   });
 }
 
+let patioTimer = null;
+
+function clearPatio() {
+  if (patioTimer) {
+    clearInterval(patioTimer);
+    patioTimer = null;
+  }
+}
+
+function openPatio(section) {
+  if (section.querySelector("#patio")) return;
+  if (window.brisaTimer) window.brisaTimer.stop();
+  const deadline = Date.now() + 5 * 60 * 1000;
+  const overlay = document.createElement("div");
+  overlay.className = "patio-overlay";
+  overlay.id = "patio";
+  overlay.innerHTML = `
+    <div class="patio-card aero-panel">
+      <div class="patio-title">Patio de recuperación</div>
+      <p class="patio-sub">Para poner los pies en la tierra. Sin apuro, sin culpa.</p>
+      <ol class="patio-steps">
+        <li>Apoya los pies en el suelo y nota el peso.</li>
+        <li>Tres respiraciones lentas, soltando los hombros.</li>
+        <li>Agua, estírate o mira por la ventana.</li>
+      </ol>
+      <div class="patio-clock" id="patio-clock">5:00</div>
+      <p class="patio-sub" id="patio-msg">Vuelve cuando quieras, la tarea te espera.</p>
+      <button class="modal-btn modal-btn-primary" id="patio-back">Volver a la tarea</button>
+    </div>
+  `;
+  (section.querySelector(".workmode") || section).appendChild(overlay);
+  const paint = () => {
+    const left = Math.max(0, deadline - Date.now());
+    const el = overlay.querySelector("#patio-clock");
+    if (el) el.textContent = `${Math.floor(left / 60000)}:${String(Math.floor(left % 60000 / 1000)).padStart(2, "0")}`;
+    if (left <= 0) {
+      clearInterval(patioTimer);
+      patioTimer = null;
+      const msg = overlay.querySelector("#patio-msg");
+      if (msg) msg.textContent = "Tiempo cumplido. Vuelve cuando quieras, sin culpa.";
+    }
+  };
+  paint();
+  patioTimer = setInterval(paint, 500);
+  overlay.querySelector("#patio-back")?.addEventListener("click", () => {
+    clearPatio();
+    overlay.remove();
+  });
+}
+
 function render(section) {
+  clearPatio();
   const task = resolveTask();
   const pending = pendingTasks();
 
@@ -139,6 +190,11 @@ function render(section) {
             <button class="modal-btn modal-btn-primary" id="workmode-toggle">▶ Empezar</button>
             <button class="modal-btn modal-btn-secondary" id="workmode-stuck">¿Trabado?</button>
           </div>
+          <div class="workmode-switch-row">
+            <button class="modal-btn modal-btn-secondary" id="workmode-switch" title="Rotar a otra tarea sin culpa">⇄ Otra cosa</button>
+            <button class="modal-btn modal-btn-secondary" id="workmode-patio" title="Pausa corta para poner los pies en la tierra">Patio</button>
+          </div>
+          <div class="workmode-switch-panel" id="workmode-switch-panel"></div>
           <button class="modal-btn modal-btn-secondary" id="workmode-done">Marcar hecha ✓</button>
         </div>
       </div>
@@ -194,6 +250,43 @@ function render(section) {
 
   section.querySelector("#workmode-stuck")?.addEventListener("click", () => {
     if (window.openFocus) window.openFocus(task.id, { friction: true });
+  });
+
+  // Rotation without guilt: 1-tap alternatives, bloc already autosaved.
+  section.querySelector("#workmode-switch")?.addEventListener("click", () => {
+    const panel = section.querySelector("#workmode-switch-panel");
+    if (!panel) return;
+    if (panel.dataset.open === "1") {
+      panel.innerHTML = "";
+      panel.dataset.open = "";
+      return;
+    }
+    const { alternatives } = pickNextAction(
+      (state.tasks || []).filter(t => String(t.id) !== String(task.id)), new Date());
+    panel.dataset.open = "1";
+    panel.innerHTML = `
+      <p class="workmode-switch-note">Cambiar también es avanzar. El bloc de esta tarea ya quedó guardado.</p>
+      ${(alternatives || []).length === 0
+        ? `<p class="workmode-switch-note">No hay otra pendiente. Buen momento para el Patio.</p>`
+        : alternatives.map(t => `
+          <button class="workmode-alt" data-alt="${t.id}" title="Pasar a esta tarea">
+            ${escapeHtml(t.title)}${t.estimated_minutes ? ` · ~${t.estimated_minutes} min` : ""}
+          </button>`).join("")}
+    `;
+    panel.querySelectorAll("[data-alt]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        await flushSave();
+        if (window.brisaTimer) window.brisaTimer.stop();
+        currentId = btn.dataset.alt;
+        render(section);
+      });
+    });
+  });
+
+  // Patio: short grounding transition. Pauses the work timer;
+  // the user restarts it when back (clean re-entry, no guilt).
+  section.querySelector("#workmode-patio")?.addEventListener("click", () => {
+    openPatio(section);
   });
 
   section.querySelector("#workmode-done")?.addEventListener("click", async () => {

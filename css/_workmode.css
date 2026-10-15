@@ -176,6 +176,94 @@
   width: 100%;
 }
 
+.workmode-switch-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.workmode-switch-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.workmode-switch-note {
+  font-size: 10px;
+  color: rgba(22, 75, 105, 0.7);
+  margin: 6px 0 2px;
+}
+
+.workmode-alt {
+  border: 1px solid rgba(22, 75, 105, 0.3);
+  border-radius: 10px;
+  padding: 7px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: inherit;
+  color: rgba(22, 75, 105, 0.9);
+  background: rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+  text-align: left;
+  transition: var(--transition-speed);
+}
+
+.workmode-alt:hover {
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--ink);
+}
+
+.patio-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 30, 60, .35);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-radius: inherit;
+  padding: 16px;
+}
+
+.patio-card {
+  max-width: 380px;
+  width: 100%;
+  padding: 24px;
+  text-align: center;
+}
+
+.patio-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  text-shadow: var(--text-glow);
+}
+
+.patio-sub {
+  font-size: 11px;
+  color: rgba(22, 75, 105, 0.75);
+}
+
+.patio-steps {
+  text-align: left;
+  font-size: 11px;
+  color: rgba(22, 75, 105, 0.9);
+  line-height: 1.8;
+  margin: 12px 0;
+  padding-left: 20px;
+}
+
+.patio-clock {
+  font-size: 40px;
+  font-weight: 300;
+  color: var(--ink);
+  text-shadow: var(--text-glow);
+  margin: 8px 0;
+}
+
 .workmode-notes-head {
   display: flex;
   align-items: center;
