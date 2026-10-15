@@ -206,7 +206,9 @@ export function initEventDetail() {
       await fetch(`${API_BASE}/events/${currentEventId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: toDone ? "done" : "open" }),
+        body: JSON.stringify(toDone
+          ? { status: "done", completed_at: new Date().toISOString() }
+          : { status: "open", completed_at: null }),
       });
       if (window.initCalendar) window.initCalendar();
       if (window.initWeek) window.initWeek();

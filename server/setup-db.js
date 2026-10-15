@@ -299,6 +299,7 @@ try {
   )`);
   await pool.query(`ALTER TABLE ideas ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'open'`);
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'open'`);
+  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP`);
   await pool.query(`ALTER TABLE ideas ADD COLUMN IF NOT EXISTS task_id INTEGER REFERENCES tasks(id) ON DELETE SET NULL`);
 
   // Fase 3 Estudio: local library of exported clips (files live in the clips volume)

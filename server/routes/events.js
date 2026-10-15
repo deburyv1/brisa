@@ -55,7 +55,7 @@ router.post('/', async (req, res) => {
 
 // PUT /api/events/:id — partial merge
 router.put('/:id', async (req, res) => {
-  const allowed = ['title', 'description', 'start', 'end', 'location', 'travel_minutes', 'status'];
+  const allowed = ['title', 'description', 'start', 'end', 'location', 'travel_minutes', 'status', 'completed_at'];
   const sets = [];
   const values = [];
   for (const key of allowed) {

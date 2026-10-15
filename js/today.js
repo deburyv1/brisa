@@ -555,7 +555,7 @@ function summaryRow(icon, label, value) {
 // Read-only detail: today at a glance (done, scheduled, floating)
 // plus the 6 previous days. Evidence, never score: no totals
 // as goals, no streaks — just a satisfying progress bar.
-function openDoneDetail() {
+async function openDoneDetail() {
   const overlay = document.querySelector("#done-modal");
   const list = document.querySelector("#done-list");
   if (!overlay || !list) return;
@@ -564,6 +564,20 @@ function openDoneDetail() {
   const pad = (n) => String(n).padStart(2, "0");
   const keyOf = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   const todayKey = keyOf(now);
+
+  let todayEvents = [];
+  try {
+    const res = await fetch(`/api/events?date=${todayKey}`);
+    if (res.ok) todayEvents = await res.json();
+  } catch {
+    todayEvents = [];
+  }
+  const evOpen = todayEvents
+    .filter(e => e.status !== "done")
+    .sort((a, b) => new Date(a.start) - new Date(b.start));
+  const evDone = todayEvents
+    .filter(e => e.status === "done" && e.completed_at && keyOf(new Date(e.completed_at)) === todayKey)
+    .sort((a, b) => new Date(a.completed_at) - new Date(b.completed_at));
 
   const doneToday = all
     .filter(t => t.is_completed && t.completed_at && keyOf(new Date(t.completed_at)) === todayKey)
@@ -574,8 +588,9 @@ function openDoneDetail() {
   const floating = all
     .filter(t => !t.is_completed && !t.scheduled_datetime && !t.due_datetime);
 
-  const dayTotal = doneToday.length + scheduledToday.length;
-  const pct = dayTotal === 0 ? 0 : Math.round((doneToday.length / dayTotal) * 100);
+  const doneCount = doneToday.length + evDone.length;
+  const dayTotal = doneCount + scheduledToday.length + evOpen.length;
+  const pct = dayTotal === 0 ? 0 : Math.round((doneCount / dayTotal) * 100);
 
   const itemRow = (t, right, done = false) => `
     <div class="done-item${done ? " is-done" : ""}" title="${escapeHtml(t.title)}${right ? ` · ${escapeHtml(right)}` : ""}">
@@ -604,24 +619,26 @@ function openDoneDetail() {
 
   list.innerHTML = `
     <div class="done-hero">
-      <div class="done-hero-top"><span>Hoy</span><span>${doneToday.length === 1 ? "1 cerrada" : `${doneToday.length} cerradas`}</span></div>
+      <div class="done-hero-top"><span>Hoy</span><span>${doneCount === 1 ? "1 cerrada" : `${doneCount} cerradas`}</span></div>
       <div class="done-bar"><span style="width:${pct}%"></span></div>
-      ${doneToday.length > 0 ? `<div class="done-cheer">Lo hecho, hecho está. ✓</div>` : ""}
+      ${doneCount > 0 ? `<div class="done-cheer">Lo hecho, hecho está. ✓</div>` : ""}
     </div>
-    ${scheduledToday.length > 0 ? `
+    ${scheduledToday.length + evOpen.length > 0 ? `
     <div class="done-day">
-      <div class="done-day-head"><span>Programadas para hoy</span><span>${scheduledToday.length}</span></div>
+      <div class="done-day-head"><span>Programadas para hoy</span><span>${scheduledToday.length + evOpen.length}</span></div>
       ${scheduledToday.map(t => itemRow(t, timeOf(t.scheduled_datetime))).join("")}
+      ${evOpen.map(e => itemRow(e, timeOf(e.start))).join("")}
     </div>` : ""}
     ${floating.length > 0 ? `
     <div class="done-day">
       <div class="done-day-head"><span>Flotantes · sin fecha</span><span>${floating.length}</span></div>
       ${floating.map(t => itemRow(t, "")).join("")}
     </div>` : ""}
-    ${doneToday.length > 0 ? `
+    ${doneCount > 0 ? `
     <div class="done-day">
       <div class="done-day-head"><span>Cerradas hoy</span><span>✓</span></div>
       ${doneToday.map(t => itemRow(t, timeOf(t.completed_at), true)).join("")}
+      ${evDone.map(e => itemRow(e, timeOf(e.completed_at), true)).join("")}
     </div>` : ""}
     ${past.join("")}
   `;
