@@ -13,6 +13,31 @@ export function initJournalModal() {
   const cancelBtn = document.querySelector("#journal-modal-cancel");
   const form = document.querySelector("#journal-form");
   const titleEl = document.querySelector("#journal-modal-title");
+  const expandBtn = document.querySelector("#journal-modal-expand");
+  const card = overlay.querySelector(".modal");
+
+  // Wide page mode (remembered between notes)
+  const WIDE_KEY = "brisa.noteWide";
+  function setWide(wide) {
+    card?.classList.toggle("modal-page", wide);
+    if (expandBtn) {
+      expandBtn.textContent = wide ? "⤡" : "⤢";
+      expandBtn.title = wide ? "Volver a tamaño normal" : "Zona de escritura amplia";
+    }
+    try {
+      localStorage.setItem(WIDE_KEY, wide ? "1" : "0");
+    } catch {
+      // ignore
+    }
+  }
+  let wideDefault = false;
+  try {
+    wideDefault = localStorage.getItem(WIDE_KEY) === "1";
+  } catch {
+    wideDefault = false;
+  }
+  setWide(wideDefault);
+  expandBtn?.addEventListener("click", () => setWide(!card?.classList.contains("modal-page")));
 
   if (!overlay || !closeBtn || !cancelBtn || !form || !titleEl) return;
 

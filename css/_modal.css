@@ -49,6 +49,24 @@
   max-width: 560px;
 }
 
+/* Notion-like wide page for long writing */
+.modal.modal-page {
+  width: 94%;
+  max-width: 900px;
+  max-height: 92vh;
+  overflow-y: auto;
+}
+
+.modal-page .ql-container.ql-snow .ql-editor {
+  min-height: 50vh;
+  font-size: 14px;
+}
+
+.modal-header-actions {
+  display: flex;
+  gap: 6px;
+}
+
 /* ---- AI split ---- */
 .ai-split-row {
   display: flex;
