@@ -181,7 +181,7 @@ async function renderTodayPlanner(body, events, dayKey, offset) {
       <button class="week-tab ${dayMode === "orden" ? "active" : ""}" id="mode-orden">Por orden</button>
     </div>
     <div id="day-board"></div>
-    <div id="day-close-slot"></div>
+    <section class="day-close-section" id="day-close-slot"></section>
   `;
 
   body.querySelector("#day-prev")?.addEventListener("click", () => shiftDay(-1));
@@ -485,12 +485,33 @@ async function renderOrderList(board, dayKey, dayTasks, dayEvents, dueHabits, re
 
   board.innerHTML = `
     <div class="planner-label">El orden lo defines tú · arrastra o Alt+↑↓ · se guarda solo</div>
-    <div class="day-order" id="day-order">
-      ${all.length === 0 ? `<span class="week-free">Día despejado.</span>` : all.map(item => dayCard(item, readonly, dayKey)).join("")}
+    <div class="day-order-wrap">
+      <button class="day-scroll" id="day-scroll-up" title="Subir" style="display:none">▲</button>
+      <div class="day-order" id="day-order">
+        ${all.length === 0 ? `<span class="week-free">Día despejado.</span>` : all.map(item => dayCard(item, readonly, dayKey)).join("")}
+      </div>
+      <button class="day-scroll" id="day-scroll-down" title="Bajar" style="display:none">▼</button>
     </div>
   `;
   wireDayCards(board);
   if (!readonly) wireOrderDrop(board, dayKey);
+  wireOrderScroll(board);
+}
+
+function wireOrderScroll(board) {
+  const list = board.querySelector("#day-order");
+  const up = board.querySelector("#day-scroll-up");
+  const down = board.querySelector("#day-scroll-down");
+  if (!list || !up || !down) return;
+  const paint = () => {
+    const overflow = list.scrollHeight - list.clientHeight > 8;
+    up.style.display = overflow && list.scrollTop > 8 ? "" : "none";
+    down.style.display = overflow && list.scrollHeight - list.scrollTop - list.clientHeight > 8 ? "" : "none";
+  };
+  up.addEventListener("click", () => list.scrollBy({ top: -160, behavior: "smooth" }));
+  down.addEventListener("click", () => list.scrollBy({ top: 160, behavior: "smooth" }));
+  list.addEventListener("scroll", paint, { passive: true });
+  paint();
 }
 
 async function saveDayOrder(board, dayKey) {

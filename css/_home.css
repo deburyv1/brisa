@@ -3,7 +3,7 @@
    ============================================ */
 .home-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
   gap: 11px;
   align-items: start;
 }
