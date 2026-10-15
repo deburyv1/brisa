@@ -77,6 +77,54 @@ export async function initToday() {
 
   const dayTasks = tasks.filter(t => t.scheduled_datetime && sameDay(t.scheduled_datetime, target));
 
+  // Timeline markers (tasks + events). Same-hour collisions spread
+  // vertically so every marker stays visible and clickable.
+  const rawMarkers = [
+    ...dayTasks.map(t => {
+      const d = new Date(t.scheduled_datetime);
+      const overdue = isToday && !t.is_completed && d.getTime() < Date.now();
+      return {
+        pct: ((d.getHours() + d.getMinutes() / 60) / 24) * 100,
+        cls: `today-task ${t.priority || "medium"}${t.is_completed ? " done" : ""}${overdue ? " overdue" : ""}`,
+        drag: isToday && !t.is_completed,
+        extra: `data-task-id="${t.id}"`,
+        title: `${t.title || "Tarea"}${t.is_completed ? " (hecha)" : " · arrástrame para cambiar la hora"}`,
+      };
+    }),
+    ...events.map(ev => {
+      const d = new Date(ev.start);
+      const evDone = ev.status === "done";
+      const evOverdue = isToday && !evDone && d.getTime() < Date.now() && !missAcked(ev.id);
+      return {
+        pct: ((d.getHours() + d.getMinutes() / 60) / 24) * 100,
+        cls: `today-event${evDone ? " done" : ""}${evOverdue ? " overdue" : ""}`,
+        drag: isToday && !evDone,
+        extra: `data-event-id="${ev.id}"`,
+        title: `${ev.title || "Evento"}${evDone ? " (hecho)" : " · arrástrame para cambiar la hora"}`,
+      };
+    }),
+  ];
+  const bucketCount = {};
+  rawMarkers.forEach(m => {
+    const b = Math.round(m.pct * 10) / 10;
+    bucketCount[b] = (bucketCount[b] || 0) + 1;
+  });
+  const bucketSeen = {};
+  const markerHtml = rawMarkers.map(m => {
+    const b = Math.round(m.pct * 10) / 10;
+    const n = bucketCount[b];
+    const i = bucketSeen[b] = (bucketSeen[b] || 0) + 1;
+    const k = i - 1;
+    let topPx = 0, leftPc = 0;
+    if (n === 2) {
+      topPx = k === 0 ? -11 : 11;
+    } else if (n > 2) {
+      topPx = k % 2 === 0 ? -11 : 11;
+      leftPc = Math.floor(k / 2) * 0.6;
+    }
+    return `<div class="${m.cls}" style="left: calc(${m.pct}% + ${leftPc}%);${topPx ? `top: calc(50% + ${topPx}px);` : ""}" draggable="${m.drag ? "true" : "false"}" ${m.extra} title="${escapeHtml(m.title)}"></div>`;
+  });
+
   const doneByDay = {};
   for (const t of tasks) {
     if (t.is_completed && t.completed_at) {
@@ -115,19 +163,7 @@ export async function initToday() {
     <div class="today-timeline ${isPast ? "past" : ""}">
       ${isToday ? `<div class="today-now" style="left: ${getCurrentTimePercent()}%"></div>` : ""}
       <div class="today-drop-time" id="today-drop-time" style="display:none"></div>
-      ${dayTasks.map(t => {
-        const d = new Date(t.scheduled_datetime);
-        const percent = ((d.getHours() + d.getMinutes() / 60) / 24) * 100;
-        const overdue = isToday && !t.is_completed && d.getTime() < Date.now();
-        return `<div class="today-task ${t.priority || "medium"}${t.is_completed ? " done" : ""}${overdue ? " overdue" : ""}" style="left: ${percent}%" draggable="${isToday && !t.is_completed ? "true" : "false"}" data-task-id="${t.id}" title="${escapeHtml(t.title || "Tarea")} · arrástrame para cambiar la hora"></div>`;
-      }).join("")}
-      ${events.map(ev => {
-        const d = new Date(ev.start);
-        const percent = ((d.getHours() + d.getMinutes() / 60) / 24) * 100;
-        const evDone = ev.status === "done";
-        const evOverdue = isToday && !evDone && d.getTime() < Date.now() && !missAcked(ev.id);
-        return `<div class="today-event${evDone ? " done" : ""}${evOverdue ? " overdue" : ""}" style="left: ${percent}%" draggable="${isToday && !evDone ? "true" : "false"}" data-event-id="${ev.id}" title="${escapeHtml(ev.title || "Evento")}${evDone ? " (hecho)" : " · arrástrame para cambiar la hora"}"></div>`;
-      }).join("")}
+      ${markerHtml}
       <div class="today-pop" id="today-pop" style="display:none"></div>
     </div>
     <div class="today-labels">

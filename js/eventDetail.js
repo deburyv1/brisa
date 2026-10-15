@@ -64,7 +64,7 @@ function renderTravelRow(overlay, ev) {
         value="${ev.travel_minutes || ""}"
         style="width:80px;border:1px solid rgba(255,255,255,0.25);border-radius:8px;padding:5px 8px;font-size:11px;color:#fff;background:rgba(255,255,255,.08);outline:none">
       <button class="tx-btn tx-btn-edit" id="travel-save">Guardar</button>`;
-    el.querySelector("#travel-save")?.addEventListener("click", async () => {
+    const saveTravel = async () => {
       const val = el.querySelector("#travel-input")?.value;
       try {
         const res = await fetch(`${API_BASE}/events/${ev.id}`, {
@@ -80,6 +80,13 @@ function renderTravelRow(overlay, ev) {
         }
       } catch (e) {
         console.error("Error guardando viaje:", e);
+      }
+    };
+    el.querySelector("#travel-save")?.addEventListener("click", saveTravel);
+    el.querySelector("#travel-input")?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        saveTravel();
       }
     });
   });
@@ -260,7 +267,15 @@ export function initEventDetail() {
     prepInput?.focus();
   };
 
-  overlay.querySelector("#event-prep-add")?.addEventListener("click", async () => {
+  overlay.querySelector("#event-prep-add")?.addEventListener("click", addPrep);
+  overlay.querySelector("#event-prep-input")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addPrep();
+    }
+  });
+
+  async function addPrep() {
     const input = overlay.querySelector("#event-prep-input");
     const titleEl = overlay.querySelector("#event-detail-title");
     const text = input?.value.trim();
@@ -285,7 +300,7 @@ export function initEventDetail() {
       console.error("Error creando preparación:", e);
       alert("No se pudo guardar. Intenta de nuevo.");
     }
-  });
+  };
 }
 
 function escapeHtml(str) {

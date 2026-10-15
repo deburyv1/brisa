@@ -351,11 +351,6 @@
   cursor: pointer;
 }
 
-.today-task.done {
-  opacity: 0.45;
-  transform: translate(-50%, -50%) scale(0.8);
-}
-
 .today-task.overdue::after {
   content: "";
   position: absolute;
@@ -428,6 +423,14 @@
   box-shadow: 0 0 6px rgba(79, 201, 138, 0.7);
 }
 .today-task.sleep { background: #bbcadd; }
+
+/* Done markers read green (placed after priorities so it wins) */
+.today-task.done {
+  background: radial-gradient(circle at 35% 30%, #a9f0c6, #1a8a4a 70%);
+  box-shadow: 0 0 8px rgba(46, 213, 115, 0.9);
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
 
 /* Event marker: diamond shape, distinct from task dots */
 .today-event {
