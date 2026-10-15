@@ -152,8 +152,8 @@ async function fillNextIdeas(section) {
     // ignore: the seeds are optional
   }
 }
-// Next event nudge: what is coming + do you need to prepare
-// anything (opens the event detail with its prep checklist).
+// Next events: the coming ones, plural — no surprises.
+// Each links to its detail with the prep checklist.
 async function fillNextEvent(section) {
   const box = section.querySelector("#next-event");
   if (!box) return;
@@ -163,18 +163,26 @@ async function fillNextEvent(section) {
     const now = Date.now();
     const upcoming = (await res.json())
       .filter(e => e.start && new Date(e.start).getTime() > now)
-      .sort((a, b) => new Date(a.start) - new Date(b.start))[0];
-    if (!upcoming || !section.isConnected || section.querySelector("#next-event") !== box) return;
-    const when = new Date(upcoming.start).toLocaleDateString("es-ES", {
+      .sort((a, b) => new Date(a.start) - new Date(b.start))
+      .slice(0, 3);
+    if (upcoming.length === 0) return;
+    if (!section.isConnected || section.querySelector("#next-event") !== box) return;
+    const fmtWhen = (s) => new Date(s).toLocaleDateString("es-ES", {
       weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
     });
     box.style.display = "";
     box.innerHTML = `
-      <span>Próximo evento: <strong>${escapeHtml(upcoming.title)}</strong> · ${escapeHtml(when)}</span>
-      <button class="next-alt" id="next-event-prep" title="Ver el evento y su preparación">¿Preparar algo?</button>
+      <div class="next-event-label">Próximos eventos</div>
+      ${upcoming.map(e => `
+        <div class="next-event-row">
+          <span><strong>${escapeHtml(e.title)}</strong> · ${escapeHtml(fmtWhen(e.start))}</span>
+          <button class="next-alt" data-prep="${e.id}" title="Ver el evento y su preparación">¿Preparar algo?</button>
+        </div>`).join("")}
     `;
-    box.querySelector("#next-event-prep")?.addEventListener("click", () => {
-      if (window.openEventDetail) window.openEventDetail(upcoming.id);
+    box.querySelectorAll("[data-prep]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        if (window.openEventDetail) window.openEventDetail(Number(btn.dataset.prep));
+      });
     });
   } catch {
     // ignore: the nudge is optional
