@@ -122,6 +122,7 @@ const FOCUS_MODES = [
   { id: "checklist", label: "Checklist" },
   { id: "step", label: "Paso" },
   { id: "guide", label: "Guía" },
+  { id: "event", label: "Evento" },
 ];
 
 function modeBar(current) {
@@ -141,6 +142,8 @@ async function switchMode(task, mode) {
     renderStep(task, {});
   } else if (mode === "guide") {
     renderUnblockAsk(task);
+  } else if (mode === "event") {
+    renderEventMode(task);
   }
 }
 
@@ -470,6 +473,94 @@ function renderUnblockAsk(task) {
       box.innerHTML = `<p class="focus-note">No se pudo analizar. Intenta de nuevo.</p>`;
       btn.disabled = false;
       btn.textContent = "Analizar mi traba";
+    }
+  });
+}
+
+// Event mode: turn this action into a dated event with an extreme
+// alarm. Saves the event, links it to the task, and creates an
+// extreme reminder at the same time — that reminder is what
+// guarantees fullscreen + sound until dismissed (upcoming.js).
+function renderEventMode(task) {
+  const preset = task.scheduled_datetime ? new Date(task.scheduled_datetime) : null;
+  const pad = (n) => String(n).padStart(2, "0");
+  const fmtDate = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const fmtTime = (d) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  body().innerHTML = `
+    <p class="focus-question">¿Cuándo tiene que pasar?</p>
+    ${modeBar("event")}
+    <div class="form-group">
+      <input type="text" id="focus-event-title" value="${escapeHtml(task.title)}" title="Título del evento">
+    </div>
+    <div class="form-group" style="display:flex;gap:8px">
+      <input type="date" id="focus-event-date" value="${preset ? fmtDate(preset) : fmtDate(tomorrow)}" title="Día">
+      <input type="time" id="focus-event-time" value="${preset ? fmtTime(preset) : ""}" title="Hora">
+    </div>
+    <p class="focus-staging">Al guardar se usa alarma extrema: pantalla completa + sonido hasta que lo veas.</p>
+    <p id="focus-event-msg" class="focus-message"></p>
+    <div class="modal-actions">
+      <button type="button" class="modal-btn modal-btn-secondary" id="focus-back">Volver</button>
+      <button type="button" class="modal-btn modal-btn-primary" id="focus-event-save">Guardar evento</button>
+    </div>
+  `;
+  wireModeBar(task);
+  body().querySelector("#focus-back")?.addEventListener("click", () => renderFriction(task));
+  body().querySelector("#focus-event-save")?.addEventListener("click", async () => {
+    const msg = body().querySelector("#focus-event-msg");
+    const title = body().querySelector("#focus-event-title")?.value.trim() || task.title;
+    const date = body().querySelector("#focus-event-date")?.value;
+    const time = body().querySelector("#focus-event-time")?.value;
+    if (!date || !time) {
+      if (msg) msg.textContent = "Pon día y hora para crear el evento.";
+      return;
+    }
+    const iso = new Date(`${date}T${time}:00`).toISOString();
+    const btn = body().querySelector("#focus-event-save");
+    btn.disabled = true;
+    try {
+      const evRes = await fetch(`${API_BASE}/events`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, start: iso, description: `Desde acción: ${task.title}` }),
+      });
+      if (!evRes.ok) throw new Error("event");
+      const ev = await evRes.json();
+      await fetch(`${API_BASE}/tasks/${task.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ event_id: ev.id }),
+      }).catch(() => {});
+      // Extreme companion: the guarantee of fullscreen + sound.
+      await fetch(`${API_BASE}/reminders`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, remind_at: iso, extreme: true }),
+      });
+      if (window.initTasks) await window.initTasks();
+      if (window.renderNext) window.renderNext();
+      if (window.initToday) window.initToday();
+      if (window.initWeek) window.initWeek();
+      if (window.initCalendar) window.initCalendar();
+      const when = new Date(iso).toLocaleString("es-ES", {
+        weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit",
+      });
+      body().innerHTML = `
+        ${modeBar("event")}
+        <p class="focus-question">Evento creado ✓</p>
+        <p class="focus-note"><strong>${escapeHtml(title)}</strong><br>${escapeHtml(when)}</p>
+        <p class="focus-staging">Alarma extrema activada: a la hora verás pantalla completa + sonido hasta que lo marques hecho o lo pospongas. No necesitas la app abierta en esa vista, pero sí la pestaña activa.</p>
+        <div class="modal-actions">
+          <button type="button" class="modal-btn modal-btn-primary" id="focus-event-ok">Entendido</button>
+        </div>
+      `;
+      wireModeBar(task);
+      body().querySelector("#focus-event-ok")?.addEventListener("click", closeFocus);
+    } catch (e) {
+      console.error("Error creando evento:", e);
+      btn.disabled = false;
+      if (msg) msg.textContent = "No se pudo crear. Intenta de nuevo.";
     }
   });
 }
