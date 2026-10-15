@@ -290,6 +290,16 @@ try {
   await pool.query(`ALTER TABLE ideas ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'open'`);
   await pool.query(`ALTER TABLE ideas ADD COLUMN IF NOT EXISTS task_id INTEGER REFERENCES tasks(id) ON DELETE SET NULL`);
 
+  // Fase 3 Estudio: local library of exported clips (files live in the clips volume)
+  await pool.query(`CREATE TABLE IF NOT EXISTS clips (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER DEFAULT 1,
+    title VARCHAR(255) NOT NULL,
+    filename VARCHAR(255) NOT NULL,
+    source_path TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
+
   await pool.query(`CREATE TABLE IF NOT EXISTS reminders (
     id SERIAL PRIMARY KEY,
     user_id INTEGER DEFAULT 1,

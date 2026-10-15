@@ -32,6 +32,9 @@ services:
       - ./server/index.js:/app/server/index.js
       - ./server/db.js:/app/server/db.js
       - ./server/setup-db.js:/app/server/setup-db.js
+      - "D:/debury/Ideas musicales:/music-in:ro"
+      - brisa-clips:/app/clips
 
 volumes:
   brisa-data:
+  brisa-clips:

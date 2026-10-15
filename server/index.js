@@ -23,6 +23,7 @@ import habitsRouter from './routes/habits.js';
 import wallpapersRouter from './routes/wallpapers.js';
 import aiRouter from './routes/ai.js';
 import daysRouter from './routes/days.js';
+import clipsRouter from './routes/clips.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -57,6 +58,7 @@ app.use('/api/habits', habitsRouter);
 app.use('/api/wallpapers', wallpapersRouter);
 app.use('/api/ai', aiRouter);
 app.use('/api/days', daysRouter);
+app.use('/api/clips', clipsRouter);
 
 // Serve static files (frontend)
 // Docker: server/public | Local dev: repo root
