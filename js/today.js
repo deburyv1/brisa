@@ -91,7 +91,7 @@ export async function initToday() {
         title: `${t.title || "Tarea"}${t.is_completed ? " (hecha)" : " · arrástrame para cambiar la hora"}`,
       };
     }),
-    ...events.map(ev => {
+    ...events.filter(ev => ev.status !== "cancelled").map(ev => {
       const d = new Date(ev.start);
       const evDone = ev.status === "done";
       const evOverdue = isToday && !evDone && d.getTime() < Date.now() && !missAcked(ev.id);
@@ -649,7 +649,7 @@ async function openDoneDetail() {
     return null;
   };
   const evOpen = todayEvents
-    .filter(e => e.status !== "done")
+    .filter(e => e.status !== "done" && e.status !== "cancelled")
     .sort((a, b) => new Date(a.start) - new Date(b.start));
   const evDone = todayEvents
     .filter(e => e.status === "done" && e.completed_at && keyOf(new Date(e.completed_at)) === todayKey)

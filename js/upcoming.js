@@ -245,7 +245,7 @@ async function check() {
       if (minStart <= -5) return null;
       return { kind: "event", item: ev, min: minLeave, leave: true, started: minStart <= 0 };
     })
-    .filter(x => x && x.item.status !== "done" && x.min <= WINDOW_MIN && !dismissed.has(snoozeKey("event", x.item.id)) && !snoozed.has(snoozeKey("event", x.item.id)))
+    .filter(x => x && x.item.status === "open" && x.min <= WINDOW_MIN && !dismissed.has(snoozeKey("event", x.item.id)) && !snoozed.has(snoozeKey("event", x.item.id)))
     .sort((a, b) => a.min - b.min)[0];
 
   // Reminders: extreme ones jump straight to takeover at due time,

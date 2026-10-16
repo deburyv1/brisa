@@ -162,7 +162,7 @@ async function fillNextEvent(section) {
     if (!res.ok) return;
     const now = Date.now();
     const upcoming = (await res.json())
-      .filter(e => e.start && e.status !== "done" && new Date(e.start).getTime() > now)
+      .filter(e => e.start && e.status !== "done" && e.status !== "cancelled" && new Date(e.start).getTime() > now)
       .sort((a, b) => new Date(a.start) - new Date(b.start))
       .slice(0, 3);
     if (upcoming.length === 0) return;

@@ -191,6 +191,33 @@ export function initEventDetail() {
     close();
     if (id && window.openEventModal) window.openEventModal(id);
   });
+  async function setEventStatus(status) {
+    if (!currentEventId) return;
+    try {
+      await fetch(`${API_BASE}/events/${currentEventId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(status === "done"
+          ? { status, completed_at: new Date().toISOString() }
+          : { status, completed_at: null }),
+      });
+      if (window.initCalendar) window.initCalendar();
+      if (window.initWeek) window.initWeek();
+      if (window.initToday) window.initToday();
+      if (window.renderNext) window.renderNext();
+      if (window.openEventDetail) await window.openEventDetail(currentEventId);
+    } catch (e) {
+      console.error("Error actualizando evento:", e);
+    }
+  }
+  overlay.querySelector("#event-detail-cancel")?.addEventListener("click", async () => {
+    if (!currentEventId) return;
+    if (!confirm("¿Cancelar este evento? No avisará más, pero se puede reabrir.")) return;
+    await setEventStatus("cancelled");
+  });
+  overlay.querySelector("#event-detail-reopen")?.addEventListener("click", async () => {
+    await setEventStatus("open");
+  });
   overlay.querySelector("#event-detail-delete")?.addEventListener("click", async () => {
     if (!currentEventId) return;
     if (!confirm("¿Eliminar este evento? Sus preparaciones quedan como tareas sueltas.")) return;
@@ -311,6 +338,13 @@ export function initEventDetail() {
     overlay.querySelector("#event-detail-desc").textContent = ev.description || "";
     const doneBtn = overlay.querySelector("#event-detail-done");
     if (doneBtn) doneBtn.textContent = ev.status === "done" ? "Devolver" : "Hecho ✓";
+    const cancelledBox = overlay.querySelector("#event-detail-cancelled");
+    if (cancelledBox) cancelledBox.style.display = ev.status === "cancelled" ? "" : "none";
+    const cancelBtn = overlay.querySelector("#event-detail-cancel");
+    if (cancelBtn) cancelBtn.style.display = ev.status === "cancelled" ? "none" : "";
+    if (doneBtn) doneBtn.style.display = ev.status === "cancelled" ? "none" : "";
+    const moveRow = overlay.querySelector("#event-move-row");
+    if (moveRow) moveRow.style.display = ev.status === "cancelled" ? "none" : "";
     renderTravelRow(overlay, ev);
     const moveInput = overlay.querySelector("#event-move-date");
     if (moveInput) {

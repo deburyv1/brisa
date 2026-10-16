@@ -64,7 +64,7 @@ router.put('/:id', async (req, res) => {
     if (value === '') value = null;
     if (key === 'title' && value) value = String(value).trim();
     if (key === 'travel_minutes' && value != null) value = Number(value) || null;
-    if (key === 'status' && !['open', 'done'].includes(value)) {
+    if (key === 'status' && !['open', 'done', 'cancelled'].includes(value)) {
       return res.status(400).json({ error: 'Invalid status' });
     }
     values.push(value);
