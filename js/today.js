@@ -379,8 +379,8 @@ function wireMarkers(section, dayTasks, events, isToday, key) {
         return;
       }
       // Missed event feedback: what happened + move it or leave it.
-      // "Hecho" acknowledges it for today (stops the red, no model
-      // change: events have no done state). "Dejar así" only closes.
+      // Hecho/Cancelar act for real (shared machine in eventDetail);
+      // Dejar así only closes this notice.
       showPop(el, `
         <div class="today-pop-title">${escapeHtml(ev.title || "Evento")}</div>
         <div class="today-pop-time">⏰ ${overdueText(ev.start)} · ¿lo hiciste o se reprograma?</div>
@@ -389,6 +389,7 @@ function wireMarkers(section, dayTasks, events, isToday, key) {
           <button class="modal-btn modal-btn-secondary" data-act="plus1">+1 h</button>
           <button class="modal-btn modal-btn-secondary" data-act="tomorrow">Mañana</button>
           <button class="modal-btn modal-btn-secondary" data-act="leave" title="Solo cierra este aviso">Dejar así</button>
+          <button class="modal-btn modal-btn-secondary" data-act="cancel" title="Se puede reabrir desde el detalle">Cancelar</button>
         </div>`);
       const shift = async (fn) => {
         try {
@@ -414,16 +415,13 @@ function wireMarkers(section, dayTasks, events, isToday, key) {
       pop.querySelector('[data-act="tomorrow"]')?.addEventListener("click", () =>
         shift(s => s.setDate(s.getDate() + 1)));
       pop.querySelector('[data-act="leave"]')?.addEventListener("click", closePop);
-      pop.querySelector('[data-act="done"]')?.addEventListener("click", () => {
-        try {
-          const acked = JSON.parse(sessionStorage.getItem("brisa.missAck") || "[]");
-          if (!acked.includes(ev.id)) acked.push(ev.id);
-          sessionStorage.setItem("brisa.missAck", JSON.stringify(acked));
-        } catch {
-          // ignore
-        }
+      pop.querySelector('[data-act="done"]')?.addEventListener("click", async () => {
         closePop();
-        if (window.initToday) window.initToday();
+        if (window.applyEventStatus) await window.applyEventStatus(ev.id, "done");
+      });
+      pop.querySelector('[data-act="cancel"]')?.addEventListener("click", async () => {
+        closePop();
+        if (window.applyEventStatus) await window.applyEventStatus(ev.id, "cancelled");
       });
     });
   });
