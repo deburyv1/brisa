@@ -11,8 +11,10 @@ export function initAvatar() {
   if (profile) {
     applyAvatar(profile);
     profile.style.cursor = "pointer";
-    profile.title = "Cambiar foto de perfil";
-    profile.addEventListener("click", () => openAvatarModal());
+    profile.title = "Ir a tu Cuenta";
+    profile.addEventListener("click", () => {
+      document.querySelector('.nav[data-nav="account"]')?.click();
+    });
   }
 
   const overlay = document.querySelector("#avatar-modal");
@@ -166,6 +168,7 @@ export function initAvatar() {
     }
     const profileEl = document.querySelector(".profile");
     if (profileEl) applyAvatar(profileEl);
+    if (window.initAccount) window.initAccount();
     close();
   });
 
@@ -178,14 +181,26 @@ export function initAvatar() {
     localStorage.removeItem(STORAGE_KEY);
     const profileEl = document.querySelector(".profile");
     if (profileEl) applyAvatar(profileEl);
+    if (window.initAccount) window.initAccount();
     close();
   });
 
   window.openAvatarModal = open;
+  window.refreshAvatar = () => {
+    const profileEl = document.querySelector(".profile");
+    if (profileEl) applyAvatar(profileEl);
+  };
+}
+
+function googleIdentity() {
+  return {
+    avatar: (typeof window !== "undefined" && window.__googleAvatar) || null,
+    name: (typeof window !== "undefined" && window.__googleName) || "",
+  };
 }
 
 async function applyAvatar(profileEl) {
-  // Fast path: local cache
+  // Order: explicit local photo first, then Google identity, then initial.
   let cached = null;
   try {
     cached = localStorage.getItem(STORAGE_KEY);
@@ -194,6 +209,7 @@ async function applyAvatar(profileEl) {
   }
   if (cached) {
     paintAvatar(profileEl, cached);
+    return;
   }
   // Source of truth: server
   try {
@@ -209,10 +225,16 @@ async function applyAvatar(profileEl) {
       paintAvatar(profileEl, dataUrl);
       return;
     }
-    if (res.status === 404 && !cached) clearAvatar(profileEl);
   } catch {
-    if (!cached) clearAvatar(profileEl);
+    // offline: fall through to Google identity
   }
+  const g = googleIdentity();
+  if (g.avatar) {
+    paintAvatar(profileEl, g.avatar);
+    return;
+  }
+  clearAvatar(profileEl);
+  if (g.name) profileEl.textContent = g.name.charAt(0).toUpperCase();
 }
 
 function paintAvatar(profileEl, dataUrl) {

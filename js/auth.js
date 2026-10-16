@@ -35,6 +35,11 @@ function paintLoggedOut(btn) {
 }
 
 function paintLoggedIn(btn, user) {
+  try {
+    window.__googleAvatar = user.avatar || null;
+    window.__googleName = user.name || user.email || "";
+  } catch { /* ignore */ }
+  if (window.refreshAvatar) window.refreshAvatar();
   if (user.avatar) {
     const img = document.createElement("img");
     img.src = user.avatar;

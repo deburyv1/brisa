@@ -26,21 +26,39 @@ async function renderAccount(section) {
     const exp = data.expires
       ? new Date(data.expires).toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" })
       : "—";
+    let localPhoto = null;
+    try { localPhoto = localStorage.getItem("brisa.avatar"); } catch { localPhoto = null; }
+    const shown = localPhoto || data.user.avatar;
     section.innerHTML = `
       <div class="auth-card aero-panel">
         <div class="auth-title">Cuenta</div>
-        ${data.user.avatar ? `<img class="auth-avatar" src="${data.user.avatar}" alt="">` : ""}
+        ${shown ? `<img class="auth-avatar" src="${shown}" alt="">` : ""}
         <div class="auth-name">${escapeHtml(data.user.name || "")}</div>
         <div class="auth-email">${escapeHtml(data.user.email || "")}</div>
         <div class="auth-meta">Sesión activa hasta el ${escapeHtml(exp)}.</div>
-        <div class="auth-meta">Tus datos siguen en este equipo; Google solo verifica quién eres.</div>
-        <button class="modal-btn modal-btn-secondary" id="account-logout">Cerrar sesión</button>
+        <div class="auth-meta">Foto: ${localPhoto ? "personalizada por ti" : "la de tu Google"}.</div>
+        <div class="modal-actions">
+          <button class="modal-btn modal-btn-secondary" id="account-photo">Cambiar foto</button>
+          ${localPhoto ? `<button class="modal-btn modal-btn-secondary" id="account-photo-google">Usar foto de Google</button>` : ""}
+          <button class="modal-btn modal-btn-secondary" id="account-logout">Cerrar sesión</button>
+        </div>
       </div>`;
     section.querySelector("#account-logout")?.addEventListener("click", async () => {
       await fetch(`${API_BASE}/logout`, { method: "POST" });
       renderAccount(section);
       if (window.initAuth) window.initAuth();
       maybeGate();
+    });
+    section.querySelector("#account-photo")?.addEventListener("click", () => {
+      if (window.openAvatarModal) window.openAvatarModal();
+    });
+    section.querySelector("#account-photo-google")?.addEventListener("click", async () => {
+      try {
+        await fetch("/api/settings/avatar", { method: "DELETE" });
+      } catch { /* ignore */ }
+      try { localStorage.removeItem("brisa.avatar"); } catch { /* ignore */ }
+      if (window.refreshAvatar) window.refreshAvatar();
+      renderAccount(section);
     });
   } else {
     section.innerHTML = `

@@ -170,6 +170,7 @@ async function main() {
   initTaskNotes();
   initAuth();
   initAccount();
+  window.initAccount = initAccount;
   initShopping();
   initReadiness();
   initHabits();
