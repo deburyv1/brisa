@@ -329,6 +329,7 @@ function wireMarkers(section, dayTasks, events, isToday, key) {
           <button class="modal-btn modal-btn-primary" data-act="done">✓ Hecho</button>
           <button class="modal-btn modal-btn-secondary" data-act="plus1">+1 h</button>
           <button class="modal-btn modal-btn-secondary" data-act="tomorrow">Mañana</button>
+          <button class="modal-btn modal-btn-secondary" data-act="otherday" title="Elegir otro día (conserva la hora)">Otro día…</button>
         </div>`);
       pop.querySelector('[data-act="focus"]')?.addEventListener("click", () => {
         closePop();
@@ -348,6 +349,25 @@ function wireMarkers(section, dayTasks, events, isToday, key) {
         const at = new Date(t.scheduled_datetime);
         at.setDate(at.getDate() + 1);
         updateTask(t.id, { scheduled_datetime: at.toISOString() });
+      });
+      pop.querySelector('[data-act="otherday"]')?.addEventListener("click", () => {
+        if (pop.querySelector("#today-pop-date")) return;
+        const row = document.createElement("div");
+        row.className = "today-pop-actions";
+        const d0 = new Date(t.scheduled_datetime);
+        const pad = (n) => String(n).padStart(2, "0");
+        row.innerHTML = `
+          <input type="date" id="today-pop-date" class="capture-datetime" value="${d0.getFullYear()}-${pad(d0.getMonth() + 1)}-${pad(d0.getDate())}">
+          <button class="modal-btn modal-btn-primary" id="today-pop-go">Mover</button>`;
+        pop.appendChild(row);
+        row.querySelector("#today-pop-go")?.addEventListener("click", () => {
+          const v = row.querySelector("#today-pop-date")?.value;
+          if (!v) return;
+          const at = new Date(t.scheduled_datetime);
+          const [y, m, d] = v.split("-").map(Number);
+          at.setFullYear(y, (m || 1) - 1, d || 1);
+          updateTask(t.id, { scheduled_datetime: at.toISOString() });
+        });
       });
     });
   });
@@ -388,6 +408,7 @@ function wireMarkers(section, dayTasks, events, isToday, key) {
           <button class="modal-btn modal-btn-primary" data-act="done">✓ Hecho</button>
           <button class="modal-btn modal-btn-secondary" data-act="plus1">+1 h</button>
           <button class="modal-btn modal-btn-secondary" data-act="tomorrow">Mañana</button>
+          <button class="modal-btn modal-btn-secondary" data-act="otherday" title="Elegir otro día (conserva la hora)">Otro día…</button>
           <button class="modal-btn modal-btn-secondary" data-act="leave" title="Solo cierra este aviso">Dejar así</button>
           <button class="modal-btn modal-btn-secondary" data-act="cancel" title="Se puede reabrir desde el detalle">Cancelar</button>
         </div>`);
@@ -414,6 +435,25 @@ function wireMarkers(section, dayTasks, events, isToday, key) {
         shift(s => s.setTime(s.getTime() + 60 * 60000)));
       pop.querySelector('[data-act="tomorrow"]')?.addEventListener("click", () =>
         shift(s => s.setDate(s.getDate() + 1)));
+      pop.querySelector('[data-act="otherday"]')?.addEventListener("click", () => {
+        if (pop.querySelector("#today-pop-date")) return;
+        const row = document.createElement("div");
+        row.className = "today-pop-actions";
+        const pad = (n) => String(n).padStart(2, "0");
+        const s = new Date(ev.start);
+        row.innerHTML = `
+          <input type="date" id="today-pop-date" class="capture-datetime" value="${s.getFullYear()}-${pad(s.getMonth() + 1)}-${pad(s.getDate())}">
+          <button class="modal-btn modal-btn-primary" id="today-pop-go">Mover</button>`;
+        pop.appendChild(row);
+        row.querySelector("#today-pop-go")?.addEventListener("click", async () => {
+          const v = row.querySelector("#today-pop-date")?.value;
+          if (!v) return;
+          await shift(s => {
+            const [y, m, d] = v.split("-").map(Number);
+            s.setFullYear(y, (m || 1) - 1, d || 1);
+          });
+        });
+      });
       pop.querySelector('[data-act="leave"]')?.addEventListener("click", closePop);
       pop.querySelector('[data-act="done"]')?.addEventListener("click", async () => {
         closePop();
