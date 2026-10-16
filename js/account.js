@@ -1,11 +1,10 @@
 /* ============================================
    BRISA - Account Module
-   Profile view + optional login gate (dismissable,
-   zero friction: local-first stays usable).
+   Profile view + required login gate (no skip:
+   identity is mandatory).
    ============================================ */
 
 const API_BASE = "/api/auth";
-const GATE_KEY = "brisa.skipGate";
 
 export function initAccount() {
   const section = document.querySelector("#account-section");
@@ -39,9 +38,9 @@ async function renderAccount(section) {
       </div>`;
     section.querySelector("#account-logout")?.addEventListener("click", async () => {
       await fetch(`${API_BASE}/logout`, { method: "POST" });
-      try { localStorage.removeItem(GATE_KEY); } catch { /* ignore */ }
       renderAccount(section);
       if (window.initAuth) window.initAuth();
+      maybeGate();
     });
   } else {
     section.innerHTML = `
@@ -57,9 +56,6 @@ async function renderAccount(section) {
 }
 
 async function maybeGate() {
-  let skip = false;
-  try { skip = localStorage.getItem(GATE_KEY) === "1"; } catch { skip = true; }
-  if (skip) return;
   const data = await fetchStatus();
   if (data.authenticated) return;
   const overlay = document.querySelector("#auth-gate");
@@ -67,10 +63,6 @@ async function maybeGate() {
   overlay.classList.add("active");
   overlay.querySelector("#auth-gate-login")?.addEventListener("click", () => {
     window.location.href = `${API_BASE}/google/login`;
-  }, { once: true });
-  overlay.querySelector("#auth-gate-skip")?.addEventListener("click", () => {
-    try { localStorage.setItem(GATE_KEY, "1"); } catch { /* ignore */ }
-    overlay.classList.remove("active");
   }, { once: true });
 }
 

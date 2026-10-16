@@ -23,26 +23,14 @@ export function initAuth() {
     .catch(() => paintLoggedOut(btn));
 
   btn.addEventListener("click", async () => {
-    btn.disabled = true;
-    try {
-      const res = await fetch(`${API_BASE}/status`);
-      const data = await res.json();
-      if (data.authenticated) {
-        await fetch(`${API_BASE}/logout`, { method: "POST" });
-        paintLoggedOut(btn);
-      } else {
-        // Redirect to Google (server handles callback + session)
-        window.location.href = `${API_BASE}/google/login`;
-      }
-    } catch {
-      btn.disabled = false;
-    }
+    // Single clear path: everything auth-related lives in Cuenta.
+    document.querySelector('.nav[data-nav="account"]')?.click();
   });
 }
 
 function paintLoggedOut(btn) {
-  btn.textContent = "Entrar con Google";
-  btn.title = "Inicia sesión con tu cuenta Google";
+  btn.textContent = "Entrar";
+  btn.title = "Ir a Cuenta para entrar con Google";
   btn.disabled = false;
 }
 
@@ -61,6 +49,6 @@ function paintLoggedIn(btn, user) {
   } else {
     btn.textContent = user.name || "Sesión activa";
   }
-  btn.title = "Cerrar sesión";
+  btn.title = "Ir a tu Cuenta";
   btn.disabled = false;
 }
