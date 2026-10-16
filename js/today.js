@@ -308,10 +308,16 @@ function wireMarkers(section, dayTasks, events, isToday, key) {
           <div class="today-pop-title">${escapeHtml(t.title)}</div>
           <div class="today-pop-time">Hecha ✓ ${t.completed_at ? formatTime(new Date(t.completed_at)) : ""}</div>
           <div class="today-pop-actions">
+            <button class="modal-btn modal-btn-secondary" data-act="yesterday" title="Contarla ayer en vez de hoy">Fue ayer</button>
             <button class="modal-btn modal-btn-secondary" data-act="reopen">Deshacer</button>
           </div>`);
         pop.querySelector('[data-act="reopen"]')?.addEventListener("click", () =>
           updateTask(t.id, { is_completed: false, completed_at: null }));
+        pop.querySelector('[data-act="yesterday"]')?.addEventListener("click", () => {
+          const at = t.completed_at ? new Date(t.completed_at) : new Date();
+          at.setDate(at.getDate() - 1);
+          updateTask(t.id, { completed_at: at.toISOString() });
+        });
         return;
       }
       showPop(el, `
@@ -683,11 +689,12 @@ async function openDoneDetail() {
   const dayTotal = doneCount + programmed.length;
   const pct = dayTotal === 0 ? 0 : Math.round((doneCount / dayTotal) * 100);
 
-  const itemRow = (t, right, done = false, sub = null) => `
+  const itemRow = (t, right, done = false, sub = null, backdate = false) => `
     <div class="done-item${done ? " is-done" : ""}" title="${escapeHtml(t.title)}${sub ? ` · paso de ${escapeHtml(sub.origin)}` : ""}${right ? ` · ${escapeHtml(right)}` : ""}">
       <span class="done-check">${done ? "✓" : "○"}</span>
       <span class="done-title${sub ? " is-step" : ""}">${escapeHtml(t.title)}${sub ? ` <em class="done-stepof${sub.originDone ? " origin-done" : ""}">· ${escapeHtml(sub.origin)}</em>` : ""}</span>
       ${right ? `<small>${escapeHtml(right)}</small>` : ""}
+      ${backdate ? `<button class="done-backdate" data-backdate="${t.id}" title="Fue ayer: contarla ayer">←ayer</button>` : ""}
     </div>`;
   const timeOf = (iso) => new Date(iso).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
 
@@ -727,11 +734,32 @@ async function openDoneDetail() {
     ${doneCount > 0 ? `
     <div class="done-day">
       <div class="done-day-head"><span>Cerradas hoy</span><span>✓</span></div>
-      ${doneToday.map(t => itemRow(t, timeOf(t.completed_at), true, stepOf(t))).join("")}
+      ${doneToday.map(t => itemRow(t, timeOf(t.completed_at), true, stepOf(t), true)).join("")}
       ${evDone.map(e => itemRow(e, timeOf(e.completed_at), true)).join("")}
     </div>` : ""}
     ${past.join("")}
   `;
+  list.querySelectorAll("[data-backdate]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      try {
+        const cur = await fetch(`/api/tasks/${btn.dataset.backdate}`).then(r => r.json());
+        const at = cur.completed_at ? new Date(cur.completed_at) : new Date();
+        at.setDate(at.getDate() - 1);
+        await fetch(`/api/tasks/${btn.dataset.backdate}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ completed_at: at.toISOString() }),
+        });
+        if (window.initTasks) await window.initTasks();
+        if (window.initToday) window.initToday();
+        openDoneDetail();
+      } catch (e) {
+        console.error("Error corrigiendo fecha:", e);
+        btn.disabled = false;
+      }
+    });
+  });
   overlay.classList.add("active");
 }
 

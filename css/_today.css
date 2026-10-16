@@ -172,6 +172,28 @@
   font-weight: 700;
 }
 
+.done-backdate {
+  border: 0;
+  background: transparent;
+  padding: 0 0 0 4px;
+  font-size: 10px;
+  font-family: inherit;
+  color: rgba(22, 75, 105, 0.6);
+  text-shadow: var(--text-glow);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.done-backdate:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+.done-backdate:disabled {
+  opacity: 0.5;
+}
+
 .done-title {
   flex: 1;
   min-width: 0;
