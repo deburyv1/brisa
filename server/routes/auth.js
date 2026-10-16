@@ -24,8 +24,8 @@ async function getUserByGoogleEmail(email) {
 
 async function upsertUser({ googleEmail, name, avatar }) {
   const r = await pool.query(
-    `INSERT INTO users (google_email, name, avatar) VALUES ($1, $2, $3)
-     ON CONFLICT (google_email) DO UPDATE SET name = $2, avatar = $3
+    `INSERT INTO users (google_email, name, google_avatar) VALUES ($1, $2, $3)
+     ON CONFLICT (google_email) DO UPDATE SET name = $2, google_avatar = $3
      RETURNING *`,
     [googleEmail, name || null, avatar || null]
   );
@@ -137,7 +137,7 @@ router.get('/status', async (req, res) => {
   const user = await getSessionUser(req);
   res.json({
     authenticated: !!user,
-    user: user ? { id: user.id, name: user.name || user.google_email, avatar: user.avatar, email: user.google_email } : null,
+    user: user ? { id: user.id, name: user.name || user.google_email, avatar: user.google_avatar, email: user.google_email } : null,
   });
 });
 
