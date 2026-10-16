@@ -40,6 +40,7 @@
       <button class="nav" data-nav="ideas"> Ideas</button>
       <button class="nav" data-nav="studio"> Estudio</button>
       <button class="nav" data-nav="workmode"> Enfoque</button>
+      <button class="nav" data-nav="account"> Cuenta</button>
     </nav>
 
     <!-- Player Panel -->
@@ -153,12 +154,29 @@
     <!-- Workmode Section (deep work: task + timer + scratch note) -->
     <section class="workmode" id="workmode-section" style="display:none;"></section>
 
+    <!-- Account Section -->
+    <section class="account" id="account-section" style="display:none;"></section>
+
     <!-- Module mount point - future sections mount here -->
     <div id="module-container"></div>
   </main>
 </div>
+
+<!-- Auth gate (first run, dismissable) -->
+<div class="modal-overlay" id="auth-gate">
+  <div class="modal auth-gate-card">
+    <div class="modal-header">
+      <div class="modal-title">Tu espacio personal</div>
+    </div>
+    <p class="auth-gate-text">Entra con Google para vincular tu identidad, o sigue sin cuenta: todo funciona en este equipo.</p>
+    <div class="modal-actions">
+      <button type="button" class="modal-btn modal-btn-primary" id="auth-gate-login">Entrar con Google</button>
+      <button type="button" class="modal-btn modal-btn-secondary" id="auth-gate-skip">Seguir sin cuenta</button>
+    </div>
+  </div>
+</div>
 <script src="vendor/quill.min.js"></script>
-<script type="module" src="js/app.js?v=20261014bc"></script>
+<script type="module" src="js/app.js?v=20261014bd"></script>
 
 <!-- Floating timer: round, solid, draggable -->
 <div class="timer-pill" id="timer-pill" title="Temporizador (arrástrame)">

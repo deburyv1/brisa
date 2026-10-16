@@ -46,18 +46,18 @@ function clearSessionCookie(res) {
 async function getSessionUser(req) {
   const cookie = req.headers.cookie || '';
   const match = cookie.match(/(?:^|;\s*)brisa_session=([^;]+)/);
-  if (!match) return null;
+  if (!match) return { user: null, expires: null };
   const token = decodeURIComponent(match[1]);
   try {
     const sessions = JSON.parse(await pool.query(
       `SELECT value FROM settings WHERE key = '${SESSIONS_KEY}'`
     ).then(r => r.rows[0]?.value?.toString() || '[]'));
     const s = sessions.find(s => s.token === token);
-    if (!s || s.expires < Date.now()) return null;
+    if (!s || s.expires < Date.now()) return { user: null, expires: null };
     const u = await pool.query('SELECT * FROM users WHERE id = $1', [s.user_id]);
-    return u.rows[0] || null;
+    return { user: u.rows[0] || null, expires: s.expires };
   } catch {
-    return null;
+    return { user: null, expires: null };
   }
 }
 
@@ -134,10 +134,11 @@ router.get('/google/callback', async (req, res) => {
 
 // GET /api/auth/status → current session user or null
 router.get('/status', async (req, res) => {
-  const user = await getSessionUser(req);
+  const { user, expires } = await getSessionUser(req);
   res.json({
     authenticated: !!user,
     user: user ? { id: user.id, name: user.name || user.google_email, avatar: user.google_avatar, email: user.google_email } : null,
+    expires: expires || null,
   });
 });
 

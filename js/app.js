@@ -38,6 +38,7 @@ import { initWallpaper } from "./wallpaper.js";
 import { initGlass } from "./glass.js";
 import { initWorkmode, startWorkmode, initTaskNotes } from "./workmode.js";
 import { initAuth } from "./auth.js";
+import { initAccount } from "./account.js";
 import { initQuickCapture } from "./quickCapture.js";
 import { initStudio } from "./studio.js";
 
@@ -74,6 +75,7 @@ const NAV_LABELS = {
   ideas: "Ideas",
   studio: "Estudio",
   workmode: "Enfoque",
+  account: "Cuenta",
 };
 
 const NAV_SECTIONS = {
@@ -89,6 +91,7 @@ const NAV_SECTIONS = {
   ideas: ["#ideas-section"],
   studio: ["#studio-section"],
   workmode: ["#workmode-section"],
+  account: ["#account-section"],
 };
 
 const ALL_SECTIONS = [
@@ -108,6 +111,7 @@ const ALL_SECTIONS = [
   "#ideas-section",
   "#studio-section",
   "#workmode-section",
+  "#account-section",
   "#week-section",
 ];
 
@@ -165,6 +169,7 @@ async function main() {
   initEventDetail();
   initTaskNotes();
   initAuth();
+  initAccount();
   initShopping();
   initReadiness();
   initHabits();
