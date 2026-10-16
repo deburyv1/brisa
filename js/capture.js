@@ -251,7 +251,7 @@ function renderSuggestion(section, entry) {
       console.error("Error descartando:", e);
     }
     renderIdle(section);
-    if (window.initInbox) window.initInbox();
+    if (window.initInbox) await window.initInbox();
     if (window.renderGuidanceBanner) window.renderGuidanceBanner();
   });
 
@@ -275,6 +275,12 @@ function renderSuggestion(section, entry) {
     renderIdle(section);
     if (window.initInbox) window.initInbox();
     if (window.renderGuidanceBanner) window.renderGuidanceBanner();
+  });
+
+  section.querySelector("#capture-ready-later")?.addEventListener("click", () => {
+    // Entry is already safe in inbox: just go back to idle
+    renderIdle(section);
+    if (window.initInbox) window.initInbox();
   });
 }
 

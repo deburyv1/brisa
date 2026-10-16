@@ -92,7 +92,7 @@ export async function initInbox() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "archived" }),
       });
-      if (window.initInbox) window.initInbox();
+      if (window.initInbox) await window.initInbox();
       if (window.renderGuidanceBanner) window.renderGuidanceBanner();
     });
   });
