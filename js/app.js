@@ -37,6 +37,7 @@ import { initWeek } from "./week.js";
 import { initWallpaper } from "./wallpaper.js";
 import { initGlass } from "./glass.js";
 import { initWorkmode, startWorkmode, initTaskNotes } from "./workmode.js";
+import { initAuth } from "./auth.js";
 import { initQuickCapture } from "./quickCapture.js";
 import { initStudio } from "./studio.js";
 
@@ -163,6 +164,7 @@ async function main() {
   initEventModal();
   initEventDetail();
   initTaskNotes();
+  initAuth();
   initShopping();
   initReadiness();
   initHabits();

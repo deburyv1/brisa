@@ -74,6 +74,27 @@
   flex-shrink: 0;
 }
 
+.auth-btn {
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.25));
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 11px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-shadow: var(--text-glow);
+}
+
+.auth-btn:hover {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.4));
+}
+
 .nav {
   position: relative;
   width: 100%;

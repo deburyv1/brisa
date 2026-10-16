@@ -330,6 +330,17 @@ try {
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`);
 
+  await pool.query(`CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255),
+    email VARCHAR(255) UNIQUE
+  )`);
+
+  // Auth: Google identity on the local user row (single-user for now;
+  // multi-user stays v2 — same nullable pattern as ideas/reminders).
+  await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS google_email VARCHAR(255) UNIQUE');
+  await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS google_avatar TEXT');
+
   await pool.query(`CREATE TABLE IF NOT EXISTS spotify_tokens (
     user_id INTEGER PRIMARY KEY,
     access_token VARCHAR(500) NOT NULL,
