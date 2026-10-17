@@ -16,6 +16,15 @@ function isDayOnly(d) {
   return (h === 0 && m === 0) || (h === 23 && m === 59);
 }
 
+function isToday(dt) {
+  if (!dt) return false;
+  const d = new Date(dt);
+  const now = new Date();
+  return d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate();
+}
+
 function formatWhen(dt) {
   if (!dt) return "";
   const d = new Date(dt);
