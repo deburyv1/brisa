@@ -145,9 +145,13 @@ export async function renderNext() {
       <div class="next-also">
         ${alternatives.map(t => {
           const ev = t.event_id ? eventById(t.event_id) : null;
+          const par = t.parent_task_id ? (state.tasks || []).find(x => String(x.id) === String(t.parent_task_id)) : null;
+          const ctx = ev ? `🎪 ${ev.title}` : (par ? `↳ ${par.title}` : "");
           return `
           <button class="next-alt" data-start="${t.id}" title="Empezar esta en vez de la sugerida">
-            ${escapeHtml(t.title)}${t.estimated_minutes ? ` · ${t.estimated_minutes} min` : ""}${t.scheduled_datetime ? ` · ${formatWhen(t.scheduled_datetime)}` : ""}${ev ? ` · 🎪 ${escapeHtml(ev.title)}` : ""}
+            ${ctx ? `<span class="next-alt-ctx">${escapeHtml(ctx)}</span>` : ""}
+            <span class="next-alt-title">${escapeHtml(t.title)}</span>
+            <span class="next-alt-meta">${t.estimated_minutes ? `${t.estimated_minutes} min` : "sin estimar"}${t.scheduled_datetime ? ` · ${formatWhen(t.scheduled_datetime)}` : ""}</span>
           </button>
         `}).join("")}
       </div>
