@@ -25,6 +25,7 @@ services:
       - ./index.html:/app/server/public/index.html
       - ./css:/app/server/public/css
       - ./js:/app/server/public/js
+      - ./vendor:/app/server/public/vendor
       - ./icons:/app/server/public/icons
       - ./aero-backgrounds:/app/server/public/aero-backgrounds
       - ./brisa-icons:/app/server/public/brisa-icons

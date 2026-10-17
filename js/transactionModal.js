@@ -87,6 +87,7 @@ export function initTransactionModal() {
     currentAccountId = accountId;
     editingId = txId;
     form.reset();
+    window.resetPickers(form);
 
     if (txId) {
       titleEl.textContent = "Editar movimiento";
@@ -106,13 +107,13 @@ export function initTransactionModal() {
           togglePersonRow(form);
           await fillLinkOptions(form, currentAccountId, tx.linked_id || "", txId);
           await fillPersonOptions(form, tx.person_id || "");
-          form.date.value = tx.date ? String(tx.date).slice(0, 10) : "";
+          window.setPickerValue(form.date, tx.date ? String(tx.date).slice(0, 10) : "");
           cleanSnapshot = snapshotForm(form);
         })
         .catch(e => console.error("Error cargando movimiento:", e));
     } else {
       titleEl.textContent = "Nuevo movimiento";
-      form.date.value = new Date().toISOString().slice(0, 10);
+      window.setPickerValue(form.date, new Date().toISOString().slice(0, 10));
       fillCategories(form, form.type.value, preset?.category || "");
       const descInput = form.description;
       descInput.readOnly = false;
@@ -163,6 +164,7 @@ export function initTransactionModal() {
   function close() {
     overlay.classList.remove("active");
     form.reset();
+    window.resetPickers(form);
     editingId = null;
   }
 

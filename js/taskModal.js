@@ -85,6 +85,7 @@ export function initTaskModal() {
   function open(taskId = null) {
     editingId = taskId;
     form.reset();
+    window.resetPickers(form);
     const result = document.querySelector("#ai-split-result");
     if (result) { result.style.display = "none"; result.innerHTML = ""; }
 
@@ -96,10 +97,10 @@ export function initTaskModal() {
           form.title.value = task.title || "";
           form.description.value = task.description || "";
           form.first_step.value = task.first_step || "";
-          form.scheduled_date.value = toLocalDate(task.scheduled_datetime);
-          form.scheduled_time.value = toLocalTime(task.scheduled_datetime);
-          form.due_date.value = toLocalDate(task.due_datetime);
-          form.due_time.value = toLocalTime(task.due_datetime);
+          window.setPickerValue(form.scheduled_date, toLocalDate(task.scheduled_datetime));
+          window.setPickerValue(form.scheduled_time, toLocalTime(task.scheduled_datetime));
+          window.setPickerValue(form.due_date, toLocalDate(task.due_datetime));
+          window.setPickerValue(form.due_time, toLocalTime(task.due_datetime));
           form.priority.value = task.priority || "medium";
           form.estimated_minutes.value = task.estimated_minutes ?? "";
           const linked = await linkedReadinessItem(taskId);
@@ -123,6 +124,7 @@ export function initTaskModal() {
   function close() {
     overlay.classList.remove("active");
     form.reset();
+    window.resetPickers(form);
     editingId = null;
   }
 

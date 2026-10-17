@@ -20,6 +20,7 @@ export function initAccountModal() {
   function open(accountId = null) {
     editingId = accountId;
     form.reset();
+    window.resetPickers(form);
 
     if (accountId) {
       titleEl.textContent = "Editar cuenta";
@@ -29,7 +30,7 @@ export function initAccountModal() {
           form.name.value = a.name || "";
           form.account_number.value = a.account_number || "";
           form.initial_balance.value = a.initial_balance ?? "";
-          form.initial_date.value = a.initial_date ? String(a.initial_date).slice(0, 10) : "";
+          window.setPickerValue(form.initial_date, a.initial_date ? String(a.initial_date).slice(0, 10) : "");
           cleanSnapshot = snapshotForm(form);
         })
         .catch(e => console.error("Error cargando cuenta:", e));
@@ -45,6 +46,7 @@ export function initAccountModal() {
   function close() {
     overlay.classList.remove("active");
     form.reset();
+    window.resetPickers(form);
     editingId = null;
   }
 

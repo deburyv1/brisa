@@ -12,7 +12,8 @@
   <meta name="apple-mobile-web-app-title" content="brisa">
   <link rel="apple-touch-icon" href="brisa-icon.svg">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
-  <link rel="stylesheet" href="css/app.css?v=20261017i">
+  <link rel="stylesheet" href="vendor/flatpickr/flatpickr.min.css">
+  <link rel="stylesheet" href="css/app.css?v=20261017j">
   <link rel="stylesheet" href="vendor/quill.snow.css">
 </head>
 <body>
@@ -124,11 +125,11 @@
       </div>
     </section>
 
-    <!-- Today Section -->
-    <section class="today" id="today-section"></section>
-
     <!-- Capture Section -->
     <section class="capture aero-panel" id="capture-section"></section>
+
+    <!-- Today Section -->
+    <section class="today" id="today-section"></section>
 
     <!-- Next Action Section -->
     <section class="next" id="next-section"></section>
@@ -197,7 +198,9 @@
 </div>
 <button class="mobile-fab" id="mobile-fab" title="Capturar" aria-label="Capturar">＋</button>
 <script src="vendor/quill.min.js"></script>
-<script type="module" src="js/app.js?v=20261017i"></script>
+<script src="vendor/flatpickr/flatpickr.min.js"></script>
+<script src="vendor/flatpickr/es.js"></script>
+<script type="module" src="js/app.js?v=20261017j"></script>
 
 <!-- Floating timer: round, solid, draggable -->
 <div class="timer-pill" id="timer-pill" title="Temporizador (arrástrame)">

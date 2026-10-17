@@ -31,6 +31,7 @@ export function initEventModal() {
   function open(eventId = null) {
     editingId = eventId;
     form.reset();
+    window.resetPickers(form);
     if (eventId) {
       titleEl.textContent = "Editar evento";
       fetch(`${API_BASE}/events/${eventId}`)
@@ -41,11 +42,11 @@ export function initEventModal() {
           form.description.value = ev.description || "";
           form.travel_minutes.value = ev.travel_minutes ?? "";
           const s = splitLocal(ev.start);
-          form.start_date.value = s.date;
-          form.start_time.value = s.time;
+          window.setPickerValue(form.start_date, s.date);
+          window.setPickerValue(form.start_time, s.time);
           const e = splitLocal(ev.end);
-          form.end_date.value = e.date;
-          form.end_time.value = e.time;
+          window.setPickerValue(form.end_date, e.date);
+          window.setPickerValue(form.end_time, e.time);
           cleanSnapshot = snapshotForm(form);
         })
         .catch(e => console.error("Error cargando evento:", e));
@@ -61,6 +62,7 @@ export function initEventModal() {
   function close() {
     overlay.classList.remove("active");
     form.reset();
+    window.resetPickers(form);
     editingId = null;
   }
 

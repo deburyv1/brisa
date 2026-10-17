@@ -355,7 +355,7 @@ export function initEventDetail() {
     if (moveInput) {
       const s = new Date(ev.start);
       const pad = (n) => String(n).padStart(2, "0");
-      moveInput.value = `${s.getFullYear()}-${pad(s.getMonth() + 1)}-${pad(s.getDate())}`;
+      window.setPickerValue(moveInput, `${s.getFullYear()}-${pad(s.getMonth() + 1)}-${pad(s.getDate())}`);
     }
     const prepInput = overlay.querySelector("#event-prep-input");
     if (prepInput) prepInput.value = "";

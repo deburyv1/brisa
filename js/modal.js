@@ -20,6 +20,7 @@ export function initModal() {
   function open(personId = null) {
     editingId = personId;
     form.reset();
+    window.resetPickers(form);
 
     if (personId) {
       if (titleEl) titleEl.textContent = "Editar persona";
@@ -31,7 +32,7 @@ export function initModal() {
           form.phone.value = p.phone || "";
           form.rut.value = p.rut || "";
           form.relation.value = p.relation || "";
-          form.birthday.value = p.birthday ? String(p.birthday).slice(0, 10) : "";
+          window.setPickerValue(form.birthday, p.birthday ? String(p.birthday).slice(0, 10) : "");
           cleanSnapshot = snapshotForm(form);
         })
         .catch(e => console.error("Error cargando persona:", e));
@@ -48,6 +49,7 @@ export function initModal() {
   function close() {
     overlay.classList.remove("active");
     form.reset();
+    window.resetPickers(form);
     editingId = null;
   }
 

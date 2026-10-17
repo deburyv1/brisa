@@ -240,7 +240,7 @@ function renderSuggestion(section, entry) {
       if (b.dataset.when === "today" && dateInput && !dateInput.value) {
         const now = new Date();
         const pad = (n) => String(n).padStart(2, "0");
-        dateInput.value = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+        window.setPickerValue(dateInput, `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`);
       }
     }));
 

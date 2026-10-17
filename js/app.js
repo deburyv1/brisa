@@ -36,6 +36,7 @@ import { initTimer } from "./timer.js";
 import { initWeek } from "./week.js";
 import { initWallpaper } from "./wallpaper.js";
 import { initGlass } from "./glass.js";
+import { initPickerBridge } from "./pickers.js";
 import { initWorkmode, startWorkmode, initTaskNotes } from "./workmode.js";
 import { initAuth } from "./auth.js";
 import { initAccount } from "./account.js";
@@ -80,7 +81,7 @@ const NAV_LABELS = {
 };
 
 const NAV_SECTIONS = {
-  home: ["#welcome-section", "#today-section", "#capture-section", "#next-section", "#birthdays-section", "#week-section"],
+  home: ["#welcome-section", "#capture-section", "#today-section", "#next-section", "#birthdays-section", "#week-section"],
   inbox: ["#inbox-section"],
   tasks: ["#tasks-section"],
   journal: ["#journal-section"],
@@ -188,6 +189,7 @@ async function main() {
   initGreeting();
   initWallpaper();
   initGlass();
+  initPickerBridge();
   initModal();
   initTaskModal();
   initTaskDetail();
