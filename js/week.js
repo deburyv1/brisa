@@ -222,6 +222,14 @@ function setDayMode(mode) {
 // Marking happens in Hábitos / Acciones.
 function dayCard(item, readonly = false, dayKey = "") {
   const { kind, data, at } = item;
+  if (kind === "travel") {
+    return `
+      <div class="day-card travel-marker" data-kind="travel" data-id="${data.id}" title="Tiempo de viaje para ${escapeHtml(data.title)}">
+        <span class="week-dot travel"></span>
+        <span class="week-item-title">🚌 salir ${fmtTime(at)}</span>
+        <span class="week-item-time">→ ${escapeHtml(data.title)} ${fmtTime(data.start)}</span>
+      </div>`;
+  }
   const time = at ? fmtTime(at) : "sin hora";
   const mark = kind === "habit"
     ? `<span class="planner-icon">${data.icon ? escapeHtml(data.icon) : "·"}</span>`
@@ -237,12 +245,14 @@ function dayCard(item, readonly = false, dayKey = "") {
   const hint = readonly
     ? (kind === "habit" ? "Día pasado: círculo para corregir" : "Día pasado: solo lectura")
     : kind === "habit" ? "Arrastra para mover · se marca en Hábitos" : "Arrastra para mover · clic para abrir";
+  const travel = kind === "event" ? (Number(data.travel_minutes) || 0) : 0;
+  const leaveTime = travel ? fmtTime(new Date(new Date(data.start).getTime() - travel * 60000)) : "";
   return `
     <div class="day-card${done}" ${readonly ? "" : 'draggable="true"'} data-kind="${kind}" data-id="${data.id}" data-at="${at ? escapeHtml(at) : ""}" role="button" tabindex="0" title="${hint}">
       ${correctBtn}
       ${mark}
       <span class="week-item-title">${escapeHtml(kind === "habit" ? data.name : data.title)}</span>
-      <span class="week-item-time${at ? "" : " unscheduled"}">${time}</span>
+      <span class="week-item-time${at ? "" : " unscheduled"}">${time}${travel ? ` · 🚌 salir ${leaveTime}` : ""}</span>
       ${checkBtn}
     </div>`;
 }
@@ -277,7 +287,18 @@ function renderHourGrid(board, dayKey, timedTasks, dayEvents, timedHabits, untim
     if (byHour[hr]) byHour[hr].push(item);
   };
   timedTasks.forEach(t => place({ kind: "task", data: t, at: t.scheduled_datetime }));
-  dayEvents.forEach(ev => place({ kind: "event", data: ev, at: ev.start }));
+  dayEvents.forEach(ev => {
+    place({ kind: "event", data: ev, at: ev.start });
+    const travel = Number(ev.travel_minutes) || 0;
+    if (travel > 0) {
+      const leaveAt = new Date(new Date(ev.start).getTime() - travel * 60000);
+      const leaveHour = leaveAt.getHours();
+      const evHour = new Date(ev.start).getHours();
+      if (leaveHour >= GRID_START && leaveHour <= GRID_END && leaveHour !== evHour) {
+        byHour[leaveHour].push({ kind: "travel", data: ev, at: leaveAt.toISOString() });
+      }
+    }
+  });
   timedHabits.forEach(h => place({ kind: "habit", data: h, at: `${dayKey}T${String(h.default_time).slice(0, 5)}:00` }));
 
   const pool = [

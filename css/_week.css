@@ -142,7 +142,16 @@ button.week-item:hover .week-item-title {
 .week-dot.high { background: #ff4d4d; }
 .week-dot.medium { background: #00a8e8; }
 .week-dot.low { background: #4fc98a; }
-.week-dot.event { background: #f4c32e; border-radius: 2px; transform: rotate(45deg); }
+.week-dot.travel { background: #ff9e4f; border-radius: 2px; }
+
+.day-card.travel-marker {
+  background: rgba(255, 158, 79, 0.12);
+  border: 1px dashed rgba(255, 158, 79, 0.55);
+  cursor: default;
+}
+
+.day-card.travel-marker .week-item-title { color: rgba(22, 75, 105, 0.88); font-weight: 600; }
+.day-card.travel-marker .week-item-time { color: rgba(22, 75, 105, 0.62); font-size: 10px; }
 
 .week-item-title {
   flex: 1;
