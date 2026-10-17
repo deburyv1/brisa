@@ -13,7 +13,7 @@
   <link rel="apple-touch-icon" href="brisa-icon.svg">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
   <link rel="stylesheet" href="vendor/flatpickr/flatpickr.min.css">
-  <link rel="stylesheet" href="css/app.css?v=20261017r">
+  <link rel="stylesheet" href="css/app.css?v=20261017s">
   <link rel="stylesheet" href="vendor/quill.snow.css">
 </head>
 <body>
@@ -211,7 +211,7 @@
 <script src="vendor/quill.min.js"></script>
 <script src="vendor/flatpickr/flatpickr.min.js"></script>
 <script src="vendor/flatpickr/es.js"></script>
-<script type="module" src="js/app.js?v=20261017r"></script>
+<script type="module" src="js/app.js?v=20261017s"></script>
 
 <!-- Floating timer: round, solid, draggable -->
 <div class="timer-pill" id="timer-pill" title="Temporizador (arrástrame)">
@@ -434,6 +434,24 @@
           <button type="button" class="modal-btn modal-btn-secondary" id="editor-cancel">Volver</button>
           <button type="button" class="modal-btn modal-btn-primary" id="editor-save">Guardar y seguir</button>
         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Foto de la compra (elegir, buscar otras o quitar) -->
+<div class="modal-overlay" id="shopping-photo-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Foto del producto</div>
+      <button class="modal-close" title="Cerrar" id="shopping-photo-close">✕</button>
+    </div>
+    <div class="modal-form">
+      <div class="shopping-photo-big"><img id="shopping-photo-now" src="" alt="Foto del producto"></div>
+      <div class="shopping-photo-row" id="shopping-photo-pool"></div>
+      <div class="modal-actions">
+        <button type="button" class="modal-btn modal-btn-secondary" id="shopping-photo-search">No es: buscar otras</button>
+        <button type="button" class="modal-btn modal-btn-secondary" id="shopping-photo-clear">Quitar foto</button>
       </div>
     </div>
   </div>

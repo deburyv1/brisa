@@ -1,5 +1,6 @@
 node_modules/
 server/node_modules/
+shopping-photos/
 .env
 *.log
 .DS_Store

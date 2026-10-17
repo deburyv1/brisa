@@ -260,8 +260,10 @@ try {
     category VARCHAR(50),
     is_purchased BOOLEAN DEFAULT FALSE,
     purchased_at TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    card JSONB
   )`);
+  await pool.query(`ALTER TABLE shopping_items ADD COLUMN IF NOT EXISTS card JSONB`);
   await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS status VARCHAR(10) DEFAULT 'posted'`);
   await pool.query(`ALTER TABLE people ADD COLUMN IF NOT EXISTS phone VARCHAR(20)`);
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS source VARCHAR(20) DEFAULT 'local'`);

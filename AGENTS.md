@@ -57,7 +57,7 @@ brisa/
 
 ## API
 
-`GET/POST /api/{tasks,journal,people,accounts,entries,events,ideas,reminders}` · `GET/PUT/DELETE` + `/:id` · `PATCH /api/entries/:id`, `/api/reminders/:id`, `/api/transactions/:id/category` · `POST /api/transactions/import?account_id=&force=` (XLSX Banco de Chile, filtra fecha ≤ saldo inicial, dedupe, hash 409) · `GET /api/transactions?account_id=&uncategorized=` · `GET/DELETE /api/imports` · `GET /api/weather?lat=&lon=` (proxy, key server-side) · `GET/PUT/DELETE /api/settings/avatar` · `GET /api/trash`, `GET /api/trash/last`, `POST /api/trash/restore`, `DELETE /api/trash[/:id]`.
+`GET/POST /api/{tasks,journal,people,accounts,entries,events,ideas,reminders}` · `GET/PUT/DELETE` + `/:id` · `PATCH /api/entries/:id` (status/target o `raw_text` para editar la captura), `/api/reminders/:id`, `/api/transactions/:id/category` · `POST /api/transactions/import?account_id=&force=` (XLSX Banco de Chile, filtra fecha ≤ saldo inicial, dedupe, hash 409) · `GET /api/transactions?account_id=&uncategorized=` · `GET/DELETE /api/imports` · `GET /api/weather?lat=&lon=` (proxy, key server-side) · `GET/PUT/DELETE /api/settings/avatar` · `GET /api/trash`, `GET /api/trash/last`, `POST /api/trash/restore`, `DELETE /api/trash[/:id]` · `GET /api/shopping/:id/photos` (busca foto: DuckDuckGo/Wikimedia/OpenFoodFacts → local y chica en `shopping-photos/`, sharp) · `GET /api/shopping/:id/places` (tiendas de Santiago: Overpass/OSM con respaldo de cadenas).
 
 ## Flujos clave
 
@@ -65,6 +65,7 @@ brisa/
 - **Next** (`nextAction.js:pickNextAction`): no completadas → programada hoy → prioridad → duración corta; de noche hunde >30 min. "Empezar" → `openFocus()`.
 - **Focus** (`focusMode.js`): fricción (🟢🔎🧩😕▶️) → paso/verificación acotada (tarea `Verificar: …` linkeada en sesión) → "¿suficiente?" → padre o nuevo paso. Timer + "Lo dejo acá" sin culpa.
 - **Finanzas**: saldo = inicial + ingresos − gastos; desglose mensual neto (reembolsos vinculados restan); categorizarInline vía PATCH; categorías separadas ingreso/egreso.
+- **Compras** (`shopping.js`): cada ítem es una tarjeta con foto local y "En Santiago: …" (lugares). El texto se edita al tocarlo; la foto se elige, se cambia o se quita desde su modal ("No es: buscar otras").
 - **Guía** (`guidance.js`): pills clickeables (inbox, sin categorizar, vencidas) con ✕ descartable por sesión.
 
 ## Desarrollo local

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import pool from '../db.js';
+import { searchPhotos, searchPlaces } from '../shopping-card.js';
 
 const router = Router();
 
@@ -10,6 +11,32 @@ router.get('/', async (req, res) => {
     res.json(result.rows);
   } catch (err) {
     console.error('Error fetching shopping items:', err);
+    res.status(500).json({ error: 'Database error' });
+  }
+});
+
+// GET /api/shopping/:id/photos — busca fotos (DuckDuckGo, Wikimedia,
+// OpenFoodFacts) y las deja locales y chicas en shopping-photos/.
+router.get('/:id/photos', async (req, res) => {
+  try {
+    const result = await pool.query(`SELECT id, description FROM shopping_items WHERE id = $1 AND user_id = ${req.userId}`, [req.params.id]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Item not found' });
+    const poolUrls = await searchPhotos(req.params.id, result.rows[0].description);
+    res.json({ pool: poolUrls });
+  } catch (err) {
+    console.error('Error buscando fotos:', err);
+    res.status(500).json({ error: 'Database error' });
+  }
+});
+
+// GET /api/shopping/:id/places — tiendas reales de Santiago (OpenStreetMap)
+router.get('/:id/places', async (req, res) => {
+  try {
+    const result = await pool.query(`SELECT id, description FROM shopping_items WHERE id = $1 AND user_id = ${req.userId}`, [req.params.id]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Item not found' });
+    res.json({ places: await searchPlaces(result.rows[0].description) });
+  } catch (err) {
+    console.error('Error buscando lugares:', err);
     res.status(500).json({ error: 'Database error' });
   }
 });
@@ -34,16 +61,17 @@ router.post('/', async (req, res) => {
 
 // PUT /api/shopping/:id
 router.put('/:id', async (req, res) => {
-  const { description, estimated_amount, quantity, category, is_purchased } = req.body;
+  const { description, estimated_amount, quantity, category, is_purchased, card } = req.body;
   try {
     const result = await pool.query(
       `UPDATE shopping_items SET description = COALESCE($1, description),
         estimated_amount = $2, quantity = COALESCE($3, quantity), category = $4,
         is_purchased = COALESCE($5, is_purchased),
-        purchased_at = CASE WHEN $5 = TRUE THEN CURRENT_TIMESTAMP WHEN $5 = FALSE THEN NULL ELSE purchased_at END
-       WHERE id = $6 AND user_id = ${req.userId} RETURNING *`,
+        purchased_at = CASE WHEN $5 = TRUE THEN CURRENT_TIMESTAMP WHEN $5 = FALSE THEN NULL ELSE purchased_at END,
+        card = COALESCE(card, '{}'::jsonb) || $6::jsonb
+       WHERE id = $7 AND user_id = ${req.userId} RETURNING *`,
       [description?.trim() || null, estimated_amount || null, quantity || null, category || null,
-       is_purchased == null ? null : !!is_purchased, req.params.id]
+       is_purchased == null ? null : !!is_purchased, card || {}, req.params.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Item not found' });
     res.json(result.rows[0]);

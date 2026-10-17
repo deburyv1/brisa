@@ -1,6 +1,8 @@
 /* ============================================
    BRISA - Shopping Module
-   Fast list + buy as real expense
+   Lista rápida + tarjeta con foto local y
+   lugares de compra en Santiago. Comprar se
+   convierte en gasto real.
    ============================================ */
 
 const API_BASE = "/api";
@@ -127,16 +129,179 @@ export async function initShopping() {
       await fetch(`${API_BASE}/shopping/${id}`, { method: "DELETE" });
       if (window.initShopping) window.initShopping();
     });
+
+    // Tocar el texto lo edita ahí mismo (Enter guarda, Esc vuelve)
+    row.querySelector('[data-action="edit"]')?.addEventListener("click", () => {
+      const nameEl = row.querySelector(".shopping-name");
+      if (!nameEl || nameEl.dataset.editing) return;
+      nameEl.dataset.editing = "1";
+      const current = nameEl.textContent;
+      const field = document.createElement("input");
+      field.type = "text";
+      field.className = "shopping-edit";
+      field.value = current;
+      field.maxLength = 255;
+      nameEl.replaceWith(field);
+      field.focus();
+      field.select();
+      const finish = async (save) => {
+        const value = field.value.trim();
+        if (!value) save = false;
+        field.replaceWith(nameEl);
+        delete nameEl.dataset.editing;
+        nameEl.textContent = value || current;
+        if (!save || value === current) return;
+        await fetch(`${API_BASE}/shopping/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ description: value }),
+        });
+        if (window.initShopping) window.initShopping();
+      };
+      field.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") { e.preventDefault(); finish(true); }
+        else if (e.key === "Escape") { e.preventDefault(); finish(false); }
+      });
+      field.addEventListener("blur", () => finish(true));
+    });
+
+    row.querySelector('[data-action="photo"]')?.addEventListener("click", () => {
+      const item = (items || []).find(x => String(x.id) === String(id));
+      if (item) window.openShoppingPhoto?.(item);
+    });
+
+    // "Dónde comprar en Santiago": busca tiendas del rubro
+    row.querySelector('[data-action="places"]')?.addEventListener("click", async (e) => {
+      const btn = e.currentTarget;
+      btn.textContent = "Buscando…";
+      const r = await fetch(`${API_BASE}/shopping/${id}/places`).then(x => x.json()).catch(() => null);
+      if (r?.places?.length) {
+        await putCard(id, { places: r.places });
+      } else {
+        btn.textContent = "Sin sugerencias";
+        setTimeout(() => { if (window.initShopping) window.initShopping(); }, 1200);
+        return;
+      }
+      if (window.initShopping) window.initShopping();
+    });
+  });
+
+  // Tarjeta: foto y lugares se piden de a poco, en segundo plano.
+  let changed = false;
+  const hydration = items.map(async (item) => {
+    const card = item.card || {};
+    if (card.photo && card.places) return;
+    try {
+      if (!card.photo) {
+        const r = await fetch(`${API_BASE}/shopping/${item.id}/photos`).then(x => x.json()).catch(() => null);
+        if (r?.pool?.length) {
+          await putCard(item.id, { photo: r.pool[0], pool: r.pool.slice(1) });
+          changed = true;
+        }
+      }
+      if (!item.card?.places) {
+        const r = await fetch(`${API_BASE}/shopping/${item.id}/places`).then(x => x.json()).catch(() => null);
+        if (r?.places?.length) {
+          await putCard(item.id, { places: r.places });
+          changed = true;
+        }
+      }
+    } catch {
+      // sin foto ni lugares: se queda la tarjeta simple
+    }
+  });
+  await Promise.all(hydration);
+  if (changed && window.initShopping) window.initShopping();
+}
+
+async function putCard(id, patch) {
+  await fetch(`${API_BASE}/shopping/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ card: patch }),
   });
 }
 
+// Modal de foto: elegir entre las encontradas, buscar otras o quitarla.
+export function openShoppingPhoto(item) {
+  const overlay = document.querySelector("#shopping-photo-modal");
+  if (!overlay || !item) return;
+
+  const photo = document.querySelector("#shopping-photo-now");
+  const pool = document.querySelector("#shopping-photo-pool");
+
+  function paint() {
+    const card = item.card || {};
+    if (card.photo) {
+      photo.src = card.photo;
+      photo.style.display = "";
+    } else {
+      photo.removeAttribute("src");
+      photo.style.display = "none";
+    }
+    pool.innerHTML = (card.pool || []).map(p =>
+      `<button class="shopping-photo-thumb" data-pic="${escapeHtml(p)}"><img src="${escapeHtml(p)}" alt=""></button>`
+    ).join("");
+    pool.querySelectorAll(".shopping-photo-thumb").forEach(btn =>
+      btn.addEventListener("click", async () => {
+        await putCard(item.id, { photo: btn.dataset.pic });
+        item.card = { ...(item.card || {}), photo: btn.dataset.pic };
+        paint();
+        close();
+        if (window.initShopping) window.initShopping();
+      }));
+  }
+
+  async function search() {
+    pool.innerHTML = `<span class="shopping-photo-busy">Buscando fotos…</span>`;
+    const r = await fetch(`${API_BASE}/shopping/${item.id}/photos`).then(x => x.json()).catch(() => null);
+    const found = r?.pool || [];
+    if (!found.length) {
+      pool.innerHTML = `<span class="shopping-photo-busy">No apareció ninguna foto.</span>`;
+      return;
+    }
+    await putCard(item.id, { photo: found[0], pool: found.slice(1) });
+    item.card = { ...(item.card || {}), photo: found[0], pool: found.slice(1) };
+    paint();
+    if (window.initShopping) window.initShopping();
+  }
+
+  function close() { overlay.classList.remove("active"); }
+
+  document.querySelector("#shopping-photo-close").onclick = close;
+  document.querySelector("#shopping-photo-search").onclick = search;
+  document.querySelector("#shopping-photo-clear").onclick = async () => {
+    await putCard(item.id, { photo: null, pool: [] });
+    item.card = { ...(item.card || {}), photo: null, pool: [] };
+    paint();
+    if (window.initShopping) window.initShopping();
+  };
+  overlay.onclick = (e) => { if (e.target === overlay) close(); };
+
+  paint();
+  overlay.classList.add("active");
+}
+
 function itemHtml(i) {
+  const card = i.card || {};
+  const photoHtml = card.photo
+    ? `<img src="${escapeHtml(card.photo)}" alt="">`
+    : `<span>Buscar<br>foto</span>`;
+  const places = card.places?.length
+    ? `<span class="shopping-places-on">En Santiago: ${escapeHtml(card.places.join(", "))}</span>`
+    : `<button class="shopping-places-btn" data-action="places">Dónde comprar en Santiago</button>`;
   return `
   <div class="shopping-item ${i.is_purchased ? "done" : ""}" data-item-id="${i.id}">
+    <button class="shopping-photo" data-action="photo" title="Foto del producto">${photoHtml}
+      <span class="shopping-photo-badge" title="Cambiar foto">↻</span>
+    </button>
     <button class="shopping-check ${i.is_purchased ? "done" : ""}" data-action="toggle">${i.is_purchased ? "✓" : ""}</button>
     <div class="shopping-info">
-      <span class="shopping-name" title="${escapeHtml(i.description)}">${escapeHtml(i.description)}</span>
-      ${i.estimated_amount ? `<span class="shopping-est">~${formatMoney(i.estimated_amount)}</span>` : ""}
+      <div class="shopping-line">
+        <span class="shopping-name" data-action="edit" title="Tocar para editar">${escapeHtml(i.description)}</span>
+        ${i.estimated_amount ? `<span class="shopping-est">~${formatMoney(i.estimated_amount)}</span>` : ""}
+      </div>
+      <div class="shopping-places">${places}</div>
     </div>
     <div class="tx-actions">
       ${i.is_purchased ? `<button class="tx-btn tx-btn-edit" data-action="buy" title="Pasar a finanzas">$ →</button>` : ""}
