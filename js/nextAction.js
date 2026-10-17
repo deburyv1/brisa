@@ -70,6 +70,15 @@ export function renderNext() {
 
   const { current, alternatives } = pickNextAction(state.tasks || []);
 
+  // Eventos: para mostrar a qué evento sirve cada tarea (las de preparación)
+  // y cuándo es, incluyendo el tiempo de viaje.
+  let events = [];
+  try {
+    const res = await fetch(`${API_BASE}/events`);
+    if (res.ok) events = await res.json();
+  } catch { /* ignore */ }
+  const eventById = (id) => (events || []).find(e => String(e.id) === String(id));
+
   if (!current) {
     section.innerHTML = `
       <div class="next-empty">
@@ -81,24 +90,31 @@ export function renderNext() {
   }
 
   const detail = current.first_step || current.description || "Sin detalles todavía.";
-  const parent = current.parent_task_id
-    ? (state.tasks || []).find(t => String(t.id) === String(current.parent_task_id))
-    : null;
+  const linkedEvent = current.event_id ? eventById(current.event_id) : null;
   const est = current.estimated_minutes
     ? `~${current.estimated_minutes} min`
     : (parent?.estimated_minutes ? `~${parent.estimated_minutes} min` : "sin estimar");
-  const when = current.scheduled_datetime
-    ? formatWhen(current.scheduled_datetime)
-    : (current.due_datetime ? `límite ${formatWhen(current.due_datetime)}` : "Sin fecha programada");
-  const parentWhen = parent?.scheduled_datetime
-    ? formatWhen(parent.scheduled_datetime)
-    : (parent?.due_datetime ? `límite ${formatWhen(parent.due_datetime)}` : "");
+  const scheduleOf = (t) => {
+    if (!t) return "";
+    if (t.scheduled_datetime) return formatWhen(t.scheduled_datetime);
+    if (t.due_datetime) return `límite ${formatWhen(t.due_datetime)}`;
+    return "";
+  };
+  const ownWhen = scheduleOf(current);
+  const parentWhen = scheduleOf(parent);
+  const when = ownWhen || (parentWhen ? `${parentWhen} (acción)` : "Sin fecha programada");
+  const eventWhen = linkedEvent ? formatWhen(linkedEvent.start) : "";
+  const eventLeave = linkedEvent?.travel_minutes
+    ? new Date(new Date(linkedEvent.start).getTime() - Number(linkedEvent.travel_minutes) * 60000)
+        .toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })
+    : "";
 
   section.innerHTML = `
     <div class="next-label">Ahora <span class="next-label-hint">(lo siguiente que te toca)</span></div>
     <div class="next-main">
       <div class="next-info">
         ${parent ? `<div class="next-parent">↳ Parte de: ${escapeHtml(parent.title)}${parentWhen ? ` · ${escapeHtml(parentWhen)}` : ""}</div>` : ""}
+        ${linkedEvent ? `<div class="next-event-link">🎪 Para: <strong>${escapeHtml(linkedEvent.title)}</strong>${eventWhen ? ` · ${escapeHtml(eventWhen)}` : ""}${eventLeave ? ` · salís a las ${escapeHtml(eventLeave)}` : ""}</div>` : ""}
         <div class="next-title">${escapeHtml(current.title)}</div>
         <div class="next-detail">${escapeHtml(detail)}</div>
         <div class="next-meta">${escapeHtml(when)} · ${est}</div>
@@ -111,11 +127,13 @@ export function renderNext() {
     ${alternatives.length > 0 ? `
       <div class="next-also-label">Otras pendientes <span class="next-also-hint">(no son parte de esta tarea)</span></div>
       <div class="next-also">
-        ${alternatives.map(t => `
+        ${alternatives.map(t => {
+          const ev = t.event_id ? eventById(t.event_id) : null;
+          return `
           <button class="next-alt" data-start="${t.id}" title="Empezar esta en vez de la sugerida">
-            ${escapeHtml(t.title)}${t.estimated_minutes ? ` · ${t.estimated_minutes} min` : ""}${t.scheduled_datetime ? ` · ${formatWhen(t.scheduled_datetime)}` : ""}
+            ${escapeHtml(t.title)}${t.estimated_minutes ? ` · ${t.estimated_minutes} min` : ""}${t.scheduled_datetime ? ` · ${formatWhen(t.scheduled_datetime)}` : ""}${ev ? ` · 🎪 ${escapeHtml(ev.title)}` : ""}
           </button>
-        `).join("")}
+        `}).join("")}
       </div>
     ` : ""}
     <div class="next-event" id="next-event" style="display:none"></div>
