@@ -154,9 +154,11 @@ function startAlarm() {
   alarmTimers.push(setInterval(() => beep(4), 5000));
   // Is this timer tied to a task we can mark as done?
   const linkedId = (window.brisaTimer && window.brisaTimer.linkedTask) ? window.brisaTimer.linkedTask() : null;
+  const tasks = (state && state.tasks) || [];
   const linkedTask = linkedId
-    ? ( (state && state.tasks) || [] ).find(t => String(t.id) === String(linkedId) && !t.is_completed)
+    ? tasks.find(t => String(t.id) === String(linkedId) && !t.is_completed)
     : null;
+  console.log("[alarm] linkedId=", linkedId, "stateTasks=", tasks.length, "linkedTask=", linkedTask?.title || null);
   // Flashing overlay
   const overlay = document.createElement("div");
   overlay.className = "timer-alarm";
