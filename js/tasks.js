@@ -84,6 +84,14 @@ export async function initTasks() {
   if (!section) return;
 
   const tasks = await fetchTasks();
+  // Precargar eventos para que taskRowHtml muestre a qué evento sirve
+  // cada tarea (correspondencia clara en la lista).
+  try {
+    if (!eventsCache) {
+      const res = await fetch(`${API_BASE}/events`);
+      eventsCache = res.ok ? await res.json() : [];
+    }
+  } catch { eventsCache = eventsCache || []; }
   state.tasks = tasks || [];
 
   const badge = document.querySelector('.nav[data-nav="tasks"] i');
@@ -151,14 +159,15 @@ async function aiContext(task) {
   };
 }
 
-function parentTitle(tasks, task) {
-  if (!task.parent_task_id) return "";
-  const p = (tasks || []).find(x => String(x.id) === String(task.parent_task_id));
-  return p ? p.title : "";
+function eventTitleSync(eventId) {
+  if (!eventId || !eventsCache) return "";
+  const ev = (eventsCache || []).find(e => String(e.id) === String(eventId));
+  return ev ? ev.title : "";
 }
 
 function taskRowHtml(t, tasks, isChild) {
   const fromParent = t.parent_task_id ? parentTitle(tasks, t) : "";
+  const evTitle = t.event_id ? eventTitleSync(t.event_id) : "";
   return `
     <div class="task-item ${t.is_completed ? "done" : ""}${!t.is_completed && t.priority === "high" ? " urgent" : ""}${isChild ? " child" : ""}" data-task-id="${t.id}">
       <div class="task-checkbox ${t.is_completed ? "done" : ""}" data-action="toggle" role="checkbox" tabindex="0" title="Marcar completada"></div>
@@ -166,6 +175,7 @@ function taskRowHtml(t, tasks, isChild) {
         <div class="task-name">${isChild ? "↳ " : ""}${escapeHtml(t.title)}</div>
         <div class="task-meta">
           ${fromParent ? `<span class="task-parent">de: ${escapeHtml(fromParent)}</span>` : ""}
+          ${evTitle ? `<span class="task-event">🎪 Para: ${escapeHtml(evTitle)}</span>` : ""}
           ${t.scheduled_datetime ? `📅 ${formatDateTime(t.scheduled_datetime)}` : ""}
           ${t.due_datetime ? ` · ⏰ ${formatDateTime(t.due_datetime)}` : ""}
           ${t.estimated_minutes ? ` · ~${t.estimated_minutes} min` : ""}
