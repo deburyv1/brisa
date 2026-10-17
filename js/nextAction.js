@@ -164,17 +164,39 @@ export async function renderNext() {
     ${alternatives.length > 0 ? `
       <div class="next-also-label">Otras pendientes <span class="next-also-hint">(no son parte de esta tarea)</span></div>
       <div class="next-also">
-        ${alternatives.map(t => {
-          const ev = t.event_id ? eventById(t.event_id) : null;
-          const par = t.parent_task_id ? (state.tasks || []).find(x => String(x.id) === String(t.parent_task_id)) : null;
-          const ctx = ev ? `🎪 ${ev.title}` : (par ? `↳ ${par.title}` : "");
-          return `
-          <button class="next-alt" data-start="${t.id}" title="Empezar esta en vez de la sugerida">
-            ${ctx ? `<span class="next-alt-ctx">${escapeHtml(ctx)}</span>` : ""}
-            <span class="next-alt-title">${escapeHtml(t.title)}</span>
-            <span class="next-alt-meta">${t.estimated_minutes ? `${t.estimated_minutes} min` : "sin estimar"}${t.scheduled_datetime ? ` · ${formatWhen(t.scheduled_datetime)}` : ""}</span>
-          </button>
-        `}).join("")}
+        ${(() => {
+          // Agrupar las que sirven para lo mismo (mismo evento o misma
+          // acción padre): no deben aparecer como sueltas.
+          const groups = new Map();
+          for (const t of alternatives) {
+            const key = t.event_id ? `e:${t.event_id}` : (t.parent_task_id ? `p:${t.parent_task_id}` : "solo");
+            if (!groups.has(key)) groups.set(key, []);
+            groups.get(key).push(t);
+          }
+          const renderOne = (t) => {
+            const ev = t.event_id ? eventById(t.event_id) : null;
+            const par = t.parent_task_id ? (state.tasks || []).find(x => String(x.id) === String(t.parent_task_id)) : null;
+            const ctx = ev ? `🎪 ${ev.title}` : (par ? `↳ ${par.title}` : "");
+            return `
+            <button class="next-alt" data-start="${t.id}" title="Empezar esta en vez de la sugerida">
+              ${ctx ? `<span class="next-alt-ctx">${escapeHtml(ctx)}</span>` : ""}
+              <span class="next-alt-title">${escapeHtml(t.title)}</span>
+              <span class="next-alt-meta">${t.estimated_minutes ? `${t.estimated_minutes} min` : "sin estimar"}${t.scheduled_datetime ? ` · ${formatWhen(t.scheduled_datetime)}` : ""}</span>
+            </button>`;
+          };
+          let html = "";
+          for (const [key, items] of groups) {
+            if (key !== "solo" && items.length > 1) {
+              const ev = key.startsWith("e:") ? eventById(key.slice(2)) : null;
+              const par = key.startsWith("p:") ? (state.tasks || []).find(x => String(x.id) === key.slice(2)) : null;
+              const label = ev ? `🎪 ${ev.title}` : (par ? `↳ ${par.title}` : "");
+              html += `<div class="next-alt-group"><div class="next-alt-group-label">${escapeHtml(label)}</div>${items.map(renderOne).join("")}</div>`;
+            } else {
+              html += items.map(renderOne).join("");
+            }
+          }
+          return html;
+        })()}
       </div>
     ` : ""}
     <div class="next-event" id="next-event" style="display:none"></div>

@@ -133,9 +133,26 @@
 .next-postpone:hover { background: rgba(255, 255, 255, .7); }
 .next-postpone:disabled { opacity: .6; }
 
-.next-start:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 120, 170, .3);
+.next-alt-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px 8px;
+  border-radius: 14px;
+  background: rgba(8, 127, 176, 0.08);
+  border: 1px solid rgba(8, 127, 176, 0.25);
+}
+
+.next-alt-group + .next-alt,
+.next-alt + .next-alt-group { margin-top: 6px; }
+
+.next-alt-group-label {
+  font-size: 9px;
+  font-weight: 800;
+  color: rgba(8, 127, 176, 0.9);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  margin-bottom: 2px;
 }
 
 .next-also-label {
