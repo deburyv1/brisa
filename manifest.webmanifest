@@ -9,8 +9,8 @@
   "background_color": "#cfe6f2",
   "theme_color": "#12a7e0",
   "icons": [
-    { "src": "/brisa-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
-    { "src": "/brisa-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+    { "src": "/brisa-icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/brisa-icon.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
   "shortcuts": [
     { "name": "Anotar algo", "short_name": "Anotar", "url": "/?capture=1" }

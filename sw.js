@@ -27,8 +27,8 @@ self.addEventListener("push", (event) => {
   const title = data.title || "brisa";
   event.waitUntil(self.registration.showNotification(title, {
     body: data.body || "",
-    icon: "/brisa-icon.svg",
-    badge: "/brisa-icon.svg",
+    icon: "/brisa-icon.png",
+    badge: "/brisa-icon.png",
     tag: data.tag || "brisa",
     data: { url: data.url || "/" },
   }));
