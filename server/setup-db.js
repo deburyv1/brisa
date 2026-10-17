@@ -323,6 +323,18 @@ try {
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`);
   await pool.query(`ALTER TABLE reminders ADD COLUMN IF NOT EXISTS extreme BOOLEAN DEFAULT FALSE`);
+  await pool.query(`ALTER TABLE reminders ADD COLUMN IF NOT EXISTS notified_at TIMESTAMP`);
+  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS notified_at TIMESTAMP`);
+
+  // Web Push: one row per installed device/browser that accepted notifications.
+  await pool.query(`CREATE TABLE IF NOT EXISTS push_subscriptions (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER DEFAULT 1,
+    endpoint TEXT UNIQUE NOT NULL,
+    p256dh TEXT NOT NULL,
+    auth TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
 
   await pool.query(`CREATE TABLE IF NOT EXISTS settings (
     key TEXT PRIMARY KEY,

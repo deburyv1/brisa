@@ -95,6 +95,36 @@
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.4));
 }
 
+/* Push opt-in: one tap, then the phone gets the nudges */
+.push-btn {
+  flex-shrink: 0;
+  margin-bottom: 8px;
+  border: 1px solid rgba(8, 127, 176, 0.4);
+  background: linear-gradient(135deg, rgba(0, 198, 255, .28), rgba(0, 114, 255, .2));
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 10px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  text-shadow: var(--text-glow);
+}
+
+.push-btn:hover {
+  background: linear-gradient(135deg, rgba(0, 198, 255, .45), rgba(0, 114, 255, .3));
+}
+
+.push-btn.on {
+  border-color: rgba(26, 138, 74, .5);
+  background: rgba(53, 210, 126, .22);
+  color: #1a8a4a;
+}
+
+.push-btn:disabled {
+  opacity: .65;
+  cursor: default;
+}
+
 .nav {
   position: relative;
   width: 100%;

@@ -71,6 +71,10 @@ router.put('/:id', async (req, res) => {
     const col = key === 'end' ? '"end"' : key;
     sets.push(`${col} = $${values.length}`);
   }
+  // Moving or reopening an event re-arms its notification.
+  if ('start' in req.body || req.body.status === 'open') {
+    sets.push('notified_at = NULL');
+  }
   if (sets.length === 0) {
     return res.status(400).json({ error: 'Nothing to update' });
   }

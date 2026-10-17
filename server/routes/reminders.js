@@ -36,8 +36,11 @@ router.post('/', async (req, res) => {
 // PATCH /api/reminders/:id (mark done / undone)
 router.patch('/:id', async (req, res) => {
   try {
+    // Reopening a reminder re-arms its push notification.
     const result = await pool.query(
-      'UPDATE reminders SET done = $1 WHERE id = $2 RETURNING *',
+      `UPDATE reminders
+       SET done = $1, notified_at = CASE WHEN $1 THEN notified_at ELSE NULL END
+       WHERE id = $2 RETURNING *`,
       [req.body.done ? true : false, req.params.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Reminder not found' });

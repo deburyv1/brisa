@@ -25,6 +25,8 @@ import aiRouter from './routes/ai.js';
 import daysRouter from './routes/days.js';
 import clipsRouter from './routes/clips.js';
 import authRouter from './routes/auth.js';
+import pushRouter from './routes/push.js';
+import { startNotifier } from './notify.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -61,7 +63,7 @@ app.use('/api/ai', aiRouter);
 app.use('/api/days', daysRouter);
 app.use('/api/clips', clipsRouter);
 app.use('/api/auth', authRouter);
-app.use('/api/auth', authRouter);
+app.use('/api/push', pushRouter);
 
 // Serve static files (frontend)
 // Docker: server/public | Local dev: repo root
@@ -77,4 +79,5 @@ app.use((req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
+  startNotifier();
 });
