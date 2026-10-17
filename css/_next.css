@@ -116,6 +116,23 @@
   transform: none;
 }
 
+.next-postpone {
+  border: 1px solid rgba(22, 75, 105, 0.3);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(22, 75, 105, 0.85);
+  background: rgba(255, 255, 255, .45);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: var(--transition-speed);
+  flex-shrink: 0;
+}
+
+.next-postpone:hover { background: rgba(255, 255, 255, .7); }
+.next-postpone:disabled { opacity: .6; }
+
 .next-start:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0, 120, 170, .3);

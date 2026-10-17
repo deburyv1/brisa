@@ -64,7 +64,7 @@ export function initNext() {
   renderNext();
 }
 
-export function renderNext() {
+export async function renderNext() {
   const section = document.querySelector("#next-section");
   if (!section) return;
 
@@ -111,6 +111,9 @@ export function renderNext() {
     ? new Date(new Date(linkedEvent.start).getTime() - Number(linkedEvent.travel_minutes) * 60000)
         .toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })
     : "";
+  // "Patear" solo cuando no hay fecha límite hoy (si la hay, no se puede).
+  const canPostpone = !!current.scheduled_datetime &&
+    (!current.due_datetime || !isToday(current.due_datetime));
 
   section.innerHTML = `
     <div class="next-label">Ahora <span class="next-label-hint">(lo siguiente que te toca)</span></div>
@@ -125,6 +128,7 @@ export function renderNext() {
       <div class="next-actions">
         <button class="next-done" data-done="${current.id}" title="Marcar como hecha y pasar a la siguiente">✓ Hecho</button>
         <button class="next-start" data-start="${current.id}">Empezar</button>
+        ${canPostpone ? `<button class="next-postpone" data-postpone="${current.id}" title="Moverla para mañana (no tiene fecha límite hoy)">Patear → mañana</button>` : ""}
       </div>
     </div>
     ${alternatives.length > 0 ? `
@@ -147,6 +151,33 @@ export function renderNext() {
     btn.addEventListener("click", () => {
       if (window.openFocus) window.openFocus(btn.dataset.start);
     });
+  });
+
+  section.querySelector("[data-postpone]")?.addEventListener("click", async (e) => {
+    const btn = e.currentTarget;
+    const id = btn.dataset.postpone;
+    const task = (state.tasks || []).find(t => String(t.id) === String(id));
+    if (!task?.scheduled_datetime) return;
+    btn.disabled = true;
+    btn.textContent = "Pateando…";
+    try {
+      const d = new Date(task.scheduled_datetime);
+      d.setDate(d.getDate() + 1);
+      const res = await fetch(`${API_BASE}/tasks/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scheduled_datetime: d.toISOString() }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (window.initTasks) await window.initTasks();
+      if (window.renderNext) window.renderNext();
+      if (window.initToday) window.initToday();
+      if (window.initWeek) window.initWeek();
+    } catch (err) {
+      console.error("No se pudo patear:", err);
+      btn.disabled = false;
+      btn.textContent = "Patear → mañana";
+    }
   });
 
   section.querySelector("[data-done]")?.addEventListener("click", async (e) => {
