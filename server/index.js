@@ -24,7 +24,7 @@ import wallpapersRouter from './routes/wallpapers.js';
 import aiRouter from './routes/ai.js';
 import daysRouter from './routes/days.js';
 import clipsRouter from './routes/clips.js';
-import authRouter from './routes/auth.js';
+import authRouter, { requireAuth } from './routes/auth.js';
 import pushRouter from './routes/push.js';
 import { startNotifier } from './notify.js';
 
@@ -39,6 +39,12 @@ app.use(cors());
 // Pasted photos travel as data URLs: allow them, they get
 // downscaled client-side before storage (richtext.js)
 app.use(express.json({ limit: "15mb" }));
+
+// Auth wall: the login endpoints stay open, everything else needs a session.
+app.use('/api', (req, res, next) => {
+  if (req.path === '/auth' || req.path.startsWith('/auth/')) return next();
+  return requireAuth(req, res, next);
+});
 
 // API routes
 app.use('/api/people', peopleRouter);

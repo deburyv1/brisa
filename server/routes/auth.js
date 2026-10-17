@@ -8,9 +8,13 @@ const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/api/auth/google/callback';
 const SESSIONS_KEY = 'brisa.sessions';
+const ACCESS_KEY = process.env.BRISA_ACCESS_KEY || '';
 
 if (!CLIENT_ID || !CLIENT_SECRET) {
   console.warn('WARNING: GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET not set. Google login disabled.');
+}
+if (!ACCESS_KEY) {
+  console.warn('WARNING: BRISA_ACCESS_KEY not set. Solo se puede entrar con Google.');
 }
 
 function generateState() {
@@ -68,6 +72,52 @@ async function putSessions(sessions) {
     [Buffer.from(JSON.stringify(sessions))]
   );
 }
+
+/* Every /api route except /api/auth goes through here: the login gate
+   stops being decorative. Without this, publishing Brisa on a public
+   URL would expose everything to anyone who has the link. */
+export async function requireAuth(req, res, next) {
+  try {
+    const { user } = await getSessionUser(req);
+    if (!user) return res.status(401).json({ error: 'No autorizado' });
+    req.user = user;
+    next();
+  } catch {
+    res.status(401).json({ error: 'No autorizado' });
+  }
+}
+
+async function newSession(res, userId) {
+  const token = crypto.randomBytes(32).toString('base64url');
+  const sessions = JSON.parse(await pool.query(
+    `SELECT value FROM settings WHERE key = '${SESSIONS_KEY}'`
+  ).then(r => r.rows[0]?.value?.toString() || '[]'));
+  sessions.push({ token, user_id: userId, expires: Date.now() + 7 * 24 * 60 * 60 * 1000 });
+  await putSessions(sessions);
+  setSessionCookie(res, token);
+}
+
+// POST /api/auth/key → entrar con la clave de Brisa (sirve desde el celular)
+router.post('/key', async (req, res) => {
+  if (!ACCESS_KEY) return res.status(503).json({ error: 'Clave no configurada' });
+  const given = Buffer.from(String(req.body?.key ?? '').trim());
+  const expected = Buffer.from(ACCESS_KEY);
+  const ok = given.length === expected.length && crypto.timingSafeEqual(given, expected);
+  if (!ok) return res.status(401).json({ error: 'Clave incorrecta' });
+  try {
+    const u = await pool.query(
+      `INSERT INTO users (google_email, name) VALUES ('local@brisa', 'Leonardo')
+       ON CONFLICT (google_email) DO UPDATE SET name = users.name
+       RETURNING *`
+    );
+    const user = u.rows[0];
+    await newSession(res, user.id);
+    res.json({ ok: true, user: { id: user.id, name: user.name } });
+  } catch (err) {
+    console.error('Error en login por clave:', err);
+    res.status(500).json({ error: 'Authentication failed' });
+  }
+});
 
 // GET /api/auth/google/login → redirect to Google
 router.get('/google/login', (req, res) => {

@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-title" content="brisa">
   <link rel="apple-touch-icon" href="brisa-icon.svg">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
-  <link rel="stylesheet" href="css/app.css?v=20261017g">
+  <link rel="stylesheet" href="css/app.css?v=20261017h">
   <link rel="stylesheet" href="vendor/quill.snow.css">
 </head>
 <body>
@@ -186,15 +186,18 @@
     <div class="modal-header">
       <div class="modal-title">Tu espacio personal</div>
     </div>
-    <p class="auth-gate-text">Para usar Brisa necesitas entrar con tu cuenta de Google.</p>
+    <p class="auth-gate-text">Entra para ver tus cosas.</p>
+    <input type="password" class="auth-gate-input" id="auth-gate-key" placeholder="Clave de Brisa" autocomplete="current-password" autocapitalize="off" spellcheck="false">
+    <p class="auth-gate-error" id="auth-gate-error" hidden></p>
     <div class="modal-actions">
-      <button type="button" class="modal-btn modal-btn-primary" id="auth-gate-login">Entrar con Google</button>
+      <button type="button" class="modal-btn modal-btn-primary" id="auth-gate-key-btn">Entrar</button>
+      <button type="button" class="modal-btn" id="auth-gate-login">Entrar con Google</button>
     </div>
   </div>
 </div>
 <button class="mobile-fab" id="mobile-fab" title="Capturar" aria-label="Capturar">＋</button>
 <script src="vendor/quill.min.js"></script>
-<script type="module" src="js/app.js?v=20261017g"></script>
+<script type="module" src="js/app.js?v=20261017h"></script>
 
 <!-- Floating timer: round, solid, draggable -->
 <div class="timer-pill" id="timer-pill" title="Temporizador (arrástrame)">

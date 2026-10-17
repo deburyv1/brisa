@@ -64,12 +64,45 @@ async function renderAccount(section) {
     section.innerHTML = `
       <div class="auth-card aero-panel">
         <div class="auth-title">Cuenta</div>
-        <div class="auth-meta">Sin sesión. Brisa funciona igual en este equipo; entrar solo vincula tu identidad de Google.</div>
-        <button class="modal-btn modal-btn-primary" id="account-login">Entrar con Google</button>
+        <div class="auth-meta">Sin sesión. Entra con tu clave de Brisa o con Google.</div>
+        <input type="password" class="auth-gate-input" id="account-key" placeholder="Clave de Brisa" autocomplete="current-password" autocapitalize="off" spellcheck="false">
+        <p class="auth-gate-error" id="account-key-error" hidden></p>
+        <div class="modal-actions">
+          <button class="modal-btn modal-btn-primary" id="account-key-btn">Entrar con clave</button>
+          <button class="modal-btn modal-btn-secondary" id="account-login">Entrar con Google</button>
+        </div>
       </div>`;
+    const keyInput = section.querySelector("#account-key");
+    section.querySelector("#account-key-btn")?.addEventListener("click", () => {
+      keyLogin(keyInput?.value, section.querySelector("#account-key-error"), section);
+    });
+    keyInput?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") keyLogin(keyInput.value, section.querySelector("#account-key-error"), section);
+    });
     section.querySelector("#account-login")?.addEventListener("click", () => {
       window.location.href = `${API_BASE}/google/login`;
     });
+  }
+}
+
+async function keyLogin(key, errEl, section) {
+  const showError = (msg) => {
+    if (errEl) { errEl.textContent = msg; errEl.hidden = false; }
+  };
+  if (!key || !key.trim()) return showError("Escribe tu clave.");
+  try {
+    const res = await fetch(`${API_BASE}/key`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: key.trim() }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      return showError(res.status === 503 ? "El servidor no tiene clave configurada." : (data.error || "Clave incorrecta."));
+    }
+    window.location.reload();
+  } catch {
+    showError("No se pudo conectar.");
   }
 }
 
@@ -79,6 +112,12 @@ async function maybeGate() {
   const overlay = document.querySelector("#auth-gate");
   if (!overlay) return;
   overlay.classList.add("active");
+  const keyInput = overlay.querySelector("#auth-gate-key");
+  const errEl = overlay.querySelector("#auth-gate-error");
+  const submit = () => keyLogin(keyInput?.value, errEl, overlay);
+  overlay.querySelector("#auth-gate-key-btn")?.addEventListener("click", submit);
+  keyInput?.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); });
+  setTimeout(() => keyInput?.focus(), 250);
   overlay.querySelector("#auth-gate-login")?.addEventListener("click", () => {
     window.location.href = `${API_BASE}/google/login`;
   }, { once: true });
