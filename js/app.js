@@ -143,10 +143,43 @@ function initNavigation() {
         if (window.initFinance) window.initFinance();
       }
       showSection(btn.dataset.nav);
+      if (window.closeNavDrawer) window.closeNavDrawer();
+      window.scrollTo({ top: 0, behavior: "smooth" });
     });
   });
 
   showSection("home");
+}
+
+/* Mobile off-canvas navigation: the sidebar becomes a drawer
+   under 950px. Reuses the same nav; tap a link to close. */
+function initNavDrawer() {
+  const sidebar = document.querySelector(".sidebar");
+  const backdrop = document.querySelector("#sidebar-backdrop");
+  const toggle = document.querySelector("#nav-toggle");
+  if (!sidebar || !toggle) return;
+
+  const close = () => {
+    sidebar.classList.remove("open");
+    backdrop?.classList.remove("active");
+  };
+  const open = () => {
+    sidebar.classList.add("open");
+    backdrop?.classList.add("active");
+  };
+
+  toggle.addEventListener("click", () => {
+    sidebar.classList.contains("open") ? close() : open();
+  });
+  backdrop?.addEventListener("click", close);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") close();
+  });
+  window.addEventListener("resize", () => {
+    if (window.innerWidth > 950) close();
+  });
+
+  window.closeNavDrawer = close;
 }
 
 async function main() {
@@ -180,6 +213,7 @@ async function main() {
   initPlayer();
   initQuickCapture();
   initNavigation();
+  initNavDrawer();
 
   // Load data first so Today markers, badges and guidance see fresh state
   await Promise.all([

@@ -176,11 +176,11 @@ export async function initToday() {
       <span class="today-label">24</span>
     </div>
     ${poolTasks.length > 0 ? `
-    <div class="today-pool-label">Sin hora (${poolTasks.length}) · arrastra a la línea para hoy · →mañana o →después si no es pa hoy</div>
+    <div class="today-pool-label">Sin hora (${poolTasks.length}) · ${window.matchMedia("(hover: none)").matches ? "toca para reprogramar" : "arrastra a la línea para hoy"} · →mañana o →después si no es pa hoy</div>
     <div class="today-pool" id="today-pool">
       ${poolTasks.map(t => `
       <span class="today-chip-wrap">
-        <button class="today-chip" draggable="true" data-chip="${t.id}" title="Arrastra a la hora · clic para editar fecha">${escapeHtml(t.title)}</button><button class="today-later" data-later="${t.id}" title="No es pa hoy → pasa a mañana">→mañana</button><button class="today-later" data-later3="${t.id}" title="Ni hoy ni mañana → en 3 días">→después</button>
+        <button class="today-chip" draggable="true" data-chip="${t.id}" title="Reprogramar: toca o arrastra a la hora">${escapeHtml(t.title)}</button><button class="today-later" data-later="${t.id}" title="No es pa hoy → pasa a mañana">→mañana</button><button class="today-later" data-later3="${t.id}" title="Ni hoy ni mañana → en 3 días">→después</button>
       </span>`).join("")}
     </div>` : ""}
     <div class="today-legend">

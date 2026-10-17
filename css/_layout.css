@@ -95,7 +95,6 @@ body.night #wallpaper-night {
    BRISA - Responsive
    ============================================ */
 @media (max-width: 950px) {
-  .sidebar { display: none; }
   .content { margin-left: 0; }
 }
 

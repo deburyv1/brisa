@@ -62,9 +62,11 @@ export function initQuickCapture() {
     }
   }
 
-  document.querySelector("#quick-capture-btn")?.addEventListener("click", () => {
-    if (overlay.style.display === "none") open();
-    else close();
+  document.querySelectorAll("#quick-capture-btn, #mobile-fab").forEach(btn => {
+    btn.addEventListener("click", () => {
+      if (overlay.style.display === "none") open();
+      else close();
+    });
   });
 
   overlay.addEventListener("click", (e) => {

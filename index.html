@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>brisa — Aero Home</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
-  <link rel="stylesheet" href="css/app.css?v=20261017b">
+  <link rel="stylesheet" href="css/app.css?v=20261017d">
   <link rel="stylesheet" href="vendor/quill.snow.css">
 </head>
 <body>
@@ -66,8 +66,11 @@
     </div>
   </aside>
 
+  <div class="sidebar-backdrop" id="sidebar-backdrop" aria-hidden="true"></div>
+
   <main class="content">
     <header class="top aero-bar">
+      <button class="nav-toggle" id="nav-toggle" title="Menú" aria-label="Abrir menú">☰</button>
       <div class="crumb">Mi espacio <b>/</b> <strong id="crumb-current">Inicio</strong></div>
       <div class="top-right">
         <button class="appearance" id="timer-icon" title="Mostrar / guardar el temporizador">⏱</button>
@@ -180,8 +183,9 @@
     </div>
   </div>
 </div>
+<button class="mobile-fab" id="mobile-fab" title="Capturar" aria-label="Capturar">＋</button>
 <script src="vendor/quill.min.js"></script>
-<script type="module" src="js/app.js?v=20261017b"></script>
+<script type="module" src="js/app.js?v=20261017d"></script>
 
 <!-- Floating timer: round, solid, draggable -->
 <div class="timer-pill" id="timer-pill" title="Temporizador (arrástrame)">

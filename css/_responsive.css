@@ -1,0 +1,210 @@
+/* ============================================
+   BRISA - Responsive (mobile / narrow)
+   Imported last so it can override component CSS.
+   Mobile-only affordances are declared hidden at the
+   top, then revealed inside the breakpoint.
+   ============================================ */
+
+.nav-toggle,
+.sidebar-backdrop,
+.mobile-fab { display: none; }
+
+@media (max-width: 950px) {
+
+  /* ---------- Off-canvas navigation ---------- */
+  .nav-toggle {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    flex: 0 0 auto;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, .78);
+    background: rgba(255, 255, 255, .48);
+    color: #17617f;
+    font-size: 17px;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .nav-toggle:active { transform: scale(.94); }
+
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    background: rgba(0, 30, 60, .45);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .25s ease;
+  }
+
+  .sidebar-backdrop.active { opacity: 1; pointer-events: auto; }
+
+  .sidebar {
+    display: flex;
+    z-index: 41;
+    width: min(300px, 84vw);
+    transform: translateX(calc(-100% - 30px));
+    transition: transform .28s cubic-bezier(.2, .7, .3, 1);
+    box-shadow: 0 30px 60px rgba(0, 40, 70, .35);
+  }
+
+  .sidebar.open { transform: none; }
+
+  /* ---------- Content & thumb reach ---------- */
+  .content {
+    margin-left: 0;
+    padding: 0 2px calc(88px + env(safe-area-inset-bottom));
+  }
+
+  .mobile-fab {
+    display: grid;
+    place-items: center;
+    position: fixed;
+    right: 16px;
+    bottom: calc(18px + env(safe-area-inset-bottom));
+    width: 58px;
+    height: 58px;
+    z-index: 30;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, .7);
+    background: linear-gradient(145deg, #27c9eb, #087fb0);
+    color: #fff;
+    font-size: 26px;
+    line-height: 1;
+    box-shadow: 0 12px 28px rgba(0, 90, 140, .4), inset 0 1px 0 rgba(255, 255, 255, .6);
+  }
+
+  .mobile-fab:active { transform: scale(.94); }
+
+  /* ---------- Top bar: strip to essentials ---------- */
+  .top {
+    height: auto;
+    min-height: 52px;
+    padding: 7px 9px;
+    gap: 8px;
+  }
+
+  .crumb {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .top-right { gap: 6px; }
+
+  /* Dev / appearance controls step aside on mobile */
+  #timer-test,
+  #glass-toggle,
+  #theme-open,
+  #quick-capture-btn { display: none !important; }
+
+  .head-clock { min-width: 92px; padding: 4px 9px 5px; }
+  .head-clock-time { font-size: 14px; }
+  .head-clock-date { font-size: 8px; }
+
+  .focus-chip { max-width: 130px; }
+
+  .profile { width: 34px; height: 34px; flex: 0 0 auto; }
+
+  /* ---------- Touch sizing & no iOS zoom on focus ---------- */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  /* Small pills become thumb-sized */
+  .today-chip { padding: 8px 14px; font-size: 11px; }
+  .today-later { padding: 8px 12px 8px 8px; font-size: 10px; }
+  .capture-type,
+  .capture-when-btn { padding: 8px 14px; font-size: 11px; }
+  .next-alt { padding: 9px 15px; font-size: 11px; }
+  .upcoming-dismiss { width: 34px; height: 34px; }
+
+  /* "¡Ahora!" takeover: breathe, don't overflow */
+  .timer-alarm-card {
+    width: calc(100% - 24px);
+    max-width: 420px;
+    padding: 24px 18px;
+  }
+  .timer-alarm-card h2 { font-size: 22px; }
+
+  .nav,
+  .capture-type,
+  .next-alt,
+  .today-chip,
+  .mobile-fab { -webkit-tap-highlight-color: transparent; }
+
+  .modal-btn,
+  .next-start,
+  .next-done,
+  .capture-btn {
+    padding-top: 12px;
+    padding-bottom: 12px;
+    font-size: 12px;
+  }
+
+  .modal-close { width: 34px; height: 34px; }
+
+  /* ---------- Modals as bottom sheets ---------- */
+  .modal-overlay { place-items: end stretch; }
+
+  .modal {
+    width: 100%;
+    max-width: 100%;
+    max-height: 94vh;
+    overflow-y: auto;
+    border-radius: 22px 22px 0 0;
+    padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
+    transform: translateY(100%);
+  }
+
+  .modal-overlay.active .modal { transform: translateY(0); }
+
+  .modal.modal-page {
+    width: 100%;
+    max-width: 100%;
+    height: 94vh;
+    max-height: 94vh;
+  }
+
+  /* ---------- Dense grids become readable ---------- */
+  .finance-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .finance-search-row { top: 62px; }
+
+  .breakdown-row { grid-template-columns: minmax(72px, 1fr) minmax(0, 1fr) auto; }
+  .compare-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 6px; }
+
+  /* ---------- Chrome edges ---------- */
+  .world { padding: 10px; }
+
+  .guidance-banner { max-width: calc(100vw - 24px); }
+}
+
+@media (max-width: 650px) {
+  .welcome h1 { font-size: 24px; }
+
+  .form-row { grid-template-columns: 1fr; }
+
+  .next-main { flex-direction: column; align-items: stretch; }
+  .next-title { font-size: 17px; }
+  .next-actions { width: 100%; }
+  .next-start,
+  .next-done { flex: 1; text-align: center; }
+
+  .today-pool { max-height: 104px; }
+
+  .home-grid { gap: 9px; }
+
+  /* Clock keeps only the hour once things get tight */
+  .head-clock-date { display: none; }
+  .head-clock { min-width: 64px; }
+}
