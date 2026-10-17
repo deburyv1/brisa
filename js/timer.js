@@ -158,6 +158,8 @@ function startAlarm() {
   const linkedTask = linkedId
     ? tasks.find(t => String(t.id) === String(linkedId) && !t.is_completed)
     : null;
+  console.error("[alarm-debug] linkedId=", linkedId, "tasksLen=", tasks.length, "linkedTask=", linkedTask?.title);
+  window.__alarmDebug = { linkedId, tasksLen: tasks.length, linkedTask: linkedTask?.title };
   // Flashing overlay
   const overlay = document.createElement("div");
   overlay.className = "timer-alarm";
