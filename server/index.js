@@ -86,8 +86,9 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.static(path.join(__dirname, '..')));
+const STATIC_OPTS = { etag: false, lastModified: false, maxAge: 0, setHeaders: (res) => res.set('Cache-Control', 'no-store, no-cache, must-revalidate') };
+app.use(express.static(path.join(__dirname, 'public'), STATIC_OPTS));
+app.use(express.static(path.join(__dirname, '..'), STATIC_OPTS));
 
 // Fallback to index.html for SPA routing
 app.use((req, res) => {
