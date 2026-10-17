@@ -15,7 +15,10 @@ import { initTaskModal } from "./taskModal.js";
 import { initTaskDetail } from "./tasks.js";
 import { initCapture, loadEntryIntoCapture } from "./capture.js";
 import { initInbox } from "./inbox.js";
-import { initNext, renderNext } from "./nextAction.js?v=20261017ab";
+// nextAction se carga dinámicamente con cache-bust para evitar módulos viejos.
+let initNext = async () => {};
+let renderNext = () => {};
+
 import { initJournal } from "./journal.js";
 import { initJournalModal } from "./journalModal.js";
 import { initFinance } from "./finance.js";
@@ -201,8 +204,15 @@ async function main() {
   initWallpaper();
   initGlass();
   initPickerBridge();
-  initModal();
-  initTaskModal();
+  const na = await import("./nextAction.js?v=20261017ab&cb=" + Date.now());
+  initNext = na.initNext;
+  renderNext = na.renderNext;
+  window.initNext = initNext;
+  window.renderNext = renderNext;
+
+  window.initNext = initNext;
+  window.renderNext = renderNext;
+
   initTaskDetail();
   initJournalModal();
   initTransactionModal();
