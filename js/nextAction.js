@@ -76,7 +76,10 @@ export function renderNext() {
         <div class="next-detail">${escapeHtml(detail)}</div>
         <div class="next-meta">${est}</div>
       </div>
-      <button class="next-start" data-start="${current.id}">Empezar</button>
+      <div class="next-actions">
+        <button class="next-done" data-done="${current.id}" title="Marcar como hecha y pasar a la siguiente">✓ Hecho</button>
+        <button class="next-start" data-start="${current.id}">Empezar</button>
+      </div>
     </div>
     ${alternatives.length > 0 ? `
       <div class="next-also-label">Otras pendientes <span class="next-also-hint">(no son parte de esta tarea)</span></div>
@@ -96,6 +99,28 @@ export function renderNext() {
     btn.addEventListener("click", () => {
       if (window.openFocus) window.openFocus(btn.dataset.start);
     });
+  });
+
+  section.querySelector("[data-done]")?.addEventListener("click", async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    try {
+      const res = await fetch(`${API_BASE}/tasks/${btn.dataset.done}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_completed: true, completed_at: new Date().toISOString() }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    } catch (err) {
+      console.error("No se pudo marcar como hecha:", err);
+      btn.disabled = false;
+      return;
+    }
+    if (window.initTasks) await window.initTasks();
+    if (window.renderNext) window.renderNext();
+    if (window.initToday) window.initToday();
+    if (window.initWeek) window.initWeek();
+    if (window.initReadiness) window.initReadiness();
   });
 
   fillNextEvent(section);
