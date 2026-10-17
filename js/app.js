@@ -15,7 +15,7 @@ import { initTaskModal } from "./taskModal.js";
 import { initTaskDetail } from "./tasks.js";
 import { initCapture, loadEntryIntoCapture } from "./capture.js";
 import { initInbox } from "./inbox.js";
-import { initNext, renderNext } from "./nextAction.js?v=20261017aa";
+import { initNext, renderNext } from "./nextAction.js?v=20261017ab";
 import { initJournal } from "./journal.js";
 import { initJournalModal } from "./journalModal.js";
 import { initFinance } from "./finance.js";

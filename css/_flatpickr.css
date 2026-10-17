@@ -121,6 +121,7 @@
 /* --- weekday strip --- */
 .flatpickr-weekdays {
   height: 30px;
+  justify-content: space-around;  /* igual que .dayContainer (space-around): si no, los encabezados se pegan a la izquierda y no coinciden con los días */
 }
 
 span.flatpickr-weekday {
@@ -129,6 +130,11 @@ span.flatpickr-weekday {
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  /* Misma anchura que .flatpickr-day: si no, los encabezados se estiran a
+     44px y no coinciden con los días de 39px → el calendario se desalinea. */
+  flex: 0 0 14.2857143%;
+  max-width: 39px;
+  text-align: center;
 }
 
 /* --- days --- */
@@ -274,6 +280,10 @@ span.flatpickr-weekday {
   background: linear-gradient(180deg, #16cdff, #1a80ff);
 }
 
+.flatpickr-weekdaycontainer {
+  justify-content: space-around;
+}
+
 /* --- very narrow phones: shrink the 7-column grid as one piece --- */
 @media (max-width: 340px) {
   .flatpickr-calendar {
@@ -297,5 +307,14 @@ span.flatpickr-weekday {
     height: 34px;
     line-height: 34px;
     font-size: 11px;
+  }
+
+  .flatpickr-calendar span.flatpickr-weekday {
+    max-width: 34px;
+    font-size: 9px;
+  }
+
+  .flatpickr-calendar .flatpickr-weekdays {
+    justify-content: space-around;
   }
 }
