@@ -120,9 +120,9 @@ export async function renderNext() {
     ? new Date(new Date(linkedEvent.start).getTime() - Number(linkedEvent.travel_minutes) * 60000)
         .toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })
     : "";
-  // "Patear" solo cuando no hay fecha límite hoy (si la hay, no se puede).
-  const canPostpone = !!current.scheduled_datetime &&
-    (!current.due_datetime || !isToday(current.due_datetime));
+  // "Patear" cuando no hay fecha límite hoy: lo que tiene deadline no se
+  // puede patear; lo demás sí (programado para un día o sin fecha).
+  const canPostpone = !current.due_datetime || !isToday(current.due_datetime);
 
   section.innerHTML = `
     <div class="next-label">Ahora <span class="next-label-hint">(lo siguiente que te toca)</span></div>
@@ -137,7 +137,7 @@ export async function renderNext() {
       <div class="next-actions">
         <button class="next-done" data-done="${current.id}" title="Marcar como hecha y pasar a la siguiente">✓ Hecho</button>
         <button class="next-start" data-start="${current.id}">Empezar</button>
-        ${canPostpone ? `<button class="next-postpone" data-postpone="${current.id}" title="Moverla para mañana (no tiene fecha límite hoy)">Patear → mañana</button>` : ""}
+        ${canPostpone ? `<button class="next-postpone" data-postpone="${current.id}" title="Patearla para mañana (no tiene fecha límite hoy)">Patear → mañana</button>` : ""}
       </div>
     </div>
     ${alternatives.length > 0 ? `
@@ -166,16 +166,25 @@ export async function renderNext() {
     const btn = e.currentTarget;
     const id = btn.dataset.postpone;
     const task = (state.tasks || []).find(t => String(t.id) === String(id));
-    if (!task?.scheduled_datetime) return;
     btn.disabled = true;
     btn.textContent = "Pateando…";
     try {
-      const d = new Date(task.scheduled_datetime);
-      d.setDate(d.getDate() + 1);
+      let at;
+      if (task?.scheduled_datetime) {
+        const d = new Date(task.scheduled_datetime);
+        d.setDate(d.getDate() + 1);
+        at = d.toISOString();
+      } else {
+        // Sin fecha: se agenda para mañana a las 9, sale de "ahora" hoy.
+        const d = new Date();
+        d.setDate(d.getDate() + 1);
+        d.setHours(9, 0, 0, 0);
+        at = d.toISOString();
+      }
       const res = await fetch(`${API_BASE}/tasks/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scheduled_datetime: d.toISOString() }),
+        body: JSON.stringify({ scheduled_datetime: at }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       if (window.initTasks) await window.initTasks();
