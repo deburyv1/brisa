@@ -171,34 +171,51 @@ export async function renderNext() {
       <div class="next-also-label">Otras pendientes <span class="next-also-hint">(no son parte de esta tarea)</span></div>
       <div class="next-also">
         ${(() => {
-          // Agrupar las que sirven para lo mismo (mismo evento o misma
-          // acción padre): no deben aparecer como sueltas.
+          // Agrupar por motivo (acción padre o evento): las que sirven para
+          // lo mismo no deben aparecer como sueltas. Se priorizan grupos
+          // distintos para que no se mezclen 3 pasos del mismo asunto.
           const groups = new Map();
           for (const t of alternatives) {
-            const key = t.event_id ? `e:${t.event_id}` : (t.parent_task_id ? `p:${t.parent_task_id}` : "solo");
+            const key = t.event_id ? `e:${t.event_id}` : (t.parent_task_id ? `p:${t.parent_task_id}` : `s:${t.id}`);
             if (!groups.has(key)) groups.set(key, []);
             groups.get(key).push(t);
           }
-          const renderOne = (t) => {
-            const ev = t.event_id ? eventById(t.event_id) : null;
-            const par = t.parent_task_id ? (state.tasks || []).find(x => String(x.id) === String(t.parent_task_id)) : null;
-            const ctx = ev ? `🎪 ${ev.title}` : (par ? `↳ ${par.title}` : "");
-            return `
-            <button class="next-alt" data-start="${t.id}" title="Empezar esta en vez de la sugerida">
-              ${ctx ? `<span class="next-alt-ctx">${escapeHtml(ctx)}</span>` : ""}
-              <span class="next-alt-title">${escapeHtml(t.title)}</span>
-              <span class="next-alt-meta">${t.estimated_minutes ? `${t.estimated_minutes} min` : "sin estimar"}${t.scheduled_datetime ? ` · ${formatWhen(t.scheduled_datetime)}` : ""}</span>
-            </button>`;
-          };
+          // orden de grupos: por la mejor prioridad de sus items
+          const groupList = [...groups.entries()].map(([key, items]) => ({
+            key,
+            items,
+            best: items.reduce((a, b) => compare(a, b, false) <= 0 ? a : b),
+          })).sort((a, b) => compare(a.best, b.best, false));
+          // tomar hasta 3 grupos, 2 items por grupo
+          const shown = groupList.slice(0, 3);
           let html = "";
-          for (const [key, items] of groups) {
-            if (key !== "solo" && items.length > 1) {
-              const ev = key.startsWith("e:") ? eventById(key.slice(2)) : null;
-              const par = key.startsWith("p:") ? (state.tasks || []).find(x => String(x.id) === key.slice(2)) : null;
-              const label = ev ? `🎪 ${ev.title}` : (par ? `↳ ${par.title}` : "");
-              html += `<div class="next-alt-group"><div class="next-alt-group-label">${escapeHtml(label)}</div>${items.map(renderOne).join("")}</div>`;
+          for (const g of shown) {
+            const first = g.items[0];
+            const ev = first.event_id ? eventById(first.event_id) : null;
+            const par = first.parent_task_id ? (state.tasks || []).find(x => String(x.id) === String(first.parent_task_id)) : null;
+            const label = ev ? `🎪 ${ev.title}` : (par ? `↳ ${par.title}` : "");
+            const isGroup = g.key !== `s:${first.id}` && g.items.length > 1;
+            if (isGroup) {
+              html += `<div class="next-alt-group"><div class="next-alt-group-label">${escapeHtml(label)}</div>`;
+              html += g.items.slice(0, 2).map(t => `
+                <button class="next-alt" data-start="${t.id}" title="Empezar esta en vez de la sugerida">
+                  <span class="next-alt-title">${escapeHtml(t.title)}</span>
+                  <span class="next-alt-meta">${t.estimated_minutes ? `${t.estimated_minutes} min` : "sin estimar"}${t.scheduled_datetime ? ` · ${formatWhen(t.scheduled_datetime)}` : ""}</span>
+                </button>`).join("");
+              html += `</div>`;
             } else {
-              html += items.map(renderOne).join("");
+              // item suelto: muestra su motivo si lo tiene
+              html += g.items.slice(0, 2).map(t => {
+                const ev2 = t.event_id ? eventById(t.event_id) : null;
+                const par2 = t.parent_task_id ? (state.tasks || []).find(x => String(x.id) === String(t.parent_task_id)) : null;
+                const ctx = ev2 ? `🎪 ${ev2.title}` : (par2 ? `↳ ${par2.title}` : "");
+                return `
+                <button class="next-alt" data-start="${t.id}" title="Empezar esta en vez de la sugerida">
+                  ${ctx ? `<span class="next-alt-ctx">${escapeHtml(ctx)}</span>` : ""}
+                  <span class="next-alt-title">${escapeHtml(t.title)}</span>
+                  <span class="next-alt-meta">${t.estimated_minutes ? `${t.estimated_minutes} min` : "sin estimar"}${t.scheduled_datetime ? ` · ${formatWhen(t.scheduled_datetime)}` : ""}</span>
+                </button>`;
+              }).join("");
             }
           }
           return html;
