@@ -310,6 +310,7 @@ function wireMarkers(section, dayTasks, events, isToday, key) {
           <div class="today-pop-actions">
             <button class="modal-btn modal-btn-secondary" data-act="yesterday" title="Contarla ayer en vez de hoy">Fue ayer</button>
             <button class="modal-btn modal-btn-secondary" data-act="reopen">Deshacer</button>
+            <button class="modal-btn modal-btn-danger" data-act="delete" title="Eliminar esta acción">✕ Eliminar</button>
           </div>`);
         pop.querySelector('[data-act="reopen"]')?.addEventListener("click", () =>
           updateTask(t.id, { is_completed: false, completed_at: null }));
@@ -317,6 +318,12 @@ function wireMarkers(section, dayTasks, events, isToday, key) {
           const at = t.completed_at ? new Date(t.completed_at) : new Date();
           at.setDate(at.getDate() - 1);
           updateTask(t.id, { completed_at: at.toISOString() });
+        });
+        pop.querySelector('[data-act="delete"]')?.addEventListener("click", async () => {
+          if (!confirm("¿Eliminar esta acción?")) return;
+          await fetch(`/api/tasks/${t.id}`, { method: "DELETE" });
+          closePop();
+          await refreshAll();
         });
         return;
       }
@@ -330,6 +337,7 @@ function wireMarkers(section, dayTasks, events, isToday, key) {
           <button class="modal-btn modal-btn-secondary" data-act="plus1">+1 h</button>
           <button class="modal-btn modal-btn-secondary" data-act="tomorrow">Mañana</button>
           <button class="modal-btn modal-btn-secondary" data-act="otherday" title="Elegir otro día (conserva la hora)">Otro día…</button>
+          <button class="modal-btn modal-btn-danger" data-act="delete" title="Eliminar esta acción">✕ Eliminar</button>
         </div>`);
       pop.querySelector('[data-act="focus"]')?.addEventListener("click", () => {
         closePop();
@@ -368,6 +376,12 @@ function wireMarkers(section, dayTasks, events, isToday, key) {
           at.setFullYear(y, (m || 1) - 1, d || 1);
           updateTask(t.id, { scheduled_datetime: at.toISOString() });
         });
+      });
+      pop.querySelector('[data-act="delete"]')?.addEventListener("click", async () => {
+        if (!confirm("¿Eliminar esta acción?")) return;
+        await fetch(`/api/tasks/${t.id}`, { method: "DELETE" });
+        closePop();
+        await refreshAll();
       });
     });
   });

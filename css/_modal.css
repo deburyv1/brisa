@@ -361,6 +361,17 @@
   background: rgba(255, 255, 255, .5);
 }
 
+.modal-btn-danger {
+  color: #b03030;
+  background: rgba(255, 255, 255, .35);
+  border: 1px solid rgba(200, 60, 60, .4);
+}
+
+.modal-btn-danger:hover {
+  background: linear-gradient(145deg, #ff8a8a, #d63a3a);
+  color: #fff;
+}
+
 .modal-form .theme-check {
   color: rgba(22, 75, 105, 0.85);
 }
