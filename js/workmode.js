@@ -4,7 +4,7 @@
    No new tables: scratch lives in task.description.
    ============================================ */
 import { state } from "./state.js";
-import { pickNextAction } from "./nextAction.js";
+import { pickNextAction } from "./nextAction.js?v=20261017aa";
 import { createEditor, editorHTML, htmlWithLightImages, isHTML } from "./richtext.js";
 import { confirmDiscard } from "./modalGuard.js";
 
