@@ -69,6 +69,17 @@
   flex-shrink: 0;
 }
 
+/* Archivar no borra: queda neutro, y el rojo se reserva para Borrar */
+.tx-btn-archive {
+  background: rgba(120, 132, 142, 0.28);
+  border: 1px solid rgba(90, 104, 116, 0.35);
+  color: #46586a;
+}
+
+.tx-btn-archive:hover {
+  background: rgba(120, 132, 142, 0.42);
+}
+
 .inbox-empty {
   display: flex;
   flex-direction: column;
@@ -77,7 +88,6 @@
   padding: 20px 16px;
   text-align: center;
 }
-
 .inbox-empty-icon {
   font-size: 26px;
   opacity: 0.8;

@@ -68,7 +68,8 @@ export async function initInbox() {
           </div>
           <div class="inbox-actions">
             <button class="tx-btn tx-btn-edit" data-action="process">Revisar</button>
-            <button class="tx-btn tx-btn-delete" data-action="archive">Archivar</button>
+            <button class="tx-btn tx-btn-archive" data-action="archive" title="Sale del inbox, pero no se borra">Archivar</button>
+            <button class="tx-btn tx-btn-delete" data-action="delete" title="Borrar la captura">✕</button>
           </div>
         </div>
       `).join("")}
@@ -92,6 +93,13 @@ export async function initInbox() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "archived" }),
       });
+      if (window.initInbox) await window.initInbox();
+      if (window.renderGuidanceBanner) window.renderGuidanceBanner();
+    });
+
+    item.querySelector('[data-action="delete"]')?.addEventListener("click", async () => {
+      if (!confirm("¿Borrar esta captura?")) return;
+      await fetch(`${API_BASE}/entries/${id}`, { method: "DELETE" });
       if (window.initInbox) await window.initInbox();
       if (window.renderGuidanceBanner) window.renderGuidanceBanner();
     });
