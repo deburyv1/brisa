@@ -132,14 +132,18 @@ span.flatpickr-weekday {
 }
 
 /* --- days --- */
+/* La celda se queda en 39px: con 38 entraban 8 días por fila y el
+   calendario se corría respecto de Lun..Dom. */
 .flatpickr-day {
   color: var(--ink);
   border: none;
   border-radius: 50%;
   padding: 0;
-  max-width: 38px;
-  height: 38px;
-  line-height: 38px;
+  flex: 0 0 14.2857143%;
+  width: 14.2857143%;
+  max-width: 39px;
+  height: 39px;
+  line-height: 39px;
   font-size: 12px;
   font-weight: 600;
 }
