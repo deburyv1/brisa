@@ -281,7 +281,7 @@
 
 .today-later {
   border: 1px solid rgba(22, 75, 105, 0.3);
-  border-radius: 0 99px 99px 0;
+  border-radius: 0;
   padding: 4px 10px 4px 6px;
   font-size: 9px;
   font-weight: 700;
@@ -291,6 +291,19 @@
   background: rgba(255, 255, 255, 0.25);
   cursor: pointer;
   white-space: nowrap;
+}
+
+/* Split chip: · →mañana | →después (last one closes the pill) */
+.today-chip-wrap .today-later {
+  border-right: 0;
+}
+
+.today-chip-wrap .today-later + .today-later {
+  border-left: 1px solid rgba(22, 75, 105, 0.18);
+}
+
+.today-chip-wrap .today-later:last-child {
+  border-radius: 0 99px 99px 0;
 }
 
 .today-later:hover {

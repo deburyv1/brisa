@@ -176,11 +176,11 @@ export async function initToday() {
       <span class="today-label">24</span>
     </div>
     ${poolTasks.length > 0 ? `
-    <div class="today-pool-label">Sin hora (${poolTasks.length}) · arrastra a la línea para hoy · →mañana si no es pa hoy</div>
+    <div class="today-pool-label">Sin hora (${poolTasks.length}) · arrastra a la línea para hoy · →mañana o →después si no es pa hoy</div>
     <div class="today-pool" id="today-pool">
       ${poolTasks.map(t => `
       <span class="today-chip-wrap">
-        <button class="today-chip" draggable="true" data-chip="${t.id}" title="Arrastra a la hora · clic para editar fecha">${escapeHtml(t.title)}</button><button class="today-later" data-later="${t.id}" title="No es pa hoy → pasa a mañana">→mañana</button>
+        <button class="today-chip" draggable="true" data-chip="${t.id}" title="Arrastra a la hora · clic para editar fecha">${escapeHtml(t.title)}</button><button class="today-later" data-later="${t.id}" title="No es pa hoy → pasa a mañana">→mañana</button><button class="today-later" data-later3="${t.id}" title="Ni hoy ni mañana → en 3 días">→después</button>
       </span>`).join("")}
     </div>` : ""}
     <div class="today-legend">
@@ -497,18 +497,33 @@ function wireMarkers(section, dayTasks, events, isToday, key) {
       if (window.openTaskModal) window.openTaskModal(Number(chip.dataset.chip));
     });
   });
-  section.querySelectorAll(".today-later").forEach(btn => {
+  const postpone = (id, days) => {
+    const at = new Date(key + "T00:00:00");
+    at.setDate(at.getDate() + days);
+    at.setHours(23, 59, 0, 0);
+    return fetch(`/api/tasks/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ scheduled_datetime: null, due_datetime: at.toISOString() }),
+    });
+  };
+  section.querySelectorAll("[data-later]").forEach(btn => {
     btn.addEventListener("click", async () => {
-      const at = new Date(key + "T00:00:00");
-      at.setDate(at.getDate() + 1);
-      at.setHours(23, 59, 0, 0);
       btn.disabled = true;
       try {
-        await fetch(`/api/tasks/${btn.dataset.later}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ scheduled_datetime: null, due_datetime: at.toISOString() }),
-        });
+        await postpone(btn.dataset.later, 1);
+        await refreshAll();
+      } catch (err) {
+        console.error("Error posponiendo:", err);
+        btn.disabled = false;
+      }
+    });
+  });
+  section.querySelectorAll("[data-later3]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      try {
+        await postpone(btn.dataset.later3, 3);
         await refreshAll();
       } catch (err) {
         console.error("Error posponiendo:", err);
