@@ -465,7 +465,8 @@ async function confirmEntry(section, entry) {
     });
 
     renderIdle(section);
-    if (window.initInbox) window.initInbox();
+    if (window.initInbox) await window.initInbox();
+    if (window.renderGuidanceBanner) window.renderGuidanceBanner();
     // Tasks first (refreshes state.tasks), then everything that reads it
     if (window.initTasks) await window.initTasks();
     if (window.initToday) window.initToday();

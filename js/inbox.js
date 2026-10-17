@@ -34,6 +34,9 @@ export async function initInbox() {
   const entries = await fetchInbox();
   state.entries = entries || [];
   updateBadge(entries);
+  // Aquí se sincroniza la lista: los avisos deben reflejar este estado,
+  // no el que había antes de la llamada (async, sin await).
+  if (window.renderGuidanceBanner) window.renderGuidanceBanner();
 
   if (!entries) {
     section.innerHTML = `
