@@ -62,7 +62,10 @@ function compare(a, b, evening) {
 }
 
 export function pickNextAction(tasks, now = new Date()) {
-  const candidates = (tasks || []).filter(t => !t.is_completed);
+  // "Ahora" es para lo programado: una tarea sin fecha ni fecha límite no
+  // es "ahora", es "sin fecha" (se muestra abajo, no como principal).
+  const candidates = (tasks || []).filter(t =>
+    !t.is_completed && (t.scheduled_datetime || t.due_datetime));
   if (candidates.length === 0) return { current: null, alternatives: [] };
   const evening = now.getHours() >= 22;
   const sorted = [...candidates].sort((a, b) => compare(a, b, evening));
@@ -89,12 +92,30 @@ export async function renderNext() {
   const eventById = (id) => (events || []).find(e => String(e.id) === String(id));
 
   if (!current) {
+    // Tareas sin fecha: siguen siendo accesibles, pero no son "ahora".
+    const unscheduled = (state.tasks || []).filter(t =>
+      !t.is_completed && !t.scheduled_datetime && !t.due_datetime);
     section.innerHTML = `
       <div class="next-empty">
         <div class="next-empty-icon">🌱</div>
-        <div class="next-empty-text"><strong>Hola de nuevo.</strong><br>No importa lo que quedó atrás. ¿Qué necesitas ahora?</div>
+        <div class="next-empty-text"><strong>Nada programado para hoy.</strong><br>Programa una tarea para que aparezca acá, o elige una sin fecha.</div>
       </div>
+      ${unscheduled.length > 0 ? `
+        <div class="next-also-label" style="margin-top:10px">Sin fecha <span class="next-also-hint">(programa una para que sea "ahora")</span></div>
+        <div class="next-also">
+          ${unscheduled.slice(0, 6).map(t => `
+            <button class="next-alt" data-start="${t.id}" title="Empezar esta (sin fecha)">
+              ${escapeHtml(t.title)}${t.estimated_minutes ? ` · ${t.estimated_minutes} min` : ""}
+            </button>
+          `).join("")}
+        </div>
+      ` : ""}
     `;
+    section.querySelectorAll("[data-start]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        if (window.openFocus) window.openFocus(btn.dataset.start);
+      });
+    });
     return;
   }
 
