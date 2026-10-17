@@ -11,13 +11,23 @@ import { state } from "./state.js";
 const API_BASE = "/api";
 const PRIORITY_WEIGHT = { high: 0, medium: 1, low: 2 };
 
-function isToday(dt) {
-  if (!dt) return false;
+function isDayOnly(d) {
+  const h = d.getHours(), m = d.getMinutes();
+  return (h === 0 && m === 0) || (h === 23 && m === 59);
+}
+
+function formatWhen(dt) {
+  if (!dt) return "";
   const d = new Date(dt);
-  const now = new Date();
-  return d.getFullYear() === now.getFullYear() &&
-    d.getMonth() === now.getMonth() &&
-    d.getDate() === now.getDate();
+  const today = new Date();
+  const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const diff = Math.round((target - start) / 86400000);
+  const time = isDayOnly(d) ? "" : ` ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  if (diff === 0) return `hoy${time}`;
+  if (diff === 1) return `mañana${time}`;
+  if (diff === -1) return `ayer${time}`;
+  return d.toLocaleDateString("es-ES", { day: "numeric", month: "short" }) + time;
 }
 
 function score(task, evening) {
@@ -71,15 +81,27 @@ export function renderNext() {
   }
 
   const detail = current.first_step || current.description || "Sin detalles todavía.";
-  const est = current.estimated_minutes ? `~${current.estimated_minutes} min` : "sin estimar";
+  const parent = current.parent_task_id
+    ? (state.tasks || []).find(t => String(t.id) === String(current.parent_task_id))
+    : null;
+  const est = current.estimated_minutes
+    ? `~${current.estimated_minutes} min`
+    : (parent?.estimated_minutes ? `~${parent.estimated_minutes} min` : "sin estimar");
+  const when = current.scheduled_datetime
+    ? formatWhen(current.scheduled_datetime)
+    : (current.due_datetime ? `límite ${formatWhen(current.due_datetime)}` : "Sin fecha programada");
+  const parentWhen = parent?.scheduled_datetime
+    ? formatWhen(parent.scheduled_datetime)
+    : (parent?.due_datetime ? `límite ${formatWhen(parent.due_datetime)}` : "");
 
   section.innerHTML = `
-    <div class="next-label">Ahora</div>
+    <div class="next-label">Ahora <span class="next-label-hint">(lo siguiente que te toca)</span></div>
     <div class="next-main">
       <div class="next-info">
+        ${parent ? `<div class="next-parent">↳ Parte de: ${escapeHtml(parent.title)}${parentWhen ? ` · ${escapeHtml(parentWhen)}` : ""}</div>` : ""}
         <div class="next-title">${escapeHtml(current.title)}</div>
         <div class="next-detail">${escapeHtml(detail)}</div>
-        <div class="next-meta">${est}</div>
+        <div class="next-meta">${escapeHtml(when)} · ${est}</div>
       </div>
       <div class="next-actions">
         <button class="next-done" data-done="${current.id}" title="Marcar como hecha y pasar a la siguiente">✓ Hecho</button>
@@ -91,7 +113,7 @@ export function renderNext() {
       <div class="next-also">
         ${alternatives.map(t => `
           <button class="next-alt" data-start="${t.id}" title="Empezar esta en vez de la sugerida">
-            ${escapeHtml(t.title)}${t.estimated_minutes ? ` · ${t.estimated_minutes} min` : ""}
+            ${escapeHtml(t.title)}${t.estimated_minutes ? ` · ${t.estimated_minutes} min` : ""}${t.scheduled_datetime ? ` · ${formatWhen(t.scheduled_datetime)}` : ""}
           </button>
         `).join("")}
       </div>

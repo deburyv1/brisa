@@ -53,8 +53,22 @@
   color: rgba(22, 75, 105, 0.62);
 }
 
-.next-start {
-  border: 0;
+.next-label-hint {
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: rgba(22, 75, 105, 0.55);
+  margin-left: 6px;
+}
+
+.next-parent {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(8, 127, 176, 0.85);
+  margin-bottom: 2px;
+}
+
   border-radius: 12px;
   padding: 10px 22px;
   font-size: 11px;
