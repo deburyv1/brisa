@@ -165,6 +165,12 @@ function eventTitleSync(eventId) {
   return ev ? ev.title : "";
 }
 
+function parentTitle(tasks, task) {
+  if (!task.parent_task_id) return "";
+  const p = (tasks || []).find(x => String(x.id) === String(task.parent_task_id));
+  return p ? p.title : "";
+}
+
 function taskRowHtml(t, tasks, isChild) {
   const fromParent = t.parent_task_id ? parentTitle(tasks, t) : "";
   const evTitle = t.event_id ? eventTitleSync(t.event_id) : "";
