@@ -252,6 +252,7 @@ function stopAlarm() {
   document.title = originalTitle;
 }
 
+const API_BASE = "/api";
 const TIMER_POS_KEY = "brisa.timerPos";
 const TIMER_SIZE_KEY = "brisa.timerSize";
 const TIMER_MODE_KEY = "brisa.timerMode"; // "full" | "mini"
