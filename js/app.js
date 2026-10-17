@@ -155,6 +155,9 @@ function initNavigation() {
       showSection(btn.dataset.nav);
       if (window.closeNavDrawer) window.closeNavDrawer();
       window.scrollTo({ top: 0, behavior: "smooth" });
+      // La captura del navbar solo donde no hay ya la caja de captura (portada).
+      const topCapture = document.querySelector("#top-capture");
+      if (topCapture) topCapture.style.display = (btn.dataset.nav === "home") ? "none" : "";
     });
   });
 

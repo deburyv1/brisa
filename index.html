@@ -14,7 +14,7 @@
   <link rel="icon" href="brisa-icon.png">
   <link rel="icon" type="image/svg+xml" href="brisa-icon.svg">
   <link rel="stylesheet" href="vendor/flatpickr/flatpickr.min.css">
-  <link rel="stylesheet" href="css/app.css?v=20261017s">
+  <link rel="stylesheet" href="css/app.css?v=20261017v">
   <link rel="stylesheet" href="vendor/quill.snow.css">
 </head>
 <body>
@@ -107,8 +107,9 @@
           <div class="profile">L</div>
         </div>
       </div>
-      <!-- Captura siempre a la vista, en toda vista: sin abrir nada. -->
-      <form class="top-capture" id="top-capture" autocomplete="off">
+      <!-- Captura siempre a la vista, en toda vista salvo la portada
+           (que ya tiene su propia caja "¿Qué tienes en mente?"). -->
+      <form class="top-capture" id="top-capture" autocomplete="off" style="display:none">
         <input id="quick-input" class="top-capture-input" type="text"
           placeholder="Anótalo y sigue en lo tuyo…" autocomplete="off"
           title="Anotar sin perder el flujo (tecla C)">
@@ -213,7 +214,7 @@
 <script src="vendor/quill.min.js"></script>
 <script src="vendor/flatpickr/flatpickr.min.js"></script>
 <script src="vendor/flatpickr/es.js"></script>
-<script type="module" src="js/app.js?v=20261017s"></script>
+<script type="module" src="js/app.js?v=20261017w"></script>
 
 <!-- Floating timer: round, solid, draggable -->
 <div class="timer-pill" id="timer-pill" title="Temporizador (arrástrame)">

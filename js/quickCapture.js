@@ -75,7 +75,8 @@ export function initQuickCapture() {
     }
   });
 
-  // La tecla C ya no abre una ventana: trae el foco acá.
+  // La tecla C ya no abre una ventana: trae el foco acá (o a la caja de
+  // captura de la portada, si la barra del navbar está oculta ahí).
   document.addEventListener("keydown", (e) => {
     const tag = document.activeElement?.tagName || "";
     const editing = /INPUT|TEXTAREA|SELECT/.test(tag)
@@ -84,9 +85,29 @@ export function initQuickCapture() {
     if (editing) return;
     if ((e.key === "c" || e.key === "C") && !e.ctrlKey && !e.metaKey && !e.altKey) {
       e.preventDefault();
-      focusInput();
+      const bar = document.querySelector("#top-capture");
+      if (bar && bar.style.display !== "none") {
+        focusInput();
+      } else {
+        const homeInput = document.querySelector("#capture-input");
+        if (homeInput) { homeInput.focus(); homeInput.select(); }
+      }
     }
   });
 
-  window.openQuickCapture = focusInput;
+  // Compartir desde el teléfono: si la barra está oculta (portada), el texto
+  // cae en la caja de captura de la portada.
+  window.openQuickCapture = (text) => {
+    const bar = document.querySelector("#top-capture");
+    if (bar && bar.style.display !== "none") {
+      focusInput(text);
+    } else {
+      const homeInput = document.querySelector("#capture-input");
+      if (homeInput) {
+        if (typeof text === "string" && text) homeInput.value = text;
+        homeInput.focus();
+        try { homeInput.setSelectionRange(homeInput.value.length, homeInput.value.length); } catch { /* */ }
+      }
+    }
+  };
 }
