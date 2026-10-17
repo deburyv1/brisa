@@ -93,9 +93,10 @@ function tick() {
   remainingSec = Math.max(0, Math.ceil((endAt - Date.now()) / 1000));
   paint();
   if (remainingSec === 0) {
+    const finishedTaskId = linkedTaskId;  // capturar antes de clearRun()
     stopTick();
     clearRun();
-    startAlarm();
+    startAlarm(finishedTaskId);
     remainingSec = totalSec;
     paint();
     syncButtons(false);
@@ -144,7 +145,7 @@ function esc(s) {
     .replace(/"/g, "&quot;");
 }
 
-function startAlarm() {
+function startAlarm(finishedTaskId = null) {
   stopAlarm();
   stopTick();
   // Any key proves presence and stops the alarm.
@@ -153,13 +154,12 @@ function startAlarm() {
   beep(4);
   alarmTimers.push(setInterval(() => beep(4), 5000));
   // Is this timer tied to a task we can mark as done?
-  const linkedId = (window.brisaTimer && window.brisaTimer.linkedTask) ? window.brisaTimer.linkedTask() : null;
+  // finishedTaskId se captura antes de clearRun() (que borra el vínculo).
+  const linkedId = finishedTaskId || ((window.brisaTimer && window.brisaTimer.linkedTask) ? window.brisaTimer.linkedTask() : null);
   const tasks = (state && state.tasks) || [];
   const linkedTask = linkedId
     ? tasks.find(t => String(t.id) === String(linkedId) && !t.is_completed)
     : null;
-  console.error("[alarm-debug] linkedId=", linkedId, "tasksLen=", tasks.length, "linkedTask=", linkedTask?.title);
-  window.__alarmDebug = { linkedId, tasksLen: tasks.length, linkedTask: linkedTask?.title };
   // Flashing overlay
   const overlay = document.createElement("div");
   overlay.className = "timer-alarm";
