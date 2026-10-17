@@ -183,14 +183,60 @@
   .breakdown-row { grid-template-columns: minmax(72px, 1fr) minmax(0, 1fr) auto; }
   .compare-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 6px; }
 
+  /* ---------- Nothing may push the page wider than the screen ---------- */
+  .home-grid,
+  .home-main,
+  .home-main > section { min-width: 0; }
+
+  /* Welcome: greeting first, weather as a compact strip below */
+  .welcome {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    min-height: 0;
+    padding: 18px 16px;
+  }
+  .welcome-left { max-width: 100%; }
+  .welcome h1 { font-size: 23px; }
+  .greeting-quote { font-size: 11px; }
+  .welcome-weather {
+    align-self: flex-start;
+    max-width: 100%;
+    padding: 8px 14px 8px 10px;
+    gap: 10px;
+  }
+  .weather-icon,
+  .weather-icon img { width: 36px; height: 36px; }
+  .temp { font-size: 22px; }
+
+  /* Birthdays: long names shrink instead of widening the page */
+  .birthdays { width: 100%; min-width: 0; gap: 10px; padding: 12px 14px; }
+  .birthday-info { min-width: 0; }
+  .birthday-name,
+  .birthday-date { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .birthday-days { flex-shrink: 0; }
+
+  /* Day pool: never clip the chips */
+  .today-pool { max-height: none; overflow: visible; }
+  .today-pool-label { overflow-wrap: anywhere; white-space: normal; }
+
   /* ---------- Chrome edges ---------- */
   .world { padding: 10px; }
 
-  .guidance-banner { max-width: calc(100vw - 24px); }
+  /* Guidance banner: a bottom toast, never over the sticky header */
+  .guidance-banner {
+    top: auto !important;
+    bottom: calc(88px + env(safe-area-inset-bottom)) !important;
+    max-width: calc(100vw - 22px) !important;
+    border-radius: 16px !important;
+    white-space: normal;
+    line-height: 1.45;
+  }
 }
 
 @media (max-width: 650px) {
-  .welcome h1 { font-size: 24px; }
+  .welcome { padding: 16px 14px; }
+  .welcome h1 { font-size: 21px; }
 
   .form-row { grid-template-columns: 1fr; }
 
@@ -199,8 +245,6 @@
   .next-actions { width: 100%; }
   .next-start,
   .next-done { flex: 1; text-align: center; }
-
-  .today-pool { max-height: 104px; }
 
   .home-grid { gap: 9px; }
 
