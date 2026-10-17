@@ -26,6 +26,7 @@ import daysRouter from './routes/days.js';
 import clipsRouter from './routes/clips.js';
 import authRouter, { requireAuth } from './routes/auth.js';
 import pushRouter from './routes/push.js';
+import trashRouter from './routes/trash.js';
 import { startNotifier } from './notify.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -70,6 +71,7 @@ app.use('/api/days', daysRouter);
 app.use('/api/clips', clipsRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/push', pushRouter);
+app.use('/api/trash', trashRouter);
 
 // Serve static files (frontend)
 // Docker: server/public | Local dev: repo root

@@ -43,6 +43,7 @@ import { initAccount } from "./account.js";
 import { initQuickCapture } from "./quickCapture.js";
 import { initPwa } from "./pwa.js";
 import { initStudio } from "./studio.js";
+import { initTrash, renderTrash } from "./trash.js";
 
 window.initTasks = initTasks;
 window.initJournal = initJournal;
@@ -63,6 +64,8 @@ window.renderNext = renderNext;
 window.openFocus = openFocus;
 window.initWorkmode = initWorkmode;
 window.startWorkmode = startWorkmode;
+window.initTrash = initTrash;
+window.renderTrash = renderTrash;
 
 const NAV_LABELS = {
   home: "Inicio",
@@ -78,6 +81,7 @@ const NAV_LABELS = {
   studio: "Estudio",
   workmode: "Enfoque",
   account: "Cuenta",
+  trash: "Papelera",
 };
 
 const NAV_SECTIONS = {
@@ -94,6 +98,7 @@ const NAV_SECTIONS = {
   studio: ["#studio-section"],
   workmode: ["#workmode-section"],
   account: ["#account-section"],
+  trash: ["#trash-section"],
 };
 
 const ALL_SECTIONS = [
@@ -115,6 +120,7 @@ const ALL_SECTIONS = [
   "#workmode-section",
   "#account-section",
   "#week-section",
+  "#trash-section",
 ];
 
 function initNavigation() {
@@ -144,6 +150,7 @@ function initNavigation() {
         window.setFinanceUncategorized(false);
         if (window.initFinance) window.initFinance();
       }
+      if (btn.dataset.nav === "trash" && window.renderTrash) window.renderTrash();
       showSection(btn.dataset.nav);
       if (window.closeNavDrawer) window.closeNavDrawer();
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -218,6 +225,7 @@ async function main() {
   initPwa();
   initNavigation();
   initNavDrawer();
+  initTrash();
 
   // Load data first so Today markers, badges and guidance see fresh state
   await Promise.all([

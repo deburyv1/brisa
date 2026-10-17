@@ -111,11 +111,9 @@ export async function initRelationships() {
 
     card.querySelector('[data-action="delete"]')?.addEventListener("click", async (e) => {
       e.stopPropagation();
-      if (confirm("¿Eliminar a esta persona?")) {
-        await fetch(`${API_BASE}/people/${id}`, { method: "DELETE" });
-        if (window.initRelationships) window.initRelationships();
-        if (window.initBirthdays) window.initBirthdays();
-      }
+      await fetch(`${API_BASE}/people/${id}`, { method: "DELETE" });
+      if (window.initRelationships) window.initRelationships();
+      if (window.initBirthdays) window.initBirthdays();
     });
   });
 }

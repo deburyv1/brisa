@@ -842,10 +842,8 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
     });
 
     item.querySelector('[data-action="delete"]')?.addEventListener("click", async () => {
-      if (confirm("¿Eliminar este movimiento?")) {
-        await fetch(`${API_BASE}/transactions/${id}`, { method: "DELETE" });
-        if (window.initFinance) window.initFinance();
-      }
+      await fetch(`${API_BASE}/transactions/${id}`, { method: "DELETE" });
+      if (window.initFinance) window.initFinance();
     });
   });
 }

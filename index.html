@@ -13,7 +13,7 @@
   <link rel="apple-touch-icon" href="brisa-icon.svg">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
   <link rel="stylesheet" href="vendor/flatpickr/flatpickr.min.css">
-  <link rel="stylesheet" href="css/app.css?v=20261017n">
+  <link rel="stylesheet" href="css/app.css?v=20261017o">
   <link rel="stylesheet" href="vendor/quill.snow.css">
 </head>
 <body>
@@ -48,6 +48,7 @@
       <button class="nav" data-nav="ideas"> Ideas</button>
       <button class="nav" data-nav="studio"> Estudio</button>
       <button class="nav" data-nav="workmode"> Enfoque</button>
+      <button class="nav" data-nav="trash"><img src="brisa-icons/papelera.svg" class="nav-img" alt="Papelera"> Papelera</button>
       <button class="nav" data-nav="account"> Cuenta</button>
     </nav>
 
@@ -176,6 +177,9 @@
     <!-- Account Section -->
     <section class="account" id="account-section" style="display:none;"></section>
 
+    <!-- Papelera (lo borrado se puede devolver) -->
+    <section class="trash" id="trash-section" style="display:none;"></section>
+
     <!-- Module mount point - future sections mount here -->
     <div id="module-container"></div>
   </main>
@@ -200,7 +204,7 @@
 <script src="vendor/quill.min.js"></script>
 <script src="vendor/flatpickr/flatpickr.min.js"></script>
 <script src="vendor/flatpickr/es.js"></script>
-<script type="module" src="js/app.js?v=20261017n"></script>
+<script type="module" src="js/app.js?v=20261017o"></script>
 
 <!-- Floating timer: round, solid, draggable -->
 <div class="timer-pill" id="timer-pill" title="Temporizador (arrástrame)">

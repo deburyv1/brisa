@@ -153,11 +153,8 @@ function renderJournal(section, rows, query = "") {
 
     card.querySelector('[data-action="delete"]')?.addEventListener("click", async (e) => {
       e.stopPropagation();
-      const que = currentKind === "pensamiento" ? "este pensamiento" : "esta nota";
-      if (confirm(`¿Eliminar ${que}?`)) {
-        await deleteNote(id);
-        if (window.initJournal) window.initJournal();
-      }
+      await deleteNote(id);
+      if (window.initJournal) window.initJournal();
     });
   });
 }

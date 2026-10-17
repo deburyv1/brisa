@@ -124,10 +124,8 @@ export async function initShopping() {
     });
 
     row.querySelector('[data-action="delete"]')?.addEventListener("click", async () => {
-      if (confirm("¿Eliminar de la lista?")) {
-        await fetch(`${API_BASE}/shopping/${id}`, { method: "DELETE" });
-        if (window.initShopping) window.initShopping();
-      }
+      await fetch(`${API_BASE}/shopping/${id}`, { method: "DELETE" });
+      if (window.initShopping) window.initShopping();
     });
   });
 }

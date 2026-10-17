@@ -98,7 +98,6 @@ export async function initInbox() {
     });
 
     item.querySelector('[data-action="delete"]')?.addEventListener("click", async () => {
-      if (!confirm("¿Borrar esta captura?")) return;
       await fetch(`${API_BASE}/entries/${id}`, { method: "DELETE" });
       if (window.initInbox) await window.initInbox();
       if (window.renderGuidanceBanner) window.renderGuidanceBanner();

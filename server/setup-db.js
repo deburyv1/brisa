@@ -416,6 +416,75 @@ try {
     await pool.query(`UPDATE imports SET imported = $1 WHERE id = $2`, [row.count, imp.rows[0].id]);
   }
 
+  // Borrar una cuenta se lleva sus movimientos. Con CASCADE es UNA sola
+  // operación: cae en la papelera como una camada y se deshace entera.
+  const accountFk = await pool.query(
+    `SELECT c.conname, c.confdeltype FROM pg_constraint c
+     JOIN pg_class t ON t.oid = c.conrelid
+     WHERE t.relname = 'transactions' AND c.contype = 'f' AND c.confrelid = 'accounts'::regclass`
+  );
+  for (const row of accountFk.rows) {
+    if (row.confdeltype !== 'c') {
+      await pool.query(`ALTER TABLE transactions DROP CONSTRAINT "${row.conname}"`);
+    }
+  }
+  if (!accountFk.rows.some(r => r.confdeltype === 'c')) {
+    await pool.query(`ALTER TABLE transactions ADD CONSTRAINT transactions_account_id_fkey
+      FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE`);
+  }
+
+  // --- Papelera: nada se borra del todo ---
+  // Un trigger guarda la fila completa (JSONB) antes de cada DELETE. Así el
+  // "deshacer" y la papelera funcionan en todas las vistas sin que cada ruta
+  // tenga que acordarse, y una fila borrada se puede devolver tal cual estaba.
+  await pool.query(`CREATE TABLE IF NOT EXISTS trash (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER DEFAULT 1,
+    table_name TEXT NOT NULL,
+    row_id INTEGER,
+    label TEXT,
+    payload JSONB NOT NULL,
+    batch_id BIGINT,
+    deleted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
+  await pool.query(`ALTER TABLE trash ADD COLUMN IF NOT EXISTS batch_id BIGINT`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS trash_user_idx ON trash (user_id, deleted_at DESC)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS trash_batch_idx ON trash (batch_id)`);
+
+  await pool.query(`CREATE OR REPLACE FUNCTION brisa_trash_row() RETURNS trigger AS $$
+  DECLARE
+    j JSONB;
+  BEGIN
+    j := to_jsonb(OLD);
+    -- Borrado en cascada: si la importación ya no existe, el movimiento se fue
+    -- con ella (deshacer la importación no se ofrece) y no llena la papelera.
+    IF TG_TABLE_NAME = 'transactions' THEN
+      IF (j->>'import_id') IS NOT NULL
+         AND NOT EXISTS (SELECT 1 FROM imports WHERE id = (j->>'import_id')::int) THEN
+        RETURN OLD;
+      END IF;
+    END IF;
+    INSERT INTO trash (user_id, table_name, row_id, label, payload, batch_id)
+    VALUES (
+      COALESCE((j->>'user_id')::int, 1),
+      TG_TABLE_NAME,
+      (j->>'id')::int,
+      COALESCE(
+        NULLIF(j->>'title', ''), NULLIF(j->>'name', ''), NULLIF(j->>'description', ''),
+        NULLIF(j->>'raw_text', ''), NULLIF(j->>'content_text', ''), NULLIF(j->>'filename', '')
+      ),
+      j,
+      txid_current()
+    );
+    RETURN OLD;
+  END $$ LANGUAGE plpgsql`);
+
+  for (const t of ['tasks', 'journal', 'ideas', 'events', 'reminders', 'people',
+    'accounts', 'transactions', 'entries', 'shopping_items', 'habits', 'clips']) {
+    await pool.query(`DROP TRIGGER IF EXISTS brisa_trash ON ${t}`);
+    await pool.query(`CREATE TRIGGER brisa_trash BEFORE DELETE ON ${t} FOR EACH ROW EXECUTE FUNCTION brisa_trash_row()`);
+  }
+
   console.log('All tables created successfully');
   await pool.end();
   process.exit(0);

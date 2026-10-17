@@ -95,7 +95,6 @@ export async function initIdeas() {
     });
 
     row.querySelector('[data-action="delete"]')?.addEventListener("click", async () => {
-      if (!confirm("¿Descartar esta idea?")) return;
       await fetch(`${API_BASE}/ideas/${id}`, { method: "DELETE" });
       if (window.initIdeas) window.initIdeas();
       if (window.renderNext) window.renderNext();

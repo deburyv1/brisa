@@ -288,13 +288,11 @@ function renderTasks(section, tasks) {
     });
 
     item.querySelector('[data-action="delete"]')?.addEventListener("click", async () => {
-      if (confirm("¿Eliminar esta tarea?")) {
-        await deleteTask(id);
-        if (window.initTasks) await window.initTasks();
-        if (window.renderNext) window.renderNext();
-        if (window.initToday) window.initToday();
-        if (window.initWeek) window.initWeek();
-      }
+      await deleteTask(id);
+      if (window.initTasks) await window.initTasks();
+      if (window.renderNext) window.renderNext();
+      if (window.initToday) window.initToday();
+      if (window.initWeek) window.initWeek();
     });
   });
 }

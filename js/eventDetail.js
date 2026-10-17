@@ -210,7 +210,6 @@ export function initEventDetail() {
   });
   overlay.querySelector("#event-detail-delete")?.addEventListener("click", async () => {
     if (!currentEventId) return;
-    if (!confirm("¿Eliminar este evento? Sus preparaciones quedan como tareas sueltas.")) return;
     try {
       await fetch(`${API_BASE}/events/${currentEventId}`, { method: "DELETE" });
     } catch (e) {

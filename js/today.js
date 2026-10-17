@@ -320,7 +320,6 @@ function wireMarkers(section, dayTasks, events, isToday, key) {
           updateTask(t.id, { completed_at: at.toISOString() });
         });
         pop.querySelector('[data-act="delete"]')?.addEventListener("click", async () => {
-          if (!confirm("¿Eliminar esta acción?")) return;
           await fetch(`/api/tasks/${t.id}`, { method: "DELETE" });
           closePop();
           await refreshAll();
@@ -378,7 +377,6 @@ function wireMarkers(section, dayTasks, events, isToday, key) {
         });
       });
       pop.querySelector('[data-act="delete"]')?.addEventListener("click", async () => {
-        if (!confirm("¿Eliminar esta acción?")) return;
         await fetch(`/api/tasks/${t.id}`, { method: "DELETE" });
         closePop();
         await refreshAll();

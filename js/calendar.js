@@ -122,12 +122,10 @@ export async function initCalendar() {
     });
     item.querySelector('[data-action="delete"]')?.addEventListener("click", async (e) => {
       e.stopPropagation();
-      if (confirm("¿Eliminar este evento?")) {
-        await fetch(`${API_BASE}/events/${id}`, { method: "DELETE" });
-        if (window.initCalendar) window.initCalendar();
-        if (window.initToday) window.initToday();
-        if (window.initWeek) window.initWeek();
-      }
+      await fetch(`${API_BASE}/events/${id}`, { method: "DELETE" });
+      if (window.initCalendar) window.initCalendar();
+      if (window.initToday) window.initToday();
+      if (window.initWeek) window.initWeek();
     });
     item.addEventListener("click", () => {
       if (window.openEventDetail) window.openEventDetail(id);

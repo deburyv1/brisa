@@ -53,10 +53,11 @@ brisa/
 - `ideas`: title, description, entry_id
 - `reminders`: title, description, remind_at, done, entry_id
 - `settings`: key/value (avatar JPEG en `avatar`), `spotify_tokens`
+- `trash`: user_id, table_name, row_id, label, payload (fila completa en JSONB), batch_id, deleted_at — la llena el trigger `brisa_trash_row` antes de cada DELETE (12 tablas)
 
 ## API
 
-`GET/POST /api/{tasks,journal,people,accounts,entries,events,ideas,reminders}` · `GET/PUT/DELETE` + `/:id` · `PATCH /api/entries/:id`, `/api/reminders/:id`, `/api/transactions/:id/category` · `POST /api/transactions/import?account_id=&force=` (XLSX Banco de Chile, filtra fecha ≤ saldo inicial, dedupe, hash 409) · `GET /api/transactions?account_id=&uncategorized=` · `GET/DELETE /api/imports` · `GET /api/weather?lat=&lon=` (proxy, key server-side) · `GET/PUT/DELETE /api/settings/avatar`.
+`GET/POST /api/{tasks,journal,people,accounts,entries,events,ideas,reminders}` · `GET/PUT/DELETE` + `/:id` · `PATCH /api/entries/:id`, `/api/reminders/:id`, `/api/transactions/:id/category` · `POST /api/transactions/import?account_id=&force=` (XLSX Banco de Chile, filtra fecha ≤ saldo inicial, dedupe, hash 409) · `GET /api/transactions?account_id=&uncategorized=` · `GET/DELETE /api/imports` · `GET /api/weather?lat=&lon=` (proxy, key server-side) · `GET/PUT/DELETE /api/settings/avatar` · `GET /api/trash`, `GET /api/trash/last`, `POST /api/trash/restore`, `DELETE /api/trash[/:id]`.
 
 ## Flujos clave
 
