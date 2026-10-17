@@ -647,7 +647,7 @@ function renderVerifyAsk(task) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: `Verificar: ${what}`,
-          description: `Para: ${task.title}\nObjetivo: comprobar el dato, no dominar todo el tema.`,
+          description: `Para: ${task.title}`,
           estimated_minutes: 10,
         }),
       });

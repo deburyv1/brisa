@@ -528,7 +528,7 @@ async function createVerifyAction(section, entry, text, what) {
     const parent = await postJson("/api/tasks", { title: text });
     const child = await postJson("/api/tasks", {
       title: `Verificar: ${what}`,
-      description: `Para: ${text}\nObjetivo: comprobar el dato, no dominar todo el tema.`,
+      description: `Para: ${text}`,
       estimated_minutes: 10,
     });
     const { linkChildToParent } = await import("./focusMode.js");
