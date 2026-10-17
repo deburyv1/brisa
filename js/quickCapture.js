@@ -1,45 +1,40 @@
 /* ============================================
    BRISA - Quick Capture Module
-   One-keystroke inbox capture from anywhere.
-   Never steals flow: overlay, save, back to work.
+   La captura vive en el navbar: se ve siempre,
+   en toda vista, sin abrir nada. Anota, guarda y
+   vuelve a lo tuyo (o deja que se guarde solo).
    ============================================ */
 import { suggestType } from "./suggest.js";
 
 const API_BASE = "/api";
+const IDLE_LABEL = "Guardar";
 
 export function initQuickCapture() {
-  if (document.querySelector("#quick-capture")) return;
+  const form = document.querySelector("#top-capture");
+  const input = document.querySelector("#quick-input");
+  const saveBtn = document.querySelector("#quick-save");
+  if (!form || !input || !saveBtn) return;
 
-  const overlay = document.createElement("div");
-  overlay.id = "quick-capture";
-  overlay.style.display = "none";
-  overlay.innerHTML = `
-    <div class="quick-card aero-panel">
-      <input id="quick-input" placeholder="Anótalo y sigue en lo tuyo…" autocomplete="off" maxlength="500">
-      <button id="quick-save" class="modal-btn modal-btn-primary">Guardar</button>
-    </div>
-  `;
-  document.body.appendChild(overlay);
+  let resetTimer = null;
 
-  const input = overlay.querySelector("#quick-input");
-  const saveBtn = overlay.querySelector("#quick-save");
-
-  function open(text) {
-    overlay.style.display = "";
-    input.value = text || "";
+  // Deja el cursor al final: lo que escribas sigue donde ibas.
+  function focusInput(text) {
+    if (typeof text === "string" && text) input.value = text;
     input.focus();
+    try { input.setSelectionRange(input.value.length, input.value.length); } catch { /* tipo no soportado */ }
   }
 
-  function close() {
-    overlay.style.display = "none";
-    input.value = "";
-    saveBtn.textContent = "Guardar";
+  function resetLabel() {
+    clearTimeout(resetTimer);
+    resetTimer = null;
+    saveBtn.textContent = IDLE_LABEL;
+    saveBtn.classList.remove("ok");
   }
 
   async function save() {
     const raw = input.value.trim();
     if (!raw) {
-      close();
+      input.focus();
       return;
     }
     saveBtn.disabled = true;
@@ -51,10 +46,14 @@ export function initQuickCapture() {
         body: JSON.stringify({ raw_text: raw, suggested_type: suggestion.type }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      input.value = "";
       saveBtn.textContent = "✓ Inbox";
+      saveBtn.classList.add("ok");
       if (window.initInbox) window.initInbox();
       if (window.renderGuidanceBanner) window.renderGuidanceBanner();
-      setTimeout(close, 600);
+      clearTimeout(resetTimer);
+      resetTimer = setTimeout(resetLabel, 1400);
+      input.focus();
     } catch (e) {
       console.error("Error en captura rápida:", e);
       saveBtn.textContent = "Reintentar";
@@ -63,27 +62,20 @@ export function initQuickCapture() {
     }
   }
 
-  document.querySelectorAll("#quick-capture-btn, #mobile-fab").forEach(btn => {
-    btn.addEventListener("click", () => {
-      if (overlay.style.display === "none") open();
-      else close();
-    });
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    save();
   });
 
-  overlay.addEventListener("click", (e) => {
-    if (e.target === overlay) close();
-  });
-
-  saveBtn.addEventListener("click", save);
   input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      save();
-    } else if (e.key === "Escape") {
-      close();
+    if (e.key === "Escape") {
+      input.value = "";
+      resetLabel();
+      input.blur();
     }
   });
 
+  // La tecla C ya no abre una ventana: trae el foco acá.
   document.addEventListener("keydown", (e) => {
     const tag = document.activeElement?.tagName || "";
     const editing = /INPUT|TEXTAREA|SELECT/.test(tag)
@@ -92,9 +84,9 @@ export function initQuickCapture() {
     if (editing) return;
     if ((e.key === "c" || e.key === "C") && !e.ctrlKey && !e.metaKey && !e.altKey) {
       e.preventDefault();
-      open();
+      focusInput();
     }
   });
 
-  window.openQuickCapture = open;
+  window.openQuickCapture = focusInput;
 }

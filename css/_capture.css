@@ -2,40 +2,8 @@
    BRISA - Capture Bar
    ============================================ */
 
-/* Global quick capture: overlay from anywhere, never steals flow */
-#quick-capture {
-  position: fixed;
-  inset: 0;
-  z-index: 200;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding-top: 12vh;
-  background: rgba(0, 30, 60, .35);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-}
-
-.quick-card {
-  display: flex;
-  gap: 8px;
-  width: min(560px, 92vw);
-  padding: 12px 14px;
-  border-radius: var(--radius-panel);
-}
-
-.quick-card input {
-  flex: 1;
-  border: 1px solid rgba(22, 75, 105, 0.3);
-  border-radius: 12px;
-  padding: 10px 14px;
-  font-size: 13px;
-  font-family: inherit;
-  color: var(--ink);
-  background: rgba(255, 255, 255, .6);
-  outline: none;
-  min-width: 0;
-}
+/* La captura rápida vive ahora en el navbar (_header.css): siempre
+   a la vista, sin overlay que abrir. */
 .capture {
   position: relative;
   margin-top: 11px;

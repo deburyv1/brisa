@@ -6,8 +6,7 @@
    ============================================ */
 
 .nav-toggle,
-.sidebar-backdrop,
-.mobile-fab { display: none; }
+.sidebar-backdrop { display: none; }
 
 @media (max-width: 950px) {
 
@@ -58,36 +57,18 @@
   /* ---------- Content & thumb reach ---------- */
   .content {
     margin-left: 0;
-    padding: 0 2px calc(88px + env(safe-area-inset-bottom));
+    padding: 0 2px calc(28px + env(safe-area-inset-bottom));
   }
-
-  .mobile-fab {
-    display: grid;
-    place-items: center;
-    position: fixed;
-    right: 16px;
-    bottom: calc(18px + env(safe-area-inset-bottom));
-    width: 58px;
-    height: 58px;
-    z-index: 30;
-    border-radius: 50%;
-    border: 1px solid rgba(255, 255, 255, .7);
-    background: linear-gradient(145deg, #27c9eb, #087fb0);
-    color: #fff;
-    font-size: 26px;
-    line-height: 1;
-    box-shadow: 0 12px 28px rgba(0, 90, 140, .4), inset 0 1px 0 rgba(255, 255, 255, .6);
-  }
-
-  .mobile-fab:active { transform: scale(.94); }
 
   /* ---------- Top bar: strip to essentials ---------- */
   .top {
-    height: auto;
-    min-height: 52px;
-    padding: 7px 9px;
-    gap: 8px;
+    padding: 7px 9px 8px;
+    gap: 7px;
   }
+
+  /* La captura se queda con el ancho completo: es lo primero que se toca */
+  .top-capture { padding: 2px 4px 2px 12px; }
+  .top-capture-btn { padding: 10px 16px; }
 
   .crumb {
     flex: 1 1 auto;
@@ -103,8 +84,7 @@
   /* Dev / appearance controls step aside on mobile */
   #timer-test,
   #glass-toggle,
-  #theme-open,
-  #quick-capture-btn { display: none !important; }
+  #theme-open { display: none !important; }
 
   .head-clock { min-width: 92px; padding: 4px 9px 5px; }
   .head-clock-time { font-size: 14px; }
@@ -140,8 +120,7 @@
   .nav,
   .capture-type,
   .next-alt,
-  .today-chip,
-  .mobile-fab { -webkit-tap-highlight-color: transparent; }
+  .today-chip { -webkit-tap-highlight-color: transparent; }
 
   .modal-btn,
   .next-start,

@@ -2,16 +2,70 @@
    BRISA - Header / Breadcrumbs
    ============================================ */
 .top {
-  height: 52px;
   border-radius: 18px;
-  padding: 0 11px 0 18px;
+  padding: 8px 11px 9px;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
   position: sticky;
   top: 0;
   z-index: 6;
 }
+
+.top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+}
+
+/* Captura permanente en el navbar: está a la vista en toda vista,
+   sin botón que abrir y sin perder lo que estabas haciendo. */
+.top-capture {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 5px 4px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, .78);
+  background: rgba(255, 255, 255, .5);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6);
+}
+
+.top-capture-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  padding: 6px 0;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.top-capture-input::placeholder { color: rgba(22, 75, 105, .55); }
+
+.top-capture-btn {
+  flex: 0 0 auto;
+  border: 1px solid rgba(255, 255, 255, .7);
+  border-radius: 12px;
+  padding: 8px 18px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(145deg, #27c9eb, #087fb0);
+  box-shadow: 0 6px 14px rgba(0, 100, 150, .28), inset 0 1px 0 rgba(255, 255, 255, .6);
+  cursor: pointer;
+}
+
+.top-capture-btn:active { transform: scale(.97); }
+.top-capture-btn.ok { background: linear-gradient(145deg, #34d399, #0f9d6e); }
+.top-capture-btn:disabled { opacity: .65; }
 
 .crumb { font-size: 12px; color: #55798c; }
 .crumb b { opacity: .55; margin: 0 5px; }

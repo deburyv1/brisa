@@ -13,7 +13,7 @@
   <link rel="apple-touch-icon" href="brisa-icon.svg">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
   <link rel="stylesheet" href="vendor/flatpickr/flatpickr.min.css">
-  <link rel="stylesheet" href="css/app.css?v=20261017o">
+  <link rel="stylesheet" href="css/app.css?v=20261017p">
   <link rel="stylesheet" href="vendor/quill.snow.css">
 </head>
 <body>
@@ -81,30 +81,38 @@
 
   <main class="content">
     <header class="top aero-bar">
-      <button class="nav-toggle" id="nav-toggle" title="Menú" aria-label="Abrir menú">☰</button>
-      <div class="crumb">Mi espacio <b>/</b> <strong id="crumb-current">Inicio</strong></div>
-      <div class="top-right">
-        <button class="appearance" id="timer-icon" title="Mostrar / guardar el temporizador">⏱</button>
-        <button class="appearance" id="timer-test" title="Prueba: timer a 2 segundos de terminar">🧪</button>
-        <button class="appearance" id="quick-capture-btn" title="Anotar sin perder el flujo (tecla C)">＋</button>
-        <button class="timer-chip focus-chip" id="focus-chip" style="display:none" title="Volver al enfoque">
-          <span class="focus-dot"></span><span id="focus-chip-title"></span><span id="focus-chip-time"></span>
-        </button>
-        <button class="timer-chip" id="timer-chip" style="display:none" title="Temporizador (clic para abrir)">
-          <span>⏱</span><span id="timer-chip-time">10:00</span>
-          <span class="timer-chip-toggle" id="timer-chip-toggle" title="Iniciar / pausar">▶</span>
-        </button>
-        <button class="appearance" id="glass-toggle" title="Alternar vidrio completo">◐ Vidrio</button>
-        <button class="appearance" id="theme-open" title="Personalizar vidrio">⚙</button>
-        <button class="head-clock" id="head-clock" title="Tu día · clic para verlo">
-          <span class="head-clock-line">
-            <span class="head-clock-time" id="hc-time">--:--</span>
-            <span class="head-clock-date" id="date-pill">—</span>
-          </span>
-          <span class="head-clock-bar" aria-hidden="true"><span class="head-clock-now" id="hc-now"></span></span>
-        </button>
-        <div class="profile">L</div>
+      <div class="top-row">
+        <button class="nav-toggle" id="nav-toggle" title="Menú" aria-label="Abrir menú">☰</button>
+        <div class="crumb">Mi espacio <b>/</b> <strong id="crumb-current">Inicio</strong></div>
+        <div class="top-right">
+          <button class="appearance" id="timer-icon" title="Mostrar / guardar el temporizador">⏱</button>
+          <button class="appearance" id="timer-test" title="Prueba: timer a 2 segundos de terminar">🧪</button>
+          <button class="timer-chip focus-chip" id="focus-chip" style="display:none" title="Volver al enfoque">
+            <span class="focus-dot"></span><span id="focus-chip-title"></span><span id="focus-chip-time"></span>
+          </button>
+          <button class="timer-chip" id="timer-chip" style="display:none" title="Temporizador (clic para abrir)">
+            <span>⏱</span><span id="timer-chip-time">10:00</span>
+            <span class="timer-chip-toggle" id="timer-chip-toggle" title="Iniciar / pausar">▶</span>
+          </button>
+          <button class="appearance" id="glass-toggle" title="Alternar vidrio completo">◐ Vidrio</button>
+          <button class="appearance" id="theme-open" title="Personalizar vidrio">⚙</button>
+          <button class="head-clock" id="head-clock" title="Tu día · clic para verlo">
+            <span class="head-clock-line">
+              <span class="head-clock-time" id="hc-time">--:--</span>
+              <span class="head-clock-date" id="date-pill">—</span>
+            </span>
+            <span class="head-clock-bar" aria-hidden="true"><span class="head-clock-now" id="hc-now"></span></span>
+          </button>
+          <div class="profile">L</div>
+        </div>
       </div>
+      <!-- Captura siempre a la vista, en toda vista: sin abrir nada. -->
+      <form class="top-capture" id="top-capture" autocomplete="off">
+        <input id="quick-input" class="top-capture-input" type="text"
+          placeholder="Anótalo y sigue en lo tuyo…" autocomplete="off"
+          title="Anotar sin perder el flujo (tecla C)">
+        <button type="submit" id="quick-save" class="top-capture-btn">Guardar</button>
+      </form>
     </header>
 
     <!-- Home grid: center content + week rail -->
@@ -200,11 +208,10 @@
     </div>
   </div>
 </div>
-<button class="mobile-fab" id="mobile-fab" title="Capturar" aria-label="Capturar">＋</button>
 <script src="vendor/quill.min.js"></script>
 <script src="vendor/flatpickr/flatpickr.min.js"></script>
 <script src="vendor/flatpickr/es.js"></script>
-<script type="module" src="js/app.js?v=20261017o"></script>
+<script type="module" src="js/app.js?v=20261017p"></script>
 
 <!-- Floating timer: round, solid, draggable -->
 <div class="timer-pill" id="timer-pill" title="Temporizador (arrástrame)">
