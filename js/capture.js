@@ -4,6 +4,7 @@
    ============================================ */
 import { suggestType, TYPE_LABELS } from "./suggest.js";
 import { createEditor, editorHTML, htmlWithLightImages, plainText, renderRich } from "./richtext.js";
+import { renderMarkdown } from "./markdown.js";
 
 const API_BASE = "/api";
 const TYPES = ["action", "event", "note", "pensamiento", "idea", "reminder", "purchase"];
@@ -64,6 +65,28 @@ function renderIdle(section) {
     } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "e") {
       e.preventDefault();
       openEditor(section);
+    } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey
+      && input.value.length >= (Number(input.maxLength) > 0 ? Number(input.maxLength) : 255)) {
+      // Ya está al tope: la letra sigue en el editor, no se pierde.
+      e.preventDefault();
+      openEditor(section, input.value);
+    }
+  });
+  // Al tope del input el texto no se corta: sigue en el editor,
+  // ya formateado, sin perder lo que venías escribiendo.
+  const MAX = Number(input?.maxLength) > 0 ? Number(input.maxLength) : 255;
+  input?.addEventListener("input", () => {
+    if (input.value.length >= MAX) openEditor(section, input.value);
+  });
+  input?.addEventListener("paste", (e) => {
+    const pasted = e.clipboardData?.getData("text") || "";
+    if (!pasted) return;
+    const start = input.selectionStart ?? input.value.length;
+    const end = input.selectionEnd ?? input.value.length;
+    const full = input.value.slice(0, start) + pasted + input.value.slice(end);
+    if (full.length > MAX) {
+      e.preventDefault();
+      openEditor(section, full);
     }
   });
   section.querySelector("#capture-expand")?.addEventListener("click", () => openEditor(section));
@@ -72,17 +95,20 @@ function renderIdle(section) {
 
 // ---- Elaborate editor (modal) ----
 
-function openEditor(section) {
+function openEditor(section, initialText = "") {
   const overlay = document.querySelector("#editor-modal");
   const holder = document.querySelector("#editor-text");
   const count = document.querySelector("#editor-count");
-  if (!overlay || !holder) return;
+  if (!overlay || !holder || overlay.classList.contains("active")) return;
   const quill = createEditor(holder, {
     placeholder: "Desarróllalo acá, sin apuro. Ctrl+Enter para guardar.",
   });
   if (!quill) return;
-  const quick = section.querySelector("#capture-input")?.value || "";
-  if (quick && !quill.getText().trim()) quill.setText(quick);
+  if (!quill.getText().trim()) {
+    const quick = String(initialText || section.querySelector("#capture-input")?.value || "");
+    if (pendingHTML) quill.clipboard.dangerouslyPasteHTML(pendingHTML);
+    else if (quick.trim()) quill.clipboard.dangerouslyPasteHTML(formatQuickText(quick));
+  }
   const update = () => {
     const words = quill.getText().trim().split(/\s+/).filter(Boolean).length;
     if (count) count.textContent = words > 1 ? `${words} palabras` : "";
@@ -129,6 +155,18 @@ function openEditor(section) {
 function closeEditor() {
   document.querySelector("#editor-modal")?.classList.remove("active");
   document.querySelector("#capture-input")?.focus();
+}
+
+// Texto que ya no cabe en el input: entra al editor con formato, sin
+// cambiarle una palabra. Se aplican las marcas que escribiste y, si es
+// un bloque largo sin saltos de línea, se le da aire entre frases.
+function formatQuickText(text) {
+  let clean = String(text || "").replace(/\r\n?/g, "\n").trim();
+  if (!clean) return "";
+  if (!clean.includes("\n") && clean.length > 220) {
+    clean = clean.replace(/([.!?…])\s+/g, "$1\n\n");
+  }
+  return renderMarkdown(clean);
 }
 
 async function capture(section) {
@@ -276,12 +314,6 @@ function renderSuggestion(section, entry) {
     if (window.initInbox) window.initInbox();
     if (window.renderGuidanceBanner) window.renderGuidanceBanner();
   });
-
-  section.querySelector("#capture-ready-later")?.addEventListener("click", () => {
-    // Entry is already safe in inbox: just go back to idle
-    renderIdle(section);
-    if (window.initInbox) window.initInbox();
-  });
 }
 
 function dateFor(when, dateValue, timeValue) {
@@ -318,17 +350,16 @@ async function confirmEntry(section, entry) {
   const rich = entry.raw_text;
   const text = plainText(rich).slice(0, 255) || rich;
 
-  // Actions pass through the readiness gate first
-  if (selectedType === "action") {
-    renderReadiness(section, entry, text, iso);
-    return true;
-  }
-
+  // La acción se crea de una. Lo de "¿está listo para actuar?" (verificar,
+  // partir en un primer paso) vive en Enfoque, que es donde de verdad actúas.
   try {
     let targetType = selectedType;
     let targetId = null;
 
-    if (selectedType === "event") {
+    if (selectedType === "action") {
+      const task = await postJson("/api/tasks", { title: text, scheduled_datetime: iso });
+      targetId = task.id;
+    } else if (selectedType === "event") {
       if (!iso) {
         alert("El evento necesita fecha y hora.");
         return;
@@ -456,112 +487,6 @@ async function finishEntry(section, entry, targetType, targetId) {
   if (window.initJournal) window.initJournal();
   if (window.initIdeas) window.initIdeas();
   if (window.renderNext) window.renderNext();
-}
-
-// Readiness gate: is this action ready to act on?
-function renderReadiness(section, entry, text, iso) {
-  section.querySelector(".capture-suggest").innerHTML = `
-    <div class="capture-suggest-text">💭 ${escapeHtml(text)}</div>
-    <div class="capture-suggest-reason">¿Está listo para actuar?</div>
-    <div class="capture-types">
-      <button class="capture-type" data-ready="yes">Sí, crearlo</button>
-      <button class="capture-type" data-ready="verify">Falta algo</button>
-      <button class="capture-type" data-ready="split">Es muy grande</button>
-    </div>
-    <div id="capture-ready-detail"></div>
-    <div class="capture-actions" style="margin-top:8px">
-      <button class="modal-btn modal-btn-secondary" id="capture-ready-later">Decidir después</button>
-    </div>
-  `;
-
-  section.querySelector("#capture-ready-later")?.addEventListener("click", () => {
-    // Entry is already safe in inbox: just go back to idle
-    renderIdle(section);
-    if (window.initInbox) window.initInbox();
-  });
-
-  section.querySelectorAll("[data-ready]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      section.querySelectorAll("[data-ready]").forEach(b =>
-        b.classList.toggle("active", b === btn));
-      const detail = section.querySelector("#capture-ready-detail");
-      const kind = btn.dataset.ready;
-      if (kind === "yes") {
-        detail.innerHTML = "";
-        createReadyAction(section, entry, text, iso);
-      } else if (kind === "verify") {
-        detail.innerHTML = `
-          <div class="form-group" style="margin-top:8px">
-            <input type="text" id="capture-ready-input" placeholder="¿Qué hay que verificar?">
-          </div>
-          <div class="capture-actions">
-            <button class="modal-btn modal-btn-primary" id="capture-ready-save">Crear verificación</button>
-          </div>
-        `;
-        const input = detail.querySelector("#capture-ready-input");
-        input?.focus();
-        detail.querySelector("#capture-ready-save")?.addEventListener("click", () =>
-          createVerifyAction(section, entry, text, input?.value.trim()));
-      } else if (kind === "split") {
-        detail.innerHTML = `
-          <div class="form-group" style="margin-top:8px">
-            <input type="text" id="capture-ready-input" placeholder="¿Cuál sería el primer paso físico?">
-          </div>
-          <div class="capture-actions">
-            <button class="modal-btn modal-btn-primary" id="capture-ready-save">Crear con primer paso</button>
-          </div>
-        `;
-        const input = detail.querySelector("#capture-ready-input");
-        input?.focus();
-        detail.querySelector("#capture-ready-save")?.addEventListener("click", () =>
-          createSplitAction(section, entry, text, iso, input?.value.trim()));
-      }
-    });
-  });
-}
-
-async function createReadyAction(section, entry, text, iso) {
-  try {
-    const task = await postJson("/api/tasks", { title: text, scheduled_datetime: iso });
-    await finishEntry(section, entry, "action", task.id);
-  } catch (err) {
-    console.error("Error creando acción:", err);
-    alert("No se pudo guardar. Intenta de nuevo.");
-  }
-}
-
-async function createVerifyAction(section, entry, text, what) {
-  if (!what) return;
-  try {
-    // Parent action stays dateless: no pressure until resolved
-    const parent = await postJson("/api/tasks", { title: text });
-    const child = await postJson("/api/tasks", {
-      title: `Verificar: ${what}`,
-      description: `Para: ${text}`,
-      estimated_minutes: 10,
-    });
-    const { linkChildToParent } = await import("./focusMode.js");
-    linkChildToParent(child.id, parent.id, "verify");
-    await finishEntry(section, entry, "action", parent.id);
-  } catch (err) {
-    console.error("Error creando verificación:", err);
-    alert("No se pudo guardar. Intenta de nuevo.");
-  }
-}
-
-async function createSplitAction(section, entry, text, iso, firstStep) {
-  if (!firstStep) return;
-  try {
-    const task = await postJson("/api/tasks", {
-      title: text,
-      scheduled_datetime: iso,
-      first_step: firstStep,
-    });
-    await finishEntry(section, entry, "action", task.id);
-  } catch (err) {
-    console.error("Error creando acción:", err);
-    alert("No se pudo guardar. Intenta de nuevo.");
-  }
 }
 
 async function postJson(url, data) {

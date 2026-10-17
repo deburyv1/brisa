@@ -61,7 +61,7 @@ brisa/
 
 ## Flujos clave
 
-- **Captura** (`capture.js` + `suggest.js` reglas por keywords): Enter → `entries` → sugerencia reversible → confirma creando el registro destino → entry `processed`.
+- **Captura** (`capture.js` + `suggest.js` reglas por keywords): Enter → `entries` → sugerencia reversible → confirma creando el registro destino → entry `processed`. Al tope del input (255) el texto pasa al editor rico ya formateado. La barra del navbar (`quickCapture.js`) captura directo al inbox desde cualquier vista; tecla `C` = foco ahí.
 - **Next** (`nextAction.js:pickNextAction`): no completadas → programada hoy → prioridad → duración corta; de noche hunde >30 min. "Empezar" → `openFocus()`.
 - **Focus** (`focusMode.js`): fricción (🟢🔎🧩😕▶️) → paso/verificación acotada (tarea `Verificar: …` linkeada en sesión) → "¿suficiente?" → padre o nuevo paso. Timer + "Lo dejo acá" sin culpa.
 - **Finanzas**: saldo = inicial + ingresos − gastos; desglose mensual neto (reembolsos vinculados restan); categorizarInline vía PATCH; categorías separadas ingreso/egreso.
