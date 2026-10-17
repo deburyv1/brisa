@@ -42,13 +42,20 @@ router.post('/', async (req, res) => {
   }
 });
 
-// PATCH /api/entries/:id
+// PUT/PATCH /api/entries/:id
 router.patch('/:id', async (req, res) => {
-  const { status, target_type, target_id } = req.body;
+  const { status, target_type, target_id, raw_text } = req.body;
+  // Editar el texto de una captura ya guardada: nunca se pisa con vacío.
+  let rawText = null;
+  if ('raw_text' in req.body) {
+    const t = String(req.body.raw_text || '').trim();
+    if (!t) return res.status(400).json({ error: 'Text is required' });
+    rawText = t;
+  }
   try {
     const result = await pool.query(
-      `UPDATE entries SET status = COALESCE($1, status), target_type = COALESCE($2, target_type), target_id = COALESCE($3, target_id) WHERE id = $4 AND user_id = ${req.userId} RETURNING *`,
-      [status || null, target_type || null, target_id || null, req.params.id]
+      `UPDATE entries SET status = COALESCE($1, status), target_type = COALESCE($2, target_type), target_id = COALESCE($3, target_id), raw_text = COALESCE($4, raw_text) WHERE id = $5 AND user_id = ${req.userId} RETURNING *`,
+      [status || null, target_type || null, target_id || null, rawText, req.params.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Entry not found' });
     res.json(result.rows[0]);

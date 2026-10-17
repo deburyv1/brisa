@@ -98,7 +98,10 @@ function renderIdle(section) {
 
 // ---- Elaborate editor (modal) ----
 
-function openEditor(section, initialText = "") {
+function openEditor(section, initial = "") {
+  // initial: texto plano, o { text, html, onSave } cuando se edita una
+  // captura ya guardada (en ese caso no se crea una entrada nueva).
+  const opts = (initial && typeof initial === "object") ? initial : { text: initial };
   const overlay = document.querySelector("#editor-modal");
   const holder = document.querySelector("#editor-text");
   const count = document.querySelector("#editor-count");
@@ -108,9 +111,13 @@ function openEditor(section, initialText = "") {
   });
   if (!quill) return;
   if (!quill.getText().trim()) {
-    const quick = String(initialText || section.querySelector("#capture-input")?.value || "");
-    if (pendingHTML) quill.clipboard.dangerouslyPasteHTML(pendingHTML);
-    else if (quick.trim()) quill.clipboard.dangerouslyPasteHTML(formatQuickText(quick));
+    if (opts.html) {
+      quill.clipboard.dangerouslyPasteHTML(opts.html);
+    } else {
+      const quick = String(opts.text || section.querySelector("#capture-input")?.value || "");
+      if (pendingHTML) quill.clipboard.dangerouslyPasteHTML(pendingHTML);
+      else if (quick.trim()) quill.clipboard.dangerouslyPasteHTML(formatQuickText(quick));
+    }
   }
   const update = () => {
     const words = quill.getText().trim().split(/\s+/).filter(Boolean).length;
@@ -132,6 +139,14 @@ function openEditor(section, initialText = "") {
     const html = editorHTML(quill);
     if (!html) {
       closeEditor();
+      return;
+    }
+    if (opts.onSave) {
+      const ok = await opts.onSave(html);
+      if (ok) {
+        quill.setText("");
+        closeEditor();
+      }
       return;
     }
     const input = section.querySelector("#capture-input");
@@ -170,6 +185,34 @@ function formatQuickText(text) {
     clean = clean.replace(/([.!?…])\s+/g, "$1\n\n");
   }
   return renderMarkdown(clean);
+}
+
+// Editar el texto de una captura ya guardada (está en el inbox o en la
+// sugerencia): se guarda en la misma entrada, sin crear una nueva.
+function openEntryEditor(section, entry) {
+  openEditor(section, {
+    html: renderRich(entry.raw_text),
+    onSave: async (html) => {
+      try {
+        const light = await htmlWithLightImages(html);
+        const res = await fetch(`${API_BASE}/entries/${entry.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ raw_text: light }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const saved = await res.json();
+        entry.raw_text = saved.raw_text || light;
+        renderSuggestion(section, entry);
+        if (window.initInbox) window.initInbox();
+        return true;
+      } catch (err) {
+        console.error("Error editando la captura:", err);
+        alert("No se pudo guardar el cambio. Intenta de nuevo.");
+        return false;
+      }
+    },
+  });
 }
 
 async function capture(section) {
@@ -234,7 +277,12 @@ async function findSimilar(text, excludeId = null) {
 function renderSuggestion(section, entry) {
   section.innerHTML = `
     <div class="capture-suggest">
-      <div class="capture-suggest-text"><span class="capture-suggest-icon">💭</span><div class="md">${renderRich(entry.raw_text)}</div></div>
+      <div class="capture-suggest-text" id="capture-suggest-text" role="button" tabindex="0"
+           title="Clic para editar el texto">
+        <span class="capture-suggest-icon">💭</span>
+        <div class="md">${renderRich(entry.raw_text)}</div>
+        <span class="capture-suggest-pencil" aria-hidden="true">✏</span>
+      </div>
       <div class="capture-similar" id="capture-similar" style="display:none"></div>
       <div class="capture-types">
         ${TYPES.map(t => `
@@ -272,6 +320,18 @@ function renderSuggestion(section, entry) {
       if (doneBtn) doneBtn.style.display = DONE_TYPES.includes(selectedType) ? "" : "none";
     });
   });
+
+  // El texto se puede corregir acá mismo, sin perder la clasificación.
+  const textBox = section.querySelector("#capture-suggest-text");
+  if (textBox) {
+    textBox.addEventListener("click", () => openEntryEditor(section, entry));
+    textBox.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        openEntryEditor(section, entry);
+      }
+    });
+  }
 
   section.querySelectorAll(".capture-when-btn").forEach(b =>
     b.addEventListener("click", () => {
