@@ -8,6 +8,9 @@ import { renderMarkdown } from "./markdown.js";
 
 const API_BASE = "/api";
 const TYPES = ["action", "event", "note", "pensamiento", "idea", "reminder", "purchase"];
+// "Ya está hecho" solo tiene sentido para lo que se completa: una acción,
+// un recordatorio o una compra. Una idea no se "hace": se piensa.
+const DONE_TYPES = ["action", "reminder", "purchase"];
 
 let pendingEntry = null;
 let selectedType = null;
@@ -266,7 +269,7 @@ function renderSuggestion(section, entry) {
       const extremeRow = section.querySelector("#capture-extreme-row");
       if (extremeRow) extremeRow.style.display = selectedType === "reminder" ? "" : "none";
       const doneBtn = section.querySelector("#capture-done");
-      if (doneBtn) doneBtn.style.display = ["action", "idea", "reminder", "purchase"].includes(selectedType) ? "" : "none";
+      if (doneBtn) doneBtn.style.display = DONE_TYPES.includes(selectedType) ? "" : "none";
     });
   });
 
@@ -296,7 +299,7 @@ function renderSuggestion(section, entry) {
   section.querySelector("#capture-confirm")?.addEventListener("click", () => confirmEntry(section, entry));
   const doneBtn = section.querySelector("#capture-done");
   if (doneBtn) {
-    doneBtn.style.display = ["action", "idea", "reminder", "purchase"].includes(selectedType) ? "" : "none";
+    doneBtn.style.display = DONE_TYPES.includes(selectedType) ? "" : "none";
     doneBtn.addEventListener("click", () => confirmDone(section, entry));
   }
 
@@ -435,14 +438,6 @@ async function confirmDone(section, entry) {
         body: JSON.stringify({ is_completed: true, completed_at: now }),
       });
       targetId = t.id;
-    } else if (selectedType === "idea") {
-      const idea = await postJson("/api/ideas", { title: text, entry_id: entry.id });
-      await fetch(`${API_BASE}/ideas/${idea.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "done" }),
-      });
-      targetId = idea.id;
     } else if (selectedType === "reminder") {
       const rem = await postJson("/api/reminders", { title: text, remind_at: now, entry_id: entry.id });
       await fetch(`${API_BASE}/reminders/${rem.id}`, {
