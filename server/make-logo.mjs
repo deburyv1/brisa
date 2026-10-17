@@ -125,6 +125,7 @@ for (let y = 0; y < H; y++) {
 }
 
 const png = await sharp(out, { raw: { width: W, height: H, channels: 4 } })
+  .resize(512, 512)
   .png({ compressionLevel: 9 })
   .toBuffer();
 await fs.writeFile(path.join(ROOT, "brisa-icon.png"), png);
@@ -134,4 +135,4 @@ await sharp(out, { raw: { width: W, height: H, channels: 4 } })
   .png({ compressionLevel: 9 })
   .toFile(path.join(ROOT, "apple-touch-icon.png"));
 
-console.log(`brisa-icon.png (${W}x${H}) y apple-touch-icon.png (180x180) listos`);
+console.log(`brisa-icon.png (512x512) y apple-touch-icon.png (180x180) listos`);
