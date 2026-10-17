@@ -31,8 +31,13 @@ const IDEA_HINTS = [
   "me gustaría", "me gustaria",
 ];
 
-const MOOD_HINTS = [
-  "me costó", "me costo", "me siento", "estoy", "hoy me", "me cuesta",
+const THOUGHT_HINTS = [
+  "me da miedo", "me da susto", "me da lata", "me da rabia", "me da pena",
+  "me angustia", "me abruma", "me tiene pensando", "estoy pensando",
+  "me pongo a pensar", "siento que", "me siento", "me cuesta", "me costó",
+  "me costo", "me pregunto", "no sé si", "no se si", "me doy cuenta",
+  "me di cuenta", "reflexión", "reflexion", "me cuestiono", "estoy viviendo",
+  "creo que", "pienso que", "tengo la sensación", "tengo la sensacion",
 ];
 
 function hasTimeOfDay(text) {
@@ -47,7 +52,7 @@ function hasDateRef(text) {
   return false;
 }
 
-// Returns { type, reason }. Types: action | event | note | idea | reminder | purchase
+// Returns { type, reason }. Types: action | event | note | idea | reminder | purchase | pensamiento
 export function suggestType(rawText) {
   const text = rawText.toLowerCase().trim();
   const timeRef = hasTimeOfDay(text);
@@ -71,8 +76,8 @@ export function suggestType(rawText) {
   if (dateRef && ACTION_VERBS.some(v => text.includes(v))) {
     return { type: "action", reason: "Parece una acción con fecha." };
   }
-  if (MOOD_HINTS.some(h => text.includes(h))) {
-    return { type: "note", reason: "Parece una nota personal." };
+  if (THOUGHT_HINTS.some(h => text.includes(h))) {
+    return { type: "pensamiento", reason: "Parece un pensamiento." };
   }
   if (ACTION_VERBS.some(v => text.includes(v))) {
     return { type: "action", reason: "Parece una acción." };
@@ -84,6 +89,7 @@ export const TYPE_LABELS = {
   action: "Acción",
   event: "Evento",
   note: "Nota",
+  pensamiento: "Pensamiento",
   idea: "Idea",
   reminder: "Recordatorio",
   purchase: "Compra",

@@ -206,3 +206,56 @@
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0, 120, 170, .3);
 }
+
+/* Pestañas: notas y pensamientos viven en el mismo diario */
+.journal-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.journal-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(22, 75, 105, 0.25);
+  border-radius: 10px;
+  padding: 6px 12px;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  color: rgba(22, 75, 105, 0.8);
+  background: rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+  transition: var(--transition-speed);
+}
+
+.journal-tab:hover {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.journal-tab i {
+  font-style: normal;
+  font-size: 9px;
+  font-weight: 700;
+  min-width: 16px;
+  text-align: center;
+  padding: 1px 5px;
+  border-radius: 999px;
+  color: rgba(22, 75, 105, 0.85);
+  background: rgba(22, 75, 105, 0.14);
+}
+
+.journal-tab.active {
+  color: #fff;
+  background: linear-gradient(145deg, #27c9eb, #087fb0);
+  border-color: rgba(8, 127, 176, 0.6);
+  box-shadow: 0 4px 12px rgba(0, 120, 170, .25);
+}
+
+.journal-tab.active i {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.28);
+}

@@ -6,7 +6,7 @@ import { suggestType, TYPE_LABELS } from "./suggest.js";
 import { createEditor, editorHTML, htmlWithLightImages, plainText, renderRich } from "./richtext.js";
 
 const API_BASE = "/api";
-const TYPES = ["action", "event", "note", "idea", "reminder", "purchase"];
+const TYPES = ["action", "event", "note", "pensamiento", "idea", "reminder", "purchase"];
 
 let pendingEntry = null;
 let selectedType = null;
@@ -341,6 +341,15 @@ async function confirmEntry(section, entry) {
         content: rich,
       });
       targetId = note.id;
+    } else if (selectedType === "pensamiento") {
+      // Mismo diario que las notas, pero separado: es algo que pensaste,
+      // no algo que tienes que hacer.
+      const thought = await postJson("/api/journal", {
+        title: text.length > 60 ? text.slice(0, 60) + "…" : text,
+        content: rich,
+        kind: "pensamiento",
+      });
+      targetId = thought.id;
     } else if (selectedType === "idea") {
       const idea = await postJson("/api/ideas", { title: text, entry_id: entry.id });
       targetId = idea.id;

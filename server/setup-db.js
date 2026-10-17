@@ -79,6 +79,11 @@ try {
     GENERATED ALWAYS AS (to_tsvector('spanish', coalesce(title, '') || ' ' || coalesce(content_text, ''))) STORED`);
   await pool.query(`CREATE INDEX IF NOT EXISTS journal_search_idx ON journal USING GIN (search_vector)`);
 
+  // Pensamientos: mismo diario, distinta intención. Una columna en vez de
+  // una tabla paralela, para no duplicar editor, búsqueda ni ánimo.
+  await pool.query(`ALTER TABLE journal ADD COLUMN IF NOT EXISTS kind VARCHAR(20) DEFAULT 'nota'`);
+  await pool.query(`UPDATE journal SET kind = 'nota' WHERE kind IS NULL`);
+
   await pool.query(`CREATE TABLE IF NOT EXISTS transactions (
     id SERIAL PRIMARY KEY,
     user_id INTEGER DEFAULT 1,

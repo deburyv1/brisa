@@ -43,7 +43,7 @@ brisa/
 ## Base de datos (Postgres, user_id=1 monousuario)
 
 - `tasks`: title, description, priority, scheduled_datetime, due_datetime, **estimated_minutes**, is_completed, first_step
-- `journal`: title, content, mood (notas sin presión)
+- `journal`: title, content, mood, **kind** (`nota` | `pensamiento`: mismo diario, sin tabla paralela)
 - `people`: name, nickname, rut, birthday, relation, photo
 - `accounts`: name, account_number, initial_balance, initial_date
 - `transactions`: description, amount, type, category, date, account_id, import_id, **linked_id** (reembolso→gasto, ON DELETE SET NULL)

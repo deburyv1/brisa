@@ -36,6 +36,10 @@ router.get('/search', async (req, res) => {
   }
 });
 
+// Dos clases de escrito en el mismo diario: notas y pensamientos.
+const KINDS = ['nota', 'pensamiento'];
+const cleanKind = (k) => (KINDS.includes(k) ? k : null);
+
 // GET /api/journal
 router.get('/', async (req, res) => {
   try {
@@ -61,14 +65,14 @@ router.get('/:id', async (req, res) => {
 
 // POST /api/journal
 router.post('/', async (req, res) => {
-  const { title, content, mood } = req.body;
+  const { title, content, mood, kind } = req.body;
   if (!title || !title.trim()) {
     return res.status(400).json({ error: 'Title is required' });
   }
   try {
     const result = await pool.query(
-      `INSERT INTO journal (user_id, title, content, content_text, mood) VALUES (${req.userId}, $1, $2, $3, $4) RETURNING *`,
-      [title.trim(), content || null, stripHtml(content), mood || null]
+      `INSERT INTO journal (user_id, title, content, content_text, mood, kind) VALUES (${req.userId}, $1, $2, $3, $4, $5) RETURNING *`,
+      [title.trim(), content || null, stripHtml(content), mood || null, cleanKind(kind) || 'nota']
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -79,14 +83,14 @@ router.post('/', async (req, res) => {
 
 // PUT /api/journal/:id
 router.put('/:id', async (req, res) => {
-  const { title, content, mood } = req.body;
+  const { title, content, mood, kind } = req.body;
   if (!title || !title.trim()) {
     return res.status(400).json({ error: 'Title is required' });
   }
   try {
     const result = await pool.query(
-      `UPDATE journal SET title = $1, content = $2, content_text = $3, mood = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $5 AND user_id = ${req.userId} RETURNING *`,
-      [title.trim(), content || null, stripHtml(content), mood || null, req.params.id]
+      `UPDATE journal SET title = $1, content = $2, content_text = $3, mood = $4, kind = COALESCE($5, kind), updated_at = CURRENT_TIMESTAMP WHERE id = $6 AND user_id = ${req.userId} RETURNING *`,
+      [title.trim(), content || null, stripHtml(content), mood || null, cleanKind(kind), req.params.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Note not found' });
     res.json(result.rows[0]);

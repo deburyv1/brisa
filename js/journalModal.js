@@ -66,17 +66,21 @@ export function initJournalModal() {
   }
 
   let editingId = null;
+  let editingKind = "nota";
   let cleanSnapshot = null;
 
-  function open(noteId = null) {
+  function open(noteId = null, kind = "nota") {
     editingId = noteId;
+    editingKind = kind === "pensamiento" ? "pensamiento" : "nota";
     form.reset();
 
     if (noteId) {
-      titleEl.textContent = "Editar nota";
+      titleEl.textContent = "Editar escrito";
       fetch(`${API_BASE}/journal/${noteId}`)
         .then(r => r.json())
         .then(note => {
+          editingKind = note.kind === "pensamiento" ? "pensamiento" : "nota";
+          titleEl.textContent = editingKind === "pensamiento" ? "Editar pensamiento" : "Editar nota";
           form.title.value = note.title || "";
           form.mood.value = note.mood || "";
           fillContent(note.content || "");
@@ -84,7 +88,7 @@ export function initJournalModal() {
         })
         .catch(e => console.error("Error cargando nota:", e));
     } else {
-      titleEl.textContent = "Nueva nota";
+      titleEl.textContent = editingKind === "pensamiento" ? "Nuevo pensamiento" : "Nueva nota";
       fillContent("");
       cleanSnapshot = snapshotForm(form);
     }
@@ -99,6 +103,7 @@ export function initJournalModal() {
     form.reset();
     if (quill) quill.setText("");
     editingId = null;
+    editingKind = "nota";
   }
 
   function tryClose() {
@@ -123,6 +128,8 @@ export function initJournalModal() {
     const data = Object.fromEntries(formData);
 
     if (!data.title || !data.title.trim()) return;
+
+    data.kind = editingKind;
 
     try {
       data.content = await htmlWithLightImages(data.content || "");
