@@ -81,7 +81,7 @@ const NAV_LABELS = {
 };
 
 const NAV_SECTIONS = {
-  home: ["#welcome-section", "#capture-section", "#today-section", "#next-section", "#birthdays-section", "#week-section"],
+  home: ["#welcome-section", "#capture-section", "#next-section", "#today-section", "#birthdays-section", "#week-section"],
   inbox: ["#inbox-section"],
   tasks: ["#tasks-section"],
   journal: ["#journal-section"],
