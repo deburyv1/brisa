@@ -8,7 +8,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  position: relative;
+  position: sticky;
+  top: 0;
+  z-index: 6;
 }
 
 .crumb { font-size: 12px; color: #55798c; }
@@ -17,7 +19,6 @@
 
 .top-right { display: flex; align-items: center; gap: 8px; }
 
-.date-pill,
 .profile {
   border: 1px solid rgba(255, 255, 255, .78);
   background: rgba(255, 255, 255, .48);
@@ -27,7 +28,84 @@
   font-weight: 800;
 }
 
-.date-pill { padding: 8px 13px; }
+/* Persistent clock: the hour and the day shape, always on screen.
+   Same day-language as "Tu día" (4 phases, now-marker) so the mind
+   reads one bar everywhere. */
+.head-clock {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 118px;
+  padding: 5px 11px 6px;
+  border: 1px solid rgba(255, 255, 255, .78);
+  background: rgba(255, 255, 255, .48);
+  border-radius: 14px;
+  color: #17617f;
+  font-family: inherit;
+}
+
+.head-clock-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.head-clock-time {
+  font-size: 15px;
+  line-height: 1;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .01em;
+}
+
+.head-clock-date {
+  font-size: 9px;
+  font-weight: 700;
+  color: rgba(23, 97, 127, .72);
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.head-clock-bar {
+  position: relative;
+  display: block;
+  height: 6px;
+  border-radius: 99px;
+  background: linear-gradient(90deg,
+    #3d4e86 0%, #3d4e86 25%,
+    #2fd8cf 25%, #2fd8cf 50%,
+    #ffd94d 50%, #ffd94d 75%,
+    #ff9e4f 75%, #ff9e4f 87.5%,
+    #6f74d8 87.5%, #6f74d8 100%
+  );
+  border: 1px solid rgba(255, 255, 255, .5);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5);
+}
+
+.head-clock-now {
+  position: absolute;
+  top: -1px;
+  bottom: -1px;
+  width: 2px;
+  transform: translateX(-1px);
+  background: #fff;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 1), 0 0 10px rgba(0, 198, 255, .8);
+}
+
+.head-clock-now::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1.5px solid rgba(0, 140, 200, .55);
+  box-shadow: 0 0 6px rgba(255, 255, 255, 1), 0 0 10px rgba(0, 198, 255, .8);
+}
 
 /* Minimized rectangular timer living in the navbar */
 .timer-chip {
