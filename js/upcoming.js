@@ -123,6 +123,7 @@ function showTakeover(item, kind, lateLeave, started = false) {
 
   const isEvent = kind === "event";
   const isReminder = kind === "reminder";
+  const isTask = kind === "task";
   const heading = isReminder ? "🔔 ¡Recuerda!" : !isEvent ? "⏰ ¡Ahora!" : started ? "📅 ¿Estás en eso?" : item.travel_minutes ? "🚌 ¡Sal ya!" : "📅 ¡Ahora!";
   const sub = lateLeave && item.travel_minutes
     ? `Debiste salir hace ${Math.max(1, Math.round(-(new Date(item.start).getTime() - Number(item.travel_minutes) * 60000 - Date.now()) / 60000))} min. Sin culpa: parte ahora.`
@@ -138,13 +139,26 @@ function showTakeover(item, kind, lateLeave, started = false) {
       <h2>${heading}</h2>
       <p>${escapeHtml(item.title)}</p>
       <p style="font-size:11px;opacity:.85">${sub}</p>
-      <div style="display:flex;gap:8px;justify-content:center">
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
         ${isReminder
           ? `<button class="modal-btn modal-btn-primary" id="upcoming-done">Hecho ✓</button>`
           : `<button class="modal-btn modal-btn-primary" id="upcoming-go">Ver</button>`}
         <button class="modal-btn modal-btn-secondary" id="upcoming-snooze">5 min más</button>
         <button class="modal-btn modal-btn-secondary" id="upcoming-drop">Descartar</button>
       </div>
+      ${isTask ? `
+      <div class="takeover-exchange">
+        <button class="takeover-exchange-open" id="upcoming-exchange-open">No la hago ahora, la hago después</button>
+        <div class="takeover-exchange-body" id="upcoming-exchange-body" hidden>
+          <div class="takeover-exchange-label">Intercambio: se va para después y, a cambio, escribes el primer paso pequeño.</div>
+          <input type="text" id="upcoming-first-step" class="takeover-input" maxlength="160" autocomplete="off" placeholder="Primer paso, corto y concreto">
+          <div class="takeover-exchange-actions">
+            <button class="modal-btn modal-btn-primary" id="upcoming-exchange-hour">Guardar y +1 h</button>
+            <button class="modal-btn modal-btn-primary" id="upcoming-exchange-tomorrow">Guardar y mañana</button>
+          </div>
+          <div class="takeover-exchange-hint" id="upcoming-exchange-hint" hidden>Sin el primer paso no hay intercambio: así después partes sin pensar.</div>
+        </div>
+      </div>` : ""}
     </div>
   `;
   overlay.querySelector("#upcoming-go")?.addEventListener("click", () => {
@@ -180,6 +194,59 @@ function showTakeover(item, kind, lateLeave, started = false) {
     stopTakeover();
     hidePill();
   });
+  overlay.querySelector("#upcoming-exchange-open")?.addEventListener("click", () => {
+    const body = overlay.querySelector("#upcoming-exchange-body");
+    if (!body) return;
+    const hint = overlay.querySelector("#upcoming-exchange-hint");
+    if (hint) {
+      hint.textContent = "Sin el primer paso no hay intercambio: así después partes sin pensar.";
+      hint.hidden = true;
+    }
+    body.hidden = false;
+    overlay.querySelector("#upcoming-exchange-open").hidden = true;
+    overlay.querySelector("#upcoming-first-step")?.focus({ preventScroll: true });
+  });
+  const saveExchange = async (when) => {
+    const input = overlay.querySelector("#upcoming-first-step");
+    const step = (input?.value || "").trim();
+    if (!step) {
+      const hint = overlay.querySelector("#upcoming-exchange-hint");
+      if (hint) hint.hidden = false;
+      input?.focus({ preventScroll: true });
+      return;
+    }
+    let at;
+    if (when === "hour") {
+      at = new Date(Date.now() + 60 * 60000);
+    } else {
+      at = new Date(item.scheduled_datetime || Date.now());
+      at.setDate(at.getDate() + 1);
+    }
+    try {
+      const res = await fetch(`/api/tasks/${item.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ first_step: step, scheduled_datetime: at.toISOString() }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    } catch (e) {
+      console.error("No se pudo guardar el intercambio:", e);
+      const hint = overlay.querySelector("#upcoming-exchange-hint");
+      if (hint) {
+        hint.textContent = "No se pudo guardar. Intenta de nuevo.";
+        hint.hidden = false;
+      }
+      return;
+    }
+    stopTakeover();
+    hidePill();
+    if (window.initTasks) await window.initTasks();
+    if (window.initToday) window.initToday();
+    if (window.renderNext) window.renderNext();
+    if (window.initWeek) window.initWeek();
+  };
+  overlay.querySelector("#upcoming-exchange-hour")?.addEventListener("click", () => saveExchange("hour"));
+  overlay.querySelector("#upcoming-exchange-tomorrow")?.addEventListener("click", () => saveExchange("tomorrow"));
   document.body.appendChild(overlay);
   // Focus the primary action: Enter/Space accept natively
   overlay.querySelector("#upcoming-go, #upcoming-done")?.focus({ preventScroll: true });
