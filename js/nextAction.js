@@ -64,12 +64,18 @@ function compare(a, b, evening) {
 export function pickNextAction(tasks, now = new Date()) {
   // "Ahora" es para lo programado: una tarea sin fecha ni fecha límite no
   // es "ahora", es "sin fecha" (se muestra abajo, no como principal).
-  const candidates = (tasks || []).filter(t =>
-    !t.is_completed && (t.scheduled_datetime || t.due_datetime));
-  if (candidates.length === 0) return { current: null, alternatives: [] };
+  // Pero las sin fecha siguen apareciendo en "Otras pendientes", agrupadas
+  // por su motivo (acción padre o evento), para no perderse.
+  const all = (tasks || []).filter(t => !t.is_completed);
+  const scheduled = all.filter(t => t.scheduled_datetime || t.due_datetime);
+  const unscheduled = all.filter(t => !t.scheduled_datetime && !t.due_datetime);
+  if (scheduled.length === 0) return { current: null, alternatives: [] };
   const evening = now.getHours() >= 22;
-  const sorted = [...candidates].sort((a, b) => compare(a, b, evening));
-  return { current: sorted[0], alternatives: sorted.slice(1, 4) };
+  const sortedScheduled = [...scheduled].sort((a, b) => compare(a, b, evening));
+  const sortedUnscheduled = [...unscheduled].sort((a, b) => compare(a, b, evening));
+  const current = sortedScheduled[0];
+  const alternatives = [...sortedScheduled.slice(1, 4), ...sortedUnscheduled].slice(0, 6);
+  return { current, alternatives };
 }
 
 export function initNext() {
