@@ -17,6 +17,7 @@ COPY vendor/ ./server/public/vendor/
 COPY icons/ ./server/public/icons/
 COPY aero-backgrounds/ ./server/public/aero-backgrounds/
 COPY brisa-icons/ ./server/public/brisa-icons/
+COPY manifest.webmanifest sw.js brisa-icon.svg ./server/public/
 
 EXPOSE 3000
 

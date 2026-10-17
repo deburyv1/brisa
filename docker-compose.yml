@@ -28,6 +28,9 @@ services:
       - ./icons:/app/server/public/icons
       - ./aero-backgrounds:/app/server/public/aero-backgrounds
       - ./brisa-icons:/app/server/public/brisa-icons
+      - ./manifest.webmanifest:/app/server/public/manifest.webmanifest
+      - ./sw.js:/app/server/public/sw.js
+      - ./brisa-icon.svg:/app/server/public/brisa-icon.svg
       - ./server/routes:/app/server/routes
       - ./server/index.js:/app/server/index.js
       - ./server/db.js:/app/server/db.js

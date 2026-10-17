@@ -40,6 +40,7 @@ import { initWorkmode, startWorkmode, initTaskNotes } from "./workmode.js";
 import { initAuth } from "./auth.js";
 import { initAccount } from "./account.js";
 import { initQuickCapture } from "./quickCapture.js";
+import { initPwa } from "./pwa.js";
 import { initStudio } from "./studio.js";
 
 window.initTasks = initTasks;
@@ -212,6 +213,7 @@ async function main() {
   initTimer();
   initPlayer();
   initQuickCapture();
+  initPwa();
   initNavigation();
   initNavDrawer();
 

@@ -24,8 +24,9 @@ export function initQuickCapture() {
   const input = overlay.querySelector("#quick-input");
   const saveBtn = overlay.querySelector("#quick-save");
 
-  function open() {
+  function open(text) {
     overlay.style.display = "";
+    input.value = text || "";
     input.focus();
   }
 

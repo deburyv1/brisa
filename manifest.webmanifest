@@ -1,0 +1,23 @@
+{
+  "name": "brisa — tu espacio personal",
+  "short_name": "brisa",
+  "description": "Captura sin fricción. Una cosa a la vez.",
+  "lang": "es",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#cfe6f2",
+  "theme_color": "#12a7e0",
+  "icons": [
+    { "src": "/brisa-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/brisa-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Anotar algo", "short_name": "Anotar", "url": "/?capture=1" }
+  ],
+  "share_target": {
+    "action": "/?share=1",
+    "method": "GET",
+    "params": { "title": "title", "text": "text", "url": "url" }
+  }
+}
