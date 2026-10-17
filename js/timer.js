@@ -3,6 +3,7 @@
    Always at hand, loud finish: sound + flashing + title.
    Sound via Web Audio (no files needed).
    ============================================ */
+import { state } from "./state.js";
 
 let totalSec = 10 * 60;
 let remainingSec = totalSec;
@@ -135,6 +136,14 @@ function beep(times = 4) {
   }
 }
 
+function esc(s) {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 function startAlarm() {
   stopAlarm();
   stopTick();
@@ -143,24 +152,73 @@ function startAlarm() {
   // Sound loop
   beep(4);
   alarmTimers.push(setInterval(() => beep(4), 5000));
+  // Is this timer tied to a task we can mark as done?
+  const linkedId = (window.brisaTimer && window.brisaTimer.linkedTask) ? window.brisaTimer.linkedTask() : null;
+  const linkedTask = linkedId
+    ? ( (state && state.tasks) || [] ).find(t => String(t.id) === String(linkedId) && !t.is_completed)
+    : null;
   // Flashing overlay
   const overlay = document.createElement("div");
   overlay.className = "timer-alarm";
   overlay.id = "timer-alarm";
-  overlay.innerHTML = `
-    <div class="timer-alarm-card">
-      <h2>⏰ ¡Tiempo!</h2>
-      <p>Lo que hiciste cuenta, aunque no esté terminado.</p>
-      <button class="modal-btn modal-btn-primary" id="timer-alarm-stop">Detener</button>
-    </div>
-  `;
-  overlay.querySelector("#timer-alarm-stop")?.addEventListener("click", stopAlarm);
+  if (linkedTask) {
+    overlay.innerHTML = `
+      <div class="timer-alarm-card">
+        <h2>⏰ ¡Tiempo!</h2>
+        <p>¿Hiciste <strong>${esc(linkedTask.title)}</strong>, o seguimos con el plan?</p>
+        <div class="modal-actions" style="justify-content:center;gap:8px;margin-top:12px">
+          <button class="modal-btn modal-btn-primary" id="timer-alarm-done">✓ Lo hice</button>
+          <button class="modal-btn modal-btn-secondary" id="timer-alarm-continue">Seguir con el plan</button>
+        </div>
+      </div>
+    `;
+  } else {
+    overlay.innerHTML = `
+      <div class="timer-alarm-card">
+        <h2>⏰ ¡Tiempo!</h2>
+        <p>Lo que hiciste cuenta, aunque no esté terminado.</p>
+        <button class="modal-btn modal-btn-primary" id="timer-alarm-stop">Detener</button>
+      </div>
+    `;
+  }
+  if (linkedTask) {
+    overlay.querySelector("#timer-alarm-done")?.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      stopAlarm();
+      try {
+        await fetch(`${API_BASE}/tasks/${linkedId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ is_completed: true, completed_at: new Date().toISOString() }),
+        });
+      } catch (err) {
+        console.error("Error completando tarea:", err);
+      }
+      if (window.brisaTimer) window.brisaTimer.clearTask();
+      if (window.initTasks) await window.initTasks();
+      if (window.renderNext) window.renderNext();
+      if (window.initToday) window.initToday();
+      if (window.initWeek) window.initWeek();
+      if (window.initReadiness) window.initReadiness();
+      if (document.querySelector("#focus-modal")?.classList.contains("active")) {
+        if (window.closeFocus) window.closeFocus();
+      }
+    });
+    overlay.querySelector("#timer-alarm-continue")?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      stopAlarm();
+      // La tarea sigue vinculada y el timer queda listo para otro round.
+    });
+  } else {
+    overlay.querySelector("#timer-alarm-stop")?.addEventListener("click", stopAlarm);
+  }
   overlay.addEventListener("click", (e) => {
     if (e.target === overlay) stopAlarm();
   });
   document.body.appendChild(overlay);
-  // Focus the stop button: Enter/Space accept natively from anywhere
-  overlay.querySelector("#timer-alarm-stop")?.focus({ preventScroll: true });
+  // Focus the primary action: Enter/Space accept natively from anywhere
+  const focusBtn = overlay.querySelector("#timer-alarm-done") || overlay.querySelector("#timer-alarm-stop");
+  focusBtn?.focus({ preventScroll: true });
   // Flashing tab title
   let on = false;
   alarmTimers.push(setInterval(() => {
@@ -170,7 +228,7 @@ function startAlarm() {
   // System notification (needs permission, asked on first start)
   try {
     if ("Notification" in window && Notification.permission === "granted") {
-      new Notification("Brisa — ¡Tiempo!", { body: "Tu temporizador terminó." });
+      new Notification("Brisa — ¡Tiempo!", { body: linkedTask ? `¿Hiciste ${linkedTask.title}?` : "Tu temporizador terminó." });
     }
   } catch {
     // ignore
