@@ -90,6 +90,9 @@ export function renderNext() {
   }
 
   const detail = current.first_step || current.description || "Sin detalles todavía.";
+  const parent = current.parent_task_id
+    ? (state.tasks || []).find(t => String(t.id) === String(current.parent_task_id))
+    : null;
   const linkedEvent = current.event_id ? eventById(current.event_id) : null;
   const est = current.estimated_minutes
     ? `~${current.estimated_minutes} min`
