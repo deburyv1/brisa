@@ -86,8 +86,15 @@ export async function openFocus(taskId, opts = {}) {
     // Explicitly stuck: always show the friction menu, even mid-session
     renderFriction(task);
   } else if (window.brisaTimer && window.brisaTimer.hasSession()) {
-    // Paused or running session: continue where left, don't restart friction
-    renderStep(task, {});
+    // Sesión pausada o corriendo: seguir donde se quedó, pero si la
+    // tarea tiene checklist escrito, mostrarlo (no saltar a "Paso").
+    const children = await fetchChildren(task.id);
+    const open = children.filter(c => !c.is_completed);
+    if (open.length > 0) {
+      renderChecklist(task, children);
+    } else {
+      renderStep(task, {});
+    }
   } else {
     await routeByClarity(task);
   }
@@ -184,9 +191,16 @@ function renderFriction(task) {
   });
 }
 
-function handleFriction(task, kind) {
+async function handleFriction(task, kind) {
   if (kind === "ready") {
-    renderStep(task, {});
+    // Si la tarea ya tiene checklist escrito, partir mostrándolo (no saltar a "Paso").
+    const children = await fetchChildren(task.id);
+    const open = children.filter(c => !c.is_completed);
+    if (open.length > 0) {
+      renderChecklist(task, children);
+    } else {
+      renderStep(task, {});
+    }
   } else if (kind === "unknown") {
     renderDefineStep(task);
   } else if (kind === "verify") {
