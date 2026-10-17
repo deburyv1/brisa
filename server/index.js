@@ -73,6 +73,17 @@ app.use('/api/push', pushRouter);
 
 // Serve static files (frontend)
 // Docker: server/public | Local dev: repo root
+
+// Only the app shell is public. Never the server source, the raw
+// music/clips folder, dotfiles or dumps: those leaked over a tunnel.
+const UNSAFE_STATIC = /(^|\/)(server|node_modules|clips)(\/|$)|(^|\/)\.|\.(env|log|xlsx|xls|sql|md|db)$/i;
+app.use((req, res, next) => {
+  if (UNSAFE_STATIC.test(decodeURIComponent(req.path))) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+  next();
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, '..')));
 
