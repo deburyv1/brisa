@@ -44,9 +44,30 @@ async function deleteTask(id) {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
 }
 
+/* Cuando eliges "solo el día" (sin hora), Brisa rellena la hora que falta:
+   23:59 al capturar o posponer, 00:00 desde la ficha de la tarea. Mostrar
+   "23:59" o "00:00" hace pensar que tú pusiste esa hora, así que en ese
+   caso se muestra solo el día: hoy, mañana, ayer. */
+function isDayOnly(d) {
+  const h = d.getHours(), m = d.getMinutes();
+  return (h === 0 && m === 0) || (h === 23 && m === 59);
+}
+
+function dayLabel(d) {
+  const today = new Date();
+  const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const diff = Math.round((target - start) / 86400000);
+  if (diff === 0) return "hoy";
+  if (diff === 1) return "mañana";
+  if (diff === -1) return "ayer";
+  return d.toLocaleDateString("es-ES", { day: "numeric", month: "short" });
+}
+
 function formatDateTime(dt) {
   if (!dt) return "";
   const d = new Date(dt);
+  if (isDayOnly(d)) return dayLabel(d);
   return d.toLocaleDateString("es-ES", { day: "numeric", month: "short" }) + " " +
          d.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
 }

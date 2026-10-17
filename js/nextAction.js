@@ -1,7 +1,7 @@
 /* ============================================
    BRISA - Next Action Module
    Deterministic "what now" selection. No scoring magic:
-   1. Scheduled for today first
+   1. For today first (programada o con fecha límite hoy)
    2. Higher priority next
    3. Shorter estimated time next
    4. In the evening (>= 22:00), long tasks sink
@@ -21,11 +21,16 @@ function isToday(dt) {
 }
 
 function score(task, evening) {
-  const scheduledToday = task.scheduled_datetime && isToday(task.scheduled_datetime) ? 0 : 1;
+  // "Es de hoy" si la programaste para hoy o si vence hoy: una fecha
+  // límite de hoy pesa igual que una hora puesta hoy.
+  const isForToday =
+    (task.scheduled_datetime && isToday(task.scheduled_datetime)) ||
+    (task.due_datetime && isToday(task.due_datetime));
+  const forToday = isForToday ? 0 : 1;
   const longPenalty = evening && (task.estimated_minutes || 0) > 30 ? 1 : 0;
   const priority = PRIORITY_WEIGHT[task.priority] ?? 1;
   const est = task.estimated_minutes ?? 9999;
-  return [scheduledToday, longPenalty, priority, est];
+  return [forToday, longPenalty, priority, est];
 }
 
 function compare(a, b, evening) {
