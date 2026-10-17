@@ -7,12 +7,12 @@ const router = Router();
 router.get('/', async (req, res) => {
   try {
     const params = [];
-    let where = '';
+    const clauses = [`user_id = ${req.userId}`];
     if (req.query.month) {
       params.push(req.query.month);
-      where = `WHERE month = $${params.length}`;
+      clauses.push(`month = $${params.length}`);
     }
-    const result = await pool.query(`SELECT * FROM budgets ${where} ORDER BY category ASC`, params);
+    const result = await pool.query(`SELECT * FROM budgets WHERE ${clauses.join(' AND ')} ORDER BY category ASC`, params);
     res.json(result.rows);
   } catch (err) {
     console.error('Error fetching budgets:', err);
@@ -28,11 +28,11 @@ router.put('/', async (req, res) => {
   }
   try {
     if (amount === null || amount === undefined || amount === '' || Number(amount) <= 0) {
-      await pool.query('DELETE FROM budgets WHERE user_id = 1 AND category = $1 AND month = $2', [category, month]);
+      await pool.query(`DELETE FROM budgets WHERE user_id = ${req.userId} AND category = $1 AND month = $2`, [category, month]);
       return res.json({ success: true, deleted: true });
     }
     const result = await pool.query(
-      `INSERT INTO budgets (user_id, category, month, amount) VALUES (1, $1, $2, $3)
+      `INSERT INTO budgets (user_id, category, month, amount) VALUES (${req.userId}, $1, $2, $3)
        ON CONFLICT (user_id, category, month) DO UPDATE SET amount = $3 RETURNING *`,
       [category, month, Number(amount)]
     );

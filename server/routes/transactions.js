@@ -7,10 +7,13 @@ import pool from '../db.js';
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
-// Linked transaction must exist and belong to the same account
-async function validateLink(pool, linkedId, accountId, res) {
+// Linked transaction must exist and belong to the same user (and account)
+async function validateLink(linkedId, accountId, userId, res) {
   if (!linkedId) return null;
-  const found = await pool.query('SELECT id, account_id FROM transactions WHERE id = $1', [linkedId]);
+  const found = await pool.query(
+    `SELECT id, account_id FROM transactions WHERE id = $1 AND user_id = ${userId}`,
+    [linkedId]
+  );
   if (found.rows.length === 0) {
     res.status(400).json({ error: 'Linked transaction not found' });
     return false;
@@ -25,7 +28,7 @@ async function validateLink(pool, linkedId, accountId, res) {
 // GET /api/transactions?account_id=&uncategorized=1
 router.get('/', async (req, res) => {
   try {
-    const conditions = [];
+    const conditions = [`user_id = ${req.userId}`];
     const params = [];
     if (req.query.account_id) {
       params.push(req.query.account_id);
@@ -34,8 +37,7 @@ router.get('/', async (req, res) => {
     if (req.query.uncategorized === '1') {
       conditions.push('category IS NULL');
     }
-    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
-    const result = await pool.query(`SELECT * FROM transactions ${where} ORDER BY date DESC, id DESC`, params);
+    const result = await pool.query(`SELECT * FROM transactions WHERE ${conditions.join(' AND ')} ORDER BY date DESC, id DESC`, params);
     res.json(result.rows);
   } catch (err) {
     console.error('Error fetching transactions:', err);
@@ -47,7 +49,7 @@ router.get('/', async (req, res) => {
 router.get('/uncategorized-count', async (req, res) => {
   try {
     const params = [];
-    let where = 'WHERE category IS NULL';
+    let where = `WHERE user_id = ${req.userId} AND category IS NULL`;
     if (req.query.account_id) {
       params.push(req.query.account_id);
       where += ` AND account_id = $${params.length}`;
@@ -63,7 +65,7 @@ router.get('/uncategorized-count', async (req, res) => {
 // GET /api/transactions/:id
 router.get('/:id', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM transactions WHERE id = $1', [req.params.id]);
+    const result = await pool.query(`SELECT * FROM transactions WHERE id = $1 AND user_id = ${req.userId}`, [req.params.id]);
     if (result.rows.length === 0) return res.status(404).json({ error: 'Transaction not found' });
     res.json(result.rows[0]);
   } catch (err) {
@@ -82,12 +84,12 @@ router.post('/', async (req, res) => {
   if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
     return res.status(400).json({ error: 'Amount must be a positive number' });
   }
-  const linkId = await validateLink(pool, linked_id, account_id, res);
+  const linkId = await validateLink(linked_id, account_id, req.userId, res);
   if (linkId === false) return;
   const ownerVal = owner === 'other' ? 'other' : 'mine';
   let personVal = person_id || null;
   if (personVal) {
-    const found = await pool.query('SELECT id FROM people WHERE id = $1', [personVal]);
+    const found = await pool.query(`SELECT id FROM people WHERE id = $1 AND user_id = ${req.userId}`, [personVal]);
     if (found.rows.length === 0) {
       return res.status(400).json({ error: 'Person not found' });
     }
@@ -96,7 +98,7 @@ router.post('/', async (req, res) => {
   }
   try {
     const result = await pool.query(
-      'INSERT INTO transactions (user_id, account_id, description, amount, type, category, date, linked_id, is_recurring, alias, status, details, owner, person_id) VALUES (1, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *',
+      `INSERT INTO transactions (user_id, account_id, description, amount, type, category, date, linked_id, is_recurring, alias, status, details, owner, person_id) VALUES (${req.userId}, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`,
       [account_id || null, description.trim(), parsedAmount, type === 'income' ? 'income' : 'expense', category || null, date || new Date().toISOString().slice(0, 10), linkId, is_recurring ? true : false, alias?.trim() || null, status === 'planned' ? 'planned' : 'posted', details?.trim() || null, ownerVal, personVal]
     );
     res.status(201).json(result.rows[0]);
@@ -111,7 +113,7 @@ router.patch('/:id/category', async (req, res) => {
   const { category } = req.body;
   try {
     const result = await pool.query(
-      'UPDATE transactions SET category = $1 WHERE id = $2 RETURNING *',
+      `UPDATE transactions SET category = $1 WHERE id = $2 AND user_id = ${req.userId} RETURNING *`,
       [category || null, req.params.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Transaction not found' });
@@ -135,19 +137,19 @@ router.put('/:id', async (req, res) => {
   if (linked_id && String(linked_id) === String(req.params.id)) {
     return res.status(400).json({ error: 'Cannot link to itself' });
   }
-  const linkId = await validateLink(pool, linked_id, account_id, res);
+  const linkId = await validateLink(linked_id, account_id, req.userId, res);
   if (linkId === false) return;
   const ownerVal = owner === 'other' ? 'other' : 'mine';
   let personVal = person_id || null;
   if (personVal) {
-    const found = await pool.query('SELECT id FROM people WHERE id = $1', [personVal]);
+    const found = await pool.query(`SELECT id FROM people WHERE id = $1 AND user_id = ${req.userId}`, [personVal]);
     if (found.rows.length === 0) {
       return res.status(400).json({ error: 'Person not found' });
     }
   }
   try {
     const result = await pool.query(
-      'UPDATE transactions SET description = $1, amount = $2, type = $3, category = $4, date = $5, account_id = $6, linked_id = $7, is_recurring = $8, alias = $9, status = $10, details = $11, owner = $12, person_id = $13 WHERE id = $14 RETURNING *',
+      `UPDATE transactions SET description = $1, amount = $2, type = $3, category = $4, date = $5, account_id = $6, linked_id = $7, is_recurring = $8, alias = $9, status = $10, details = $11, owner = $12, person_id = $13 WHERE id = $14 AND user_id = ${req.userId} RETURNING *`,
       [description.trim(), parsedAmount, type === 'income' ? 'income' : 'expense', category || null, date || null, account_id || null, linkId, is_recurring ? true : false, alias?.trim() || null, status === 'planned' ? 'planned' : 'posted', details?.trim() || null, ownerVal, personVal, req.params.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Transaction not found' });
@@ -161,7 +163,7 @@ router.put('/:id', async (req, res) => {
 // DELETE /api/transactions/:id
 router.delete('/:id', async (req, res) => {
   try {
-    await pool.query('DELETE FROM transactions WHERE id = $1', [req.params.id]);
+    await pool.query(`DELETE FROM transactions WHERE id = $1 AND user_id = ${req.userId}`, [req.params.id]);
     res.json({ success: true });
   } catch (err) {
     console.error('Error deleting transaction:', err);
@@ -182,16 +184,21 @@ router.post('/import', upload.single('file'), async (req, res) => {
   try {
     const fileHash = crypto.createHash('sha256').update(req.file.buffer).digest('hex');
 
+    // The account must belong to the session user.
+    const accountRes = await pool.query(`SELECT * FROM accounts WHERE id = $1 AND user_id = ${req.userId}`, [accountId]);
+    if (accountRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Account not found' });
+    }
+
     // Same exact file already uploaded for this account?
     const prior = await pool.query(
-      'SELECT * FROM imports WHERE account_id = $1 AND file_hash = $2 ORDER BY created_at DESC LIMIT 1',
+      `SELECT * FROM imports WHERE account_id = $1 AND file_hash = $2 AND user_id = ${req.userId} ORDER BY created_at DESC LIMIT 1`,
       [accountId, fileHash]
     );
     if (prior.rows.length > 0 && !force) {
       return res.status(409).json({ duplicate_file: true, import: prior.rows[0] });
     }
 
-    const accountRes = await pool.query('SELECT * FROM accounts WHERE id = $1', [accountId]);
     const initialDate = accountRes.rows[0]?.initial_date
       ? String(accountRes.rows[0].initial_date).slice(0, 10)
       : null;
@@ -209,7 +216,7 @@ router.post('/import', upload.single('file'), async (req, res) => {
     }
 
     const importRes = await pool.query(
-      'INSERT INTO imports (user_id, account_id, filename, file_hash) VALUES (1, $1, $2, $3) RETURNING *',
+      `INSERT INTO imports (user_id, account_id, filename, file_hash) VALUES (${req.userId}, $1, $2, $3) RETURNING *`,
       [accountId, req.file.originalname || 'cartola.xlsx', fileHash]
     );
     const importId = importRes.rows[0].id;
@@ -239,20 +246,20 @@ router.post('/import', upload.single('file'), async (req, res) => {
 
       // Dedupe: same account + date + description + amount
       const existing = await pool.query(
-        'SELECT id FROM transactions WHERE account_id = $1 AND date = $2 AND description = $3 AND amount = $4 LIMIT 1',
+        `SELECT id FROM transactions WHERE account_id = $1 AND date = $2 AND description = $3 AND amount = $4 AND user_id = ${req.userId} LIMIT 1`,
         [accountId, date, detail, amount]
       );
       if (existing.rows.length > 0) { duplicates++; continue; }
 
       await pool.query(
-        'INSERT INTO transactions (user_id, account_id, import_id, description, amount, type, category, date) VALUES (1, $1, $2, $3, $4, $5, NULL, $6)',
+        `INSERT INTO transactions (user_id, account_id, import_id, description, amount, type, category, date) VALUES (${req.userId}, $1, $2, $3, $4, $5, NULL, $6)`,
         [accountId, importId, detail, amount, type, date]
       );
       imported++;
     }
 
     await pool.query(
-      'UPDATE imports SET imported = $1, duplicates = $2, skipped = $3, before_initial = $4 WHERE id = $5',
+      `UPDATE imports SET imported = $1, duplicates = $2, skipped = $3, before_initial = $4 WHERE id = $5 AND user_id = ${req.userId}`,
       [imported, duplicates, skipped, beforeInitial, importId]
     );
 

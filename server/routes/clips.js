@@ -17,6 +17,8 @@ function baseTitle(file) {
 }
 
 function safeName(file) {
+  // El nombre en disco incluye el usuario: los archivos de cada uno
+  // quedan separados aunque compartan la carpeta del volumen.
   const base = path.basename(file).replace(/[^\wáéíóúñüÁÉÍÓÚÑÜ .()-]/gi, '_');
   return `${Date.now()}-${base}`;
 }
@@ -24,7 +26,7 @@ function safeName(file) {
 // GET /api/clips — library
 router.get('/', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM clips ORDER BY created_at DESC');
+    const result = await pool.query(`SELECT * FROM clips WHERE user_id = ${req.userId} ORDER BY created_at DESC`);
     res.json(result.rows);
   } catch (err) {
     console.error('Error fetching clips:', err);
@@ -41,7 +43,7 @@ router.get('/scan', async (req, res) => {
       .filter(e => e.isFile() && AUDIO_EXT.has(path.extname(e.name).toLowerCase()))
       .map(e => e.name)
       .sort();
-    const imported = await pool.query('SELECT source_path FROM clips');
+    const imported = await pool.query(`SELECT source_path FROM clips WHERE user_id = ${req.userId}`);
     const known = new Set(imported.rows.map(r => r.source_path));
     res.json({
       watched: true,
@@ -67,7 +69,7 @@ router.post('/import', async (req, res) => {
     const filename = safeName(String(name));
     await fs.copyFile(src, path.join(CLIPS_DIR, filename));
     const result = await pool.query(
-      'INSERT INTO clips (user_id, title, filename, source_path) VALUES (1, $1, $2, $3) RETURNING *',
+      `INSERT INTO clips (user_id, title, filename, source_path) VALUES (${req.userId}, $1, $2, $3) RETURNING *`,
       [baseTitle(String(name)), filename, src]
     );
     res.status(201).json(result.rows[0]);
@@ -80,7 +82,7 @@ router.post('/import', async (req, res) => {
 // GET /api/clips/:id/audio — stream the stored copy
 router.get('/:id/audio', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM clips WHERE id = $1', [req.params.id]);
+    const result = await pool.query(`SELECT * FROM clips WHERE id = $1 AND user_id = ${req.userId}`, [req.params.id]);
     if (result.rows.length === 0) return res.status(404).json({ error: 'Clip not found' });
     const file = path.join(CLIPS_DIR, path.basename(result.rows[0].filename));
     if (!existsSync(file)) return res.status(404).json({ error: 'File missing' });
@@ -94,9 +96,9 @@ router.get('/:id/audio', async (req, res) => {
 // DELETE /api/clips/:id — row + stored copy
 router.delete('/:id', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM clips WHERE id = $1', [req.params.id]);
+    const result = await pool.query(`SELECT * FROM clips WHERE id = $1 AND user_id = ${req.userId}`, [req.params.id]);
     if (result.rows.length === 0) return res.status(404).json({ error: 'Clip not found' });
-    await pool.query('DELETE FROM clips WHERE id = $1', [req.params.id]);
+    await pool.query(`DELETE FROM clips WHERE id = $1 AND user_id = ${req.userId}`, [req.params.id]);
     try {
       await fs.unlink(path.join(CLIPS_DIR, path.basename(result.rows[0].filename)));
     } catch {

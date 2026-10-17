@@ -1,9 +1,9 @@
 import pool from './db.js';
-import { sendToAll, pushReady } from './routes/push.js';
+import { sendToUser, pushReady } from './routes/push.js';
 
 /* Server-side notifier: runs even when no Brisa tab is open.
    Every minute it looks for reminders that came due and events
-   starting soon, and pushes them to the phone. */
+   starting soon, and pushes each one to its OWNER's devices only. */
 
 const TICK_MS = 60 * 1000;
 const EVENT_LEAD_MIN = 15;
@@ -12,13 +12,13 @@ async function tick() {
   if (!pushReady()) return;
   try {
     const dueReminders = await pool.query(
-      `SELECT id, title, description FROM reminders
+      `SELECT id, user_id, title, description FROM reminders
        WHERE done = FALSE AND remind_at IS NOT NULL
          AND remind_at <= now() AND notified_at IS NULL
        ORDER BY remind_at ASC LIMIT 20`
     );
     for (const r of dueReminders.rows) {
-      await sendToAll({
+      await sendToUser(r.user_id, {
         title: 'Recordatorio',
         body: r.title,
         tag: 'rem-' + r.id,
@@ -28,14 +28,14 @@ async function tick() {
     }
 
     const soonEvents = await pool.query(
-      `SELECT id, title, "start" FROM events
+      `SELECT id, user_id, title, "start" FROM events
        WHERE status = 'open' AND notified_at IS NULL
          AND "start" > now() AND "start" <= now() + ($1 || ' minutes')::interval
        LIMIT 20`,
       [EVENT_LEAD_MIN]
     );
     for (const e of soonEvents.rows) {
-      await sendToAll({
+      await sendToUser(e.user_id, {
         title: `En ${EVENT_LEAD_MIN} min`,
         body: e.title,
         tag: 'ev-' + e.id,

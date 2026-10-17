@@ -6,8 +6,11 @@ const router = Router();
 // GET /api/reminders?pending=1
 router.get('/', async (req, res) => {
   try {
-    const where = req.query.pending === '1' ? 'WHERE done = FALSE' : '';
-    const result = await pool.query(`SELECT * FROM reminders ${where} ORDER BY remind_at ASC NULLS LAST, created_at DESC`);
+    const clauses = [`user_id = ${req.userId}`];
+    if (req.query.pending === '1') clauses.push('done = FALSE');
+    const result = await pool.query(
+      `SELECT * FROM reminders WHERE ${clauses.join(' AND ')} ORDER BY remind_at ASC NULLS LAST, created_at DESC`
+    );
     res.json(result.rows);
   } catch (err) {
     console.error('Error fetching reminders:', err);
@@ -23,7 +26,7 @@ router.post('/', async (req, res) => {
   }
   try {
     const result = await pool.query(
-      'INSERT INTO reminders (user_id, title, description, remind_at, entry_id, extreme) VALUES (1, $1, $2, $3, $4, $5) RETURNING *',
+      `INSERT INTO reminders (user_id, title, description, remind_at, entry_id, extreme) VALUES (${req.userId}, $1, $2, $3, $4, $5) RETURNING *`,
       [title.trim(), description || null, remind_at || null, entry_id || null, extreme ? true : false]
     );
     res.status(201).json(result.rows[0]);
@@ -40,7 +43,7 @@ router.patch('/:id', async (req, res) => {
     const result = await pool.query(
       `UPDATE reminders
        SET done = $1, notified_at = CASE WHEN $1 THEN notified_at ELSE NULL END
-       WHERE id = $2 RETURNING *`,
+       WHERE id = $2 AND user_id = ${req.userId} RETURNING *`,
       [req.body.done ? true : false, req.params.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Reminder not found' });
@@ -54,7 +57,8 @@ router.patch('/:id', async (req, res) => {
 // DELETE /api/reminders/:id
 router.delete('/:id', async (req, res) => {
   try {
-    await pool.query('DELETE FROM reminders WHERE id = $1', [req.params.id]);
+    const result = await pool.query(`DELETE FROM reminders WHERE id = $1 AND user_id = ${req.userId}`, [req.params.id]);
+    if (result.rowCount === 0) return res.status(404).json({ error: 'Reminder not found' });
     res.json({ success: true });
   } catch (err) {
     console.error('Error deleting reminder:', err);

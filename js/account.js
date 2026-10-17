@@ -12,6 +12,27 @@ export function initAccount() {
   maybeGate();
 }
 
+const CACHE_USER_KEY = "brisa.cacheUser";
+// Datos de una persona guardados en el navegador (no en el servidor).
+const USER_LOCAL_KEYS = ["brisa.avatar", "brisa.bankCheck", "brisa.timerTask", "brisa.timerRun"];
+
+/* Si en este navegador entra otra cuenta, se limpian los cachés de la
+   anterior para que no alcance a ver ni su foto, ni su saldo de banco. */
+function syncUserCaches(userId) {
+  let prev;
+  try { prev = localStorage.getItem(CACHE_USER_KEY); } catch { return; }
+  const now = userId == null ? "" : String(userId);
+  if (prev === now) return;
+  for (const k of USER_LOCAL_KEYS) {
+    try { localStorage.removeItem(k); } catch { /* ignore */ }
+  }
+  try { sessionStorage.clear(); } catch { /* ignore */ }
+  try {
+    if (now) localStorage.setItem(CACHE_USER_KEY, now);
+    else localStorage.removeItem(CACHE_USER_KEY);
+  } catch { /* ignore */ }
+}
+
 async function fetchStatus() {
   try {
     return await fetch(`${API_BASE}/status`).then(r => r.json());
@@ -22,6 +43,7 @@ async function fetchStatus() {
 
 async function renderAccount(section) {
   const data = await fetchStatus();
+  syncUserCaches(data.user?.id);
   if (data.authenticated && data.user) {
     const exp = data.expires
       ? new Date(data.expires).toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" })
@@ -45,6 +67,7 @@ async function renderAccount(section) {
       </div>`;
     section.querySelector("#account-logout")?.addEventListener("click", async () => {
       await fetch(`${API_BASE}/logout`, { method: "POST" });
+      syncUserCaches(null);
       renderAccount(section);
       if (window.initAuth) window.initAuth();
       maybeGate();

@@ -55,7 +55,7 @@ router.get('/callback', async (req, res) => {
 
     await pool.query(
       `INSERT INTO spotify_tokens (user_id, access_token, refresh_token, expires_at, spotify_user_id, spotify_email)
-       VALUES (1, $1, $2, NOW() + INTERVAL '1 hour', $3, $4)
+       VALUES (${req.userId}, $1, $2, NOW() + INTERVAL '1 hour', $3, $4)
        ON CONFLICT (user_id) DO UPDATE SET access_token = $1, refresh_token = $2, expires_at = NOW() + INTERVAL '1 hour'`,
       [tokenData.access_token, tokenData.refresh_token, userData.id, userData.email]
     );
@@ -69,7 +69,7 @@ router.get('/callback', async (req, res) => {
 
 router.get('/status', async (req, res) => {
   try {
-    const result = await pool.query('SELECT access_token, expires_at FROM spotify_tokens WHERE user_id = 1');
+    const result = await pool.query(`SELECT access_token, expires_at FROM spotify_tokens WHERE user_id = ${req.userId}`);
     if (result.rows.length === 0) return res.json({ authenticated: false });
     const isExpired = new Date(result.rows[0].expires_at) < new Date();
     res.json({ authenticated: !isExpired });
@@ -80,7 +80,7 @@ router.get('/status', async (req, res) => {
 
 router.post('/refresh', async (req, res) => {
   try {
-    const result = await pool.query('SELECT refresh_token FROM spotify_tokens WHERE user_id = 1');
+    const result = await pool.query(`SELECT refresh_token FROM spotify_tokens WHERE user_id = ${req.userId}`);
     if (result.rows.length === 0) return res.status(401).json({ error: 'No refresh token' });
 
     const tokenRes = await fetch('https://accounts.spotify.com/api/token', {
@@ -95,7 +95,7 @@ router.post('/refresh', async (req, res) => {
     if (!tokenRes.ok) throw new Error(tokenData.error_description || 'Token refresh failed');
 
     await pool.query(
-      'UPDATE spotify_tokens SET access_token = $1, expires_at = NOW() + INTERVAL \'1 hour\' WHERE user_id = 1',
+      `UPDATE spotify_tokens SET access_token = $1, expires_at = NOW() + INTERVAL '1 hour' WHERE user_id = ${req.userId}`,
       [tokenData.access_token]
     );
     res.json({ success: true });

@@ -27,7 +27,7 @@ router.get('/', async (req, res) => {
   try {
     const anchor = req.query.date || dateKey(new Date());
     const habits = await pool.query(
-      'SELECT * FROM habits WHERE user_id = 1 AND active = TRUE ORDER BY position ASC, id ASC'
+      `SELECT * FROM habits WHERE user_id = ${req.userId} AND active = TRUE ORDER BY position ASC, id ASC`
     );
     const monday = mondayOf(anchor);
     const weekKeys = [...Array(7)].map((_, i) => {
@@ -60,7 +60,7 @@ router.post('/', async (req, res) => {
   }
   try {
     const result = await pool.query(
-      'INSERT INTO habits (user_id, name, description, icon) VALUES (1, $1, $2, $3) RETURNING *',
+      `INSERT INTO habits (user_id, name, description, icon) VALUES (${req.userId}, $1, $2, $3) RETURNING *`,
       [name.trim().slice(0, 100), description?.trim() || null, icon?.trim().slice(0, 16) || null]
     );
     res.status(201).json(result.rows[0]);
@@ -98,7 +98,7 @@ router.put('/:id', async (req, res) => {
     }
     params.push(req.params.id);
     const result = await pool.query(
-      `UPDATE habits SET ${sets.join(', ')} WHERE id = $${params.length} AND user_id = 1 RETURNING *`,
+      `UPDATE habits SET ${sets.join(', ')} WHERE id = $${params.length} AND user_id = ${req.userId} RETURNING *`,
       params
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Habit not found' });
@@ -112,7 +112,8 @@ router.put('/:id', async (req, res) => {
 // DELETE /api/habits/:id
 router.delete('/:id', async (req, res) => {
   try {
-    await pool.query('DELETE FROM habits WHERE id = $1 AND user_id = 1', [req.params.id]);
+    const result = await pool.query(`DELETE FROM habits WHERE id = $1 AND user_id = ${req.userId}`, [req.params.id]);
+    if (result.rowCount === 0) return res.status(404).json({ error: 'Habit not found' });
     res.json({ success: true });
   } catch (err) {
     console.error('Error deleting habit:', err);
@@ -126,6 +127,8 @@ router.post('/:id/check', async (req, res) => {
   const done = !!req.body.done;
   const day = req.body.date || dateKey(new Date());
   try {
+    const own = await pool.query(`SELECT 1 FROM habits WHERE id = $1 AND user_id = ${req.userId}`, [req.params.id]);
+    if (own.rows.length === 0) return res.status(404).json({ error: 'Habit not found' });
     if (done) {
       await pool.query(
         'INSERT INTO habit_completions (habit_id, day) VALUES ($1, $2) ON CONFLICT DO NOTHING',
@@ -134,7 +137,7 @@ router.post('/:id/check', async (req, res) => {
       await pool.query(
         `INSERT INTO readiness_state (day, item_id)
          SELECT $2, id FROM readiness_items
-         WHERE source_type = 'habit' AND source_id = $1
+         WHERE source_type = 'habit' AND source_id = $1 AND user_id = ${req.userId}
          ON CONFLICT DO NOTHING`,
         [req.params.id, day]
       ).catch(e => console.error('Error syncing readiness:', e));

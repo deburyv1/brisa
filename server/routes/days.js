@@ -9,9 +9,9 @@ router.get('/', async (req, res) => {
   if (!day) return res.status(400).json({ error: 'date is required' });
   try {
     const [misses, closed, order] = await Promise.all([
-      pool.query('SELECT kind, ref_id FROM day_misses WHERE day = $1', [day]),
-      pool.query('SELECT day FROM day_closures WHERE day = $1', [day]),
-      pool.query('SELECT kind, ref_id FROM day_order WHERE day = $1 ORDER BY position ASC', [day]),
+      pool.query(`SELECT kind, ref_id FROM day_misses WHERE day = $1 AND user_id = ${req.userId}`, [day]),
+      pool.query(`SELECT day FROM day_closures WHERE day = $1 AND user_id = ${req.userId}`, [day]),
+      pool.query(`SELECT kind, ref_id FROM day_order WHERE day = $1 AND user_id = ${req.userId} ORDER BY position ASC`, [day]),
     ]);
     res.json({ misses: misses.rows, closed: closed.rows.length > 0, order: order.rows });
   } catch (err) {
@@ -28,7 +28,7 @@ router.post('/miss', async (req, res) => {
   }
   try {
     await pool.query(
-      'INSERT INTO day_misses (day, kind, ref_id) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
+      `INSERT INTO day_misses (user_id, day, kind, ref_id) VALUES (${req.userId}, $1, $2, $3) ON CONFLICT DO NOTHING`,
       [day, kind, ref_id]
     );
     res.json({ success: true });
@@ -45,7 +45,7 @@ router.delete('/miss', async (req, res) => {
     return res.status(400).json({ error: 'day, kind and ref_id are required' });
   }
   try {
-    await pool.query('DELETE FROM day_misses WHERE day = $1 AND kind = $2 AND ref_id = $3', [day, kind, ref_id]);
+    await pool.query(`DELETE FROM day_misses WHERE day = $1 AND kind = $2 AND ref_id = $3 AND user_id = ${req.userId}`, [day, kind, ref_id]);
     res.json({ success: true });
   } catch (err) {
     console.error('Error unmarking miss:', err);
@@ -63,23 +63,23 @@ router.post('/snapshot', async (req, res) => {
   try {
     await client.query('BEGIN');
     const habits = await client.query(
-      'SELECT id, EXISTS(SELECT 1 FROM habit_completions WHERE habit_id = habits.id AND day = $1) AS was_done FROM habits WHERE active = TRUE',
+      `SELECT id, EXISTS(SELECT 1 FROM habit_completions WHERE habit_id = habits.id AND day = $1) AS was_done FROM habits WHERE active = TRUE AND user_id = ${req.userId}`,
       [day]
     );
     const tasks = await client.query(
-      'SELECT id, is_completed AS was_done FROM tasks WHERE scheduled_datetime::date = $1 OR due_datetime::date = $1',
+      `SELECT id, is_completed AS was_done FROM tasks WHERE user_id = ${req.userId} AND (scheduled_datetime::date = $1 OR due_datetime::date = $1)`,
       [day]
     );
-    await client.query('DELETE FROM day_close_snapshots WHERE day = $1', [day]);
+    await client.query(`DELETE FROM day_close_snapshots WHERE day = $1 AND user_id = ${req.userId}`, [day]);
     for (const h of habits.rows) {
       await client.query(
-        'INSERT INTO day_close_snapshots (day, kind, ref_id, was_done) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING',
+        `INSERT INTO day_close_snapshots (user_id, day, kind, ref_id, was_done) VALUES (${req.userId}, $1, $2, $3, $4) ON CONFLICT DO NOTHING`,
         [day, 'habit', h.id, h.was_done]
       );
     }
     for (const t of tasks.rows) {
       await client.query(
-        'INSERT INTO day_close_snapshots (day, kind, ref_id, was_done) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING',
+        `INSERT INTO day_close_snapshots (user_id, day, kind, ref_id, was_done) VALUES (${req.userId}, $1, $2, $3, $4) ON CONFLICT DO NOTHING`,
         [day, 'task', t.id, t.was_done]
       );
     }
@@ -100,7 +100,10 @@ router.post('/close', async (req, res) => {
   const { day } = req.body;
   if (!day) return res.status(400).json({ error: 'day is required' });
   try {
-    await pool.query('INSERT INTO day_closures (day) VALUES ($1) ON CONFLICT DO NOTHING', [day]);
+    await pool.query(
+      `INSERT INTO day_closures (user_id, day) VALUES (${req.userId}, $1) ON CONFLICT DO NOTHING`,
+      [day]
+    );
     res.json({ success: true });
   } catch (err) {
     console.error('Error closing day:', err);
@@ -120,10 +123,10 @@ router.post('/order', async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    await client.query('DELETE FROM day_order WHERE day = $1', [day]);
+    await client.query(`DELETE FROM day_order WHERE day = $1 AND user_id = ${req.userId}`, [day]);
     for (let i = 0; i < clean.length; i++) {
       await client.query(
-        'INSERT INTO day_order (day, kind, ref_id, position) VALUES ($1, $2, $3, $4)',
+        `INSERT INTO day_order (user_id, day, kind, ref_id, position) VALUES (${req.userId}, $1, $2, $3, $4)`,
         [day, clean[i].kind, Number(clean[i].ref_id), i]
       );
     }
@@ -149,7 +152,7 @@ router.delete('/close', async (req, res) => {
     await client.query('BEGIN');
     if (restore !== false) {
       const snap = await client.query(
-        'SELECT kind, ref_id, was_done FROM day_close_snapshots WHERE day = $1',
+        `SELECT kind, ref_id, was_done FROM day_close_snapshots WHERE day = $1 AND user_id = ${req.userId}`,
         [day]
       );
       for (const row of snap.rows) {
@@ -167,13 +170,13 @@ router.delete('/close', async (req, res) => {
           }
         } else if (row.kind === 'task') {
           await client.query(
-            'UPDATE tasks SET is_completed = $1, completed_at = CASE WHEN $1 THEN COALESCE(completed_at, NOW()) ELSE NULL END WHERE id = $2',
+            `UPDATE tasks SET is_completed = $1, completed_at = CASE WHEN $1 THEN COALESCE(completed_at, NOW()) ELSE NULL END WHERE id = $2 AND user_id = ${req.userId}`,
             [row.was_done, row.ref_id]
           );
         }
       }
     }
-    await client.query('DELETE FROM day_closures WHERE day = $1', [day]);
+    await client.query(`DELETE FROM day_closures WHERE day = $1 AND user_id = ${req.userId}`, [day]);
     await client.query('COMMIT');
     res.json({ success: true });
   } catch (err) {

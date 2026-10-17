@@ -6,7 +6,7 @@ const router = Router();
 // GET /api/shopping
 router.get('/', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM shopping_items ORDER BY is_purchased ASC, created_at DESC');
+    const result = await pool.query(`SELECT * FROM shopping_items WHERE user_id = ${req.userId} ORDER BY is_purchased ASC, created_at DESC`);
     res.json(result.rows);
   } catch (err) {
     console.error('Error fetching shopping items:', err);
@@ -22,7 +22,7 @@ router.post('/', async (req, res) => {
   }
   try {
     const result = await pool.query(
-      'INSERT INTO shopping_items (user_id, description, estimated_amount, quantity, category) VALUES (1, $1, $2, $3, $4) RETURNING *',
+      `INSERT INTO shopping_items (user_id, description, estimated_amount, quantity, category) VALUES (${req.userId}, $1, $2, $3, $4) RETURNING *`,
       [description.trim(), estimated_amount || null, quantity || 1, category || null]
     );
     res.status(201).json(result.rows[0]);
@@ -41,7 +41,7 @@ router.put('/:id', async (req, res) => {
         estimated_amount = $2, quantity = COALESCE($3, quantity), category = $4,
         is_purchased = COALESCE($5, is_purchased),
         purchased_at = CASE WHEN $5 = TRUE THEN CURRENT_TIMESTAMP WHEN $5 = FALSE THEN NULL ELSE purchased_at END
-       WHERE id = $6 RETURNING *`,
+       WHERE id = $6 AND user_id = ${req.userId} RETURNING *`,
       [description?.trim() || null, estimated_amount || null, quantity || null, category || null,
        is_purchased == null ? null : !!is_purchased, req.params.id]
     );
@@ -56,7 +56,8 @@ router.put('/:id', async (req, res) => {
 // DELETE /api/shopping/:id
 router.delete('/:id', async (req, res) => {
   try {
-    await pool.query('DELETE FROM shopping_items WHERE id = $1', [req.params.id]);
+    const result = await pool.query(`DELETE FROM shopping_items WHERE id = $1 AND user_id = ${req.userId}`, [req.params.id]);
+    if (result.rowCount === 0) return res.status(404).json({ error: 'Item not found' });
     res.json({ success: true });
   } catch (err) {
     console.error('Error deleting item:', err);
@@ -70,7 +71,7 @@ router.delete('/', async (req, res) => {
     return res.status(400).json({ error: 'Use ?purchased=1' });
   }
   try {
-    const result = await pool.query('DELETE FROM shopping_items WHERE is_purchased = TRUE AND user_id = 1');
+    const result = await pool.query(`DELETE FROM shopping_items WHERE is_purchased = TRUE AND user_id = ${req.userId}`);
     res.json({ success: true, deleted: result.rowCount });
   } catch (err) {
     console.error('Error clearing purchased:', err);

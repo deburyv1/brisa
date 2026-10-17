@@ -7,12 +7,12 @@ const router = Router();
 router.get('/', async (req, res) => {
   try {
     const params = [];
-    let where = '';
+    const clauses = [`user_id = ${req.userId}`];
     if (req.query.date) {
       params.push(req.query.date);
-      where = `WHERE start::date = $${params.length}::date`;
+      clauses.push(`start::date = $${params.length}::date`);
     }
-    const result = await pool.query(`SELECT * FROM events ${where} ORDER BY start ASC`, params);
+    const result = await pool.query(`SELECT * FROM events WHERE ${clauses.join(' AND ')} ORDER BY start ASC`, params);
     res.json(result.rows);
   } catch (err) {
     console.error('Error fetching events:', err);
@@ -23,7 +23,7 @@ router.get('/', async (req, res) => {
 // GET /api/events/:id
 router.get('/:id', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM events WHERE id = $1', [req.params.id]);
+    const result = await pool.query(`SELECT * FROM events WHERE id = $1 AND user_id = ${req.userId}`, [req.params.id]);
     if (result.rows.length === 0) return res.status(404).json({ error: 'Event not found' });
     res.json(result.rows[0]);
   } catch (err) {
@@ -43,7 +43,7 @@ router.post('/', async (req, res) => {
   }
   try {
     const result = await pool.query(
-      'INSERT INTO events (user_id, title, description, start, "end", location, entry_id, travel_minutes) VALUES (1, $1, $2, $3, $4, $5, $6, $7) RETURNING *',
+      `INSERT INTO events (user_id, title, description, start, "end", location, entry_id, travel_minutes) VALUES (${req.userId}, $1, $2, $3, $4, $5, $6, $7) RETURNING *`,
       [title.trim(), description || null, start, end || null, location || null, entry_id || null, travel_minutes || null]
     );
     res.status(201).json(result.rows[0]);
@@ -81,7 +81,7 @@ router.put('/:id', async (req, res) => {
   try {
     values.push(req.params.id);
     const result = await pool.query(
-      `UPDATE events SET ${sets.join(', ')} WHERE id = $${values.length} RETURNING *`,
+      `UPDATE events SET ${sets.join(', ')} WHERE id = $${values.length} AND user_id = ${req.userId} RETURNING *`,
       values
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Event not found' });
@@ -95,7 +95,8 @@ router.put('/:id', async (req, res) => {
 // DELETE /api/events/:id
 router.delete('/:id', async (req, res) => {
   try {
-    await pool.query('DELETE FROM events WHERE id = $1', [req.params.id]);
+    const result = await pool.query(`DELETE FROM events WHERE id = $1 AND user_id = ${req.userId}`, [req.params.id]);
+    if (result.rowCount === 0) return res.status(404).json({ error: 'Event not found' });
     res.json({ success: true });
   } catch (err) {
     console.error('Error deleting event:', err);

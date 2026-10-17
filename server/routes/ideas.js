@@ -6,7 +6,7 @@ const router = Router();
 // GET /api/ideas
 router.get('/', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM ideas ORDER BY created_at DESC');
+    const result = await pool.query(`SELECT * FROM ideas WHERE user_id = ${req.userId} ORDER BY created_at DESC`);
     res.json(result.rows);
   } catch (err) {
     console.error('Error fetching ideas:', err);
@@ -22,7 +22,7 @@ router.post('/', async (req, res) => {
   }
   try {
     const result = await pool.query(
-      'INSERT INTO ideas (user_id, title, description, entry_id) VALUES (1, $1, $2, $3) RETURNING *',
+      `INSERT INTO ideas (user_id, title, description, entry_id) VALUES (${req.userId}, $1, $2, $3) RETURNING *`,
       [title.trim(), description || null, entry_id || null]
     );
     res.status(201).json(result.rows[0]);
@@ -63,7 +63,7 @@ router.put('/:id', async (req, res) => {
   try {
     values.push(req.params.id);
     const result = await pool.query(
-      `UPDATE ideas SET ${sets.join(', ')} WHERE id = $${values.length} RETURNING *`,
+      `UPDATE ideas SET ${sets.join(', ')} WHERE id = $${values.length} AND user_id = ${req.userId} RETURNING *`,
       values
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Idea not found' });
@@ -77,7 +77,8 @@ router.put('/:id', async (req, res) => {
 // DELETE /api/ideas/:id
 router.delete('/:id', async (req, res) => {
   try {
-    await pool.query('DELETE FROM ideas WHERE id = $1', [req.params.id]);
+    const result = await pool.query(`DELETE FROM ideas WHERE id = $1 AND user_id = ${req.userId}`, [req.params.id]);
+    if (result.rowCount === 0) return res.status(404).json({ error: 'Idea not found' });
     res.json({ success: true });
   } catch (err) {
     console.error('Error deleting idea:', err);

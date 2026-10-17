@@ -81,10 +81,22 @@ export async function requireAuth(req, res, next) {
     const { user } = await getSessionUser(req);
     if (!user) return res.status(401).json({ error: 'No autorizado' });
     req.user = user;
+    req.userId = Number(user.id);
     next();
   } catch {
     res.status(401).json({ error: 'No autorizado' });
   }
+}
+
+/* La clave es la llave maestra del dueño: entra siempre al primer
+   usuario creado (el que tiene los datos), no a un usuario nuevo. */
+async function ownerUserId() {
+  const existing = await pool.query('SELECT id FROM users ORDER BY id ASC LIMIT 1');
+  if (existing.rows.length) return existing.rows[0].id;
+  const created = await pool.query(
+    `INSERT INTO users (google_email, name) VALUES ('local@brisa', 'Leonardo') RETURNING id`
+  );
+  return created.rows[0].id;
 }
 
 async function newSession(res, userId) {
@@ -105,14 +117,10 @@ router.post('/key', async (req, res) => {
   const ok = given.length === expected.length && crypto.timingSafeEqual(given, expected);
   if (!ok) return res.status(401).json({ error: 'Clave incorrecta' });
   try {
-    const u = await pool.query(
-      `INSERT INTO users (google_email, name) VALUES ('local@brisa', 'Leonardo')
-       ON CONFLICT (google_email) DO UPDATE SET name = users.name
-       RETURNING *`
-    );
-    const user = u.rows[0];
-    await newSession(res, user.id);
-    res.json({ ok: true, user: { id: user.id, name: user.name } });
+    const userId = await ownerUserId();
+    const u = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
+    await newSession(res, userId);
+    res.json({ ok: true, user: { id: userId, name: u.rows[0]?.name || 'Brisa' } });
   } catch (err) {
     console.error('Error en login por clave:', err);
     res.status(500).json({ error: 'Authentication failed' });

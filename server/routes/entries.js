@@ -7,7 +7,7 @@ const router = Router();
 router.get('/', async (req, res) => {
   try {
     const params = [];
-    const clauses = [];
+    const clauses = [`user_id = ${req.userId}`];
     if (req.query.status) {
       params.push(req.query.status);
       clauses.push(`status = $${params.length}`);
@@ -16,8 +16,7 @@ router.get('/', async (req, res) => {
       params.push(req.query.target_type, Number(req.query.target_id));
       clauses.push(`target_type = $${params.length - 1} AND target_id = $${params.length}`);
     }
-    const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
-    const result = await pool.query(`SELECT * FROM entries ${where} ORDER BY created_at DESC`, params);
+    const result = await pool.query(`SELECT * FROM entries WHERE ${clauses.join(' AND ')} ORDER BY created_at DESC`, params);
     res.json(result.rows);
   } catch (err) {
     console.error('Error fetching entries:', err);
@@ -33,7 +32,7 @@ router.post('/', async (req, res) => {
   }
   try {
     const result = await pool.query(
-      'INSERT INTO entries (user_id, raw_text, suggested_type, status) VALUES (1, $1, $2, $3) RETURNING *',
+      `INSERT INTO entries (user_id, raw_text, suggested_type, status) VALUES (${req.userId}, $1, $2, $3) RETURNING *`,
       [raw_text.trim(), suggested_type || null, 'inbox']
     );
     res.status(201).json(result.rows[0]);
@@ -48,7 +47,7 @@ router.patch('/:id', async (req, res) => {
   const { status, target_type, target_id } = req.body;
   try {
     const result = await pool.query(
-      'UPDATE entries SET status = COALESCE($1, status), target_type = COALESCE($2, target_type), target_id = COALESCE($3, target_id) WHERE id = $4 RETURNING *',
+      `UPDATE entries SET status = COALESCE($1, status), target_type = COALESCE($2, target_type), target_id = COALESCE($3, target_id) WHERE id = $4 AND user_id = ${req.userId} RETURNING *`,
       [status || null, target_type || null, target_id || null, req.params.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Entry not found' });
@@ -62,7 +61,8 @@ router.patch('/:id', async (req, res) => {
 // DELETE /api/entries/:id
 router.delete('/:id', async (req, res) => {
   try {
-    await pool.query('DELETE FROM entries WHERE id = $1', [req.params.id]);
+    const result = await pool.query(`DELETE FROM entries WHERE id = $1 AND user_id = ${req.userId}`, [req.params.id]);
+    if (result.rowCount === 0) return res.status(404).json({ error: 'Entry not found' });
     res.json({ success: true });
   } catch (err) {
     console.error('Error deleting entry:', err);

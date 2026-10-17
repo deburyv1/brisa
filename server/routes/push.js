@@ -19,11 +19,14 @@ export function pushReady() {
   return ready;
 }
 
-/* Send a notification to every registered device. Drops dead
+/* Send a notification to every device of ONE user. Drops dead
    subscriptions (404/410) so the list stays clean. */
-export async function sendToAll(payload) {
+export async function sendToUser(userId, payload) {
   if (!ready) return { sent: 0, failed: 0, total: 0, reason: 'sin-claves' };
-  const subs = await pool.query('SELECT id, endpoint, p256dh, auth FROM push_subscriptions');
+  const subs = await pool.query(
+    'SELECT id, endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = $1',
+    [userId]
+  );
   let sent = 0;
   let failed = 0;
   for (const s of subs.rows) {
@@ -52,7 +55,10 @@ router.get('/key', (req, res) => {
 
 router.get('/status', async (req, res) => {
   try {
-    const r = await pool.query('SELECT COUNT(*)::int AS devices FROM push_subscriptions');
+    const r = await pool.query(
+      'SELECT COUNT(*)::int AS devices FROM push_subscriptions WHERE user_id = $1',
+      [req.userId]
+    );
     res.json({ enabled: ready, devices: r.rows[0].devices });
   } catch (err) {
     res.status(500).json({ error: 'Database error' });
@@ -65,11 +71,13 @@ router.post('/subscribe', async (req, res) => {
     return res.status(400).json({ error: 'Suscripción inválida' });
   }
   try {
+    // Re-subscribing moves the device to the current user.
     await pool.query(
       `INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth)
-       VALUES (1, $1, $2, $3)
-       ON CONFLICT (endpoint) DO UPDATE SET p256dh = EXCLUDED.p256dh, auth = EXCLUDED.auth`,
-      [endpoint, keys.p256dh, keys.auth]
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (endpoint) DO UPDATE SET user_id = EXCLUDED.user_id,
+         p256dh = EXCLUDED.p256dh, auth = EXCLUDED.auth`,
+      [req.userId, endpoint, keys.p256dh, keys.auth]
     );
     res.status(201).json({ ok: true });
   } catch (err) {
@@ -82,17 +90,17 @@ router.post('/unsubscribe', async (req, res) => {
   const { endpoint } = req.body || {};
   if (!endpoint) return res.status(400).json({ error: 'Falta endpoint' });
   try {
-    await pool.query('DELETE FROM push_subscriptions WHERE endpoint = $1', [endpoint]);
+    await pool.query('DELETE FROM push_subscriptions WHERE endpoint = $1 AND user_id = $2', [endpoint, req.userId]);
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: 'Database error' });
   }
 });
 
-// Prove the channel works end to end.
+// Prove the channel works end to end (only this user's devices).
 router.post('/test', async (req, res) => {
   try {
-    const result = await sendToAll({
+    const result = await sendToUser(req.userId, {
       title: 'brisa',
       body: 'Avisos activados. Te aviso cuando algo se acerque.',
       tag: 'brisa-test',

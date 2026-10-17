@@ -32,6 +32,7 @@ services:
       - ./sw.js:/app/server/public/sw.js
       - ./brisa-icon.svg:/app/server/public/brisa-icon.svg
       - ./server/routes:/app/server/routes
+      - ./server/notify.js:/app/server/notify.js
       - ./server/index.js:/app/server/index.js
       - ./server/db.js:/app/server/db.js
       - ./server/setup-db.js:/app/server/setup-db.js

@@ -364,6 +364,36 @@ try {
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`);
 
+  // --- Multi-usuario: cada quien ve solo lo suyo ---
+  // Tablas que aún no tenían dueño. Backfill a 1 (el dueño actual).
+  await pool.query(`ALTER TABLE people ADD COLUMN IF NOT EXISTS user_id INTEGER DEFAULT 1`);
+  await pool.query(`ALTER TABLE day_closures ADD COLUMN IF NOT EXISTS user_id INTEGER DEFAULT 1`);
+  await pool.query(`ALTER TABLE day_misses ADD COLUMN IF NOT EXISTS user_id INTEGER DEFAULT 1`);
+  await pool.query(`ALTER TABLE day_order ADD COLUMN IF NOT EXISTS user_id INTEGER DEFAULT 1`);
+  await pool.query(`ALTER TABLE day_close_snapshots ADD COLUMN IF NOT EXISTS user_id INTEGER DEFAULT 1`);
+  for (const t of ['people', 'day_closures', 'day_misses', 'day_order', 'day_close_snapshots']) {
+    await pool.query(`UPDATE ${t} SET user_id = 1 WHERE user_id IS NULL`);
+  }
+
+  // day_closures tenía PK(day): dos personas no podían cerrar el mismo día.
+  await pool.query(`DO $$
+  BEGIN
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_index i
+      JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey)
+      WHERE i.indrelid = 'day_closures'::regclass AND i.indisprimary AND a.attname = 'user_id'
+    ) THEN
+      ALTER TABLE day_closures DROP CONSTRAINT IF EXISTS day_closures_pkey;
+      ALTER TABLE day_closures ADD PRIMARY KEY (user_id, day);
+    END IF;
+  END $$`);
+
+  // El avatar pasa a ser por usuario (clave 'avatar:<userId>'). Mueve el
+  // que ya existía (clave 'avatar') al dueño original.
+  await pool.query(`UPDATE settings SET key = 'avatar:1'
+    WHERE key = 'avatar'
+      AND NOT EXISTS (SELECT 1 FROM settings WHERE key = 'avatar:1')`);
+
   // Backfill: link pre-history movements to a synthetic import record.
   // Idempotent: only touches transactions with import_id IS NULL.
   const orphans = await pool.query(

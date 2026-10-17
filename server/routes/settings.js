@@ -3,10 +3,12 @@ import pool from '../db.js';
 
 const router = Router();
 
+// El avatar es por usuario: se guarda bajo la clave 'avatar:<userId>'.
+
 // GET /api/settings/avatar — serves the stored JPEG (or 404)
 router.get('/avatar', async (req, res) => {
   try {
-    const result = await pool.query("SELECT value FROM settings WHERE key = 'avatar'");
+    const result = await pool.query(`SELECT value FROM settings WHERE key = 'avatar:${req.userId}'`);
     if (result.rows.length === 0 || !result.rows[0].value) {
       return res.status(404).json({ error: 'No avatar' });
     }
@@ -34,7 +36,7 @@ router.put('/avatar', async (req, res) => {
   try {
     const buffer = Buffer.from(match[2], 'base64');
     await pool.query(
-      `INSERT INTO settings (key, value) VALUES ('avatar', $1)
+      `INSERT INTO settings (key, value) VALUES ('avatar:${req.userId}', $1)
        ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = CURRENT_TIMESTAMP`,
       [buffer]
     );
@@ -48,7 +50,7 @@ router.put('/avatar', async (req, res) => {
 // DELETE /api/settings/avatar
 router.delete('/avatar', async (req, res) => {
   try {
-    await pool.query("DELETE FROM settings WHERE key = 'avatar'");
+    await pool.query(`DELETE FROM settings WHERE key = 'avatar:${req.userId}'`);
     res.json({ success: true });
   } catch (err) {
     console.error('Error deleting avatar:', err);

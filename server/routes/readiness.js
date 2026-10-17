@@ -12,11 +12,11 @@ function todayKey() {
 router.get('/', async (req, res) => {
   try {
     const items = await pool.query(
-      'SELECT * FROM readiness_items WHERE user_id = 1 AND active = TRUE ORDER BY position ASC, id ASC'
+      `SELECT * FROM readiness_items WHERE user_id = ${req.userId} AND active = TRUE ORDER BY position ASC, id ASC`
     );
     const states = await pool.query(
-      'SELECT item_id FROM readiness_state WHERE day = $1',
-      [req.query.date || todayKey()]
+      'SELECT item_id FROM readiness_state WHERE day = $1 AND item_id = ANY($2)',
+      [req.query.date || todayKey(), items.rows.map(i => i.id)]
     );
     const done = new Set(states.rows.map(r => String(r.item_id)));
     res.json(items.rows.map(i => ({ ...i, done: done.has(String(i.id)) })));
@@ -34,7 +34,7 @@ router.post('/items', async (req, res) => {
   }
   try {
     const result = await pool.query(
-      `INSERT INTO readiness_items (user_id, label) VALUES (1, $1)
+      `INSERT INTO readiness_items (user_id, label) VALUES (${req.userId}, $1)
        ON CONFLICT (user_id, label) DO UPDATE SET active = TRUE RETURNING *`,
       [label.trim().slice(0, 100)]
     );
@@ -55,7 +55,7 @@ router.put('/items/:id', async (req, res) => {
            active = COALESCE($2, active),
            source_type = $3,
            source_id = $4
-       WHERE id = $5 AND user_id = 1 RETURNING *`,
+       WHERE id = $5 AND user_id = ${req.userId} RETURNING *`,
       [label?.trim() || null, active == null ? null : !!active,
        source_type || null, source_id || null, req.params.id]
     );
@@ -71,6 +71,8 @@ router.post('/check', async (req, res) => {
   if (!item_id) return res.status(400).json({ error: 'item_id is required' });
   const day = date || todayKey();
   try {
+    const own = await pool.query(`SELECT 1 FROM readiness_items WHERE id = $1 AND user_id = ${req.userId}`, [item_id]);
+    if (own.rows.length === 0) return res.status(404).json({ error: 'Item not found' });
     if (done) {
       await pool.query(
         `INSERT INTO readiness_state (day, item_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,

@@ -24,7 +24,7 @@ router.get('/search', async (req, res) => {
     const result = await pool.query(
       `SELECT *, ts_rank(search_vector, plainto_tsquery('spanish', $1)) AS rank
        FROM journal
-       WHERE search_vector @@ plainto_tsquery('spanish', $1)
+       WHERE user_id = ${req.userId} AND search_vector @@ plainto_tsquery('spanish', $1)
        ORDER BY rank DESC, updated_at DESC
        LIMIT 20`,
       [q]
@@ -39,7 +39,7 @@ router.get('/search', async (req, res) => {
 // GET /api/journal
 router.get('/', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM journal ORDER BY updated_at DESC');
+    const result = await pool.query(`SELECT * FROM journal WHERE user_id = ${req.userId} ORDER BY updated_at DESC`);
     res.json(result.rows);
   } catch (err) {
     console.error('Error fetching notes:', err);
@@ -50,7 +50,7 @@ router.get('/', async (req, res) => {
 // GET /api/journal/:id
 router.get('/:id', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM journal WHERE id = $1', [req.params.id]);
+    const result = await pool.query(`SELECT * FROM journal WHERE id = $1 AND user_id = ${req.userId}`, [req.params.id]);
     if (result.rows.length === 0) return res.status(404).json({ error: 'Note not found' });
     res.json(result.rows[0]);
   } catch (err) {
@@ -67,7 +67,7 @@ router.post('/', async (req, res) => {
   }
   try {
     const result = await pool.query(
-      'INSERT INTO journal (user_id, title, content, content_text, mood) VALUES (1, $1, $2, $3, $4) RETURNING *',
+      `INSERT INTO journal (user_id, title, content, content_text, mood) VALUES (${req.userId}, $1, $2, $3, $4) RETURNING *`,
       [title.trim(), content || null, stripHtml(content), mood || null]
     );
     res.status(201).json(result.rows[0]);
@@ -85,7 +85,7 @@ router.put('/:id', async (req, res) => {
   }
   try {
     const result = await pool.query(
-      'UPDATE journal SET title = $1, content = $2, content_text = $3, mood = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $5 RETURNING *',
+      `UPDATE journal SET title = $1, content = $2, content_text = $3, mood = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $5 AND user_id = ${req.userId} RETURNING *`,
       [title.trim(), content || null, stripHtml(content), mood || null, req.params.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Note not found' });
@@ -99,7 +99,8 @@ router.put('/:id', async (req, res) => {
 // DELETE /api/journal/:id
 router.delete('/:id', async (req, res) => {
   try {
-    await pool.query('DELETE FROM journal WHERE id = $1', [req.params.id]);
+    const result = await pool.query(`DELETE FROM journal WHERE id = $1 AND user_id = ${req.userId}`, [req.params.id]);
+    if (result.rowCount === 0) return res.status(404).json({ error: 'Note not found' });
     res.json({ success: true });
   } catch (err) {
     console.error('Error deleting note:', err);

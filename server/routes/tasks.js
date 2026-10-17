@@ -10,11 +10,11 @@ router.get('/', async (req, res) => {
     let result;
     if (parent_task_id !== undefined && parent_task_id !== '') {
       result = await pool.query(
-        'SELECT * FROM tasks WHERE parent_task_id = $1 ORDER BY created_at ASC',
+        `SELECT * FROM tasks WHERE parent_task_id = $1 AND user_id = ${req.userId} ORDER BY created_at ASC`,
         [Number(parent_task_id)]
       );
     } else {
-      result = await pool.query('SELECT * FROM tasks ORDER BY created_at DESC');
+      result = await pool.query(`SELECT * FROM tasks WHERE user_id = ${req.userId} ORDER BY created_at DESC`);
     }
     res.json(result.rows);
   } catch (err) {
@@ -26,7 +26,7 @@ router.get('/', async (req, res) => {
 // GET /api/tasks/:id
 router.get('/:id', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM tasks WHERE id = $1', [req.params.id]);
+    const result = await pool.query(`SELECT * FROM tasks WHERE id = $1 AND user_id = ${req.userId}`, [req.params.id]);
     if (result.rows.length === 0) return res.status(404).json({ error: 'Task not found' });
     res.json(result.rows[0]);
   } catch (err) {
@@ -43,7 +43,7 @@ router.post('/', async (req, res) => {
   }
   try {
     const result = await pool.query(
-      'INSERT INTO tasks (user_id, title, description, priority, scheduled_datetime, due_datetime, first_step, estimated_minutes, event_id, parent_task_id) VALUES (1, $1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
+      `INSERT INTO tasks (user_id, title, description, priority, scheduled_datetime, due_datetime, first_step, estimated_minutes, event_id, parent_task_id) VALUES (${req.userId}, $1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
       [title.trim(), description || null, priority || 'medium', scheduled_datetime || null, due_datetime || null, first_step || null, estimated_minutes || null, Number(event_id) || null, Number(parent_task_id) || null]
     );
     res.status(201).json(result.rows[0]);
@@ -74,7 +74,7 @@ router.put('/:id', async (req, res) => {
   try {
     values.push(req.params.id);
     const result = await pool.query(
-      `UPDATE tasks SET ${sets.join(', ')} WHERE id = $${values.length} RETURNING *`,
+      `UPDATE tasks SET ${sets.join(', ')} WHERE id = $${values.length} AND user_id = ${req.userId} RETURNING *`,
       values
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Task not found' });
@@ -84,7 +84,7 @@ router.put('/:id', async (req, res) => {
       await pool.query(
         `INSERT INTO readiness_state (day, item_id)
          SELECT CURRENT_DATE, id FROM readiness_items
-         WHERE source_type = 'task' AND source_id = $1
+         WHERE source_type = 'task' AND source_id = $1 AND user_id = ${req.userId}
          ON CONFLICT DO NOTHING`,
         [req.params.id]
       ).catch(e => console.error('Error syncing readiness:', e));
@@ -99,7 +99,8 @@ router.put('/:id', async (req, res) => {
 // DELETE /api/tasks/:id
 router.delete('/:id', async (req, res) => {
   try {
-    await pool.query('DELETE FROM tasks WHERE id = $1', [req.params.id]);
+    const result = await pool.query(`DELETE FROM tasks WHERE id = $1 AND user_id = ${req.userId}`, [req.params.id]);
+    if (result.rowCount === 0) return res.status(404).json({ error: 'Task not found' });
     res.json({ success: true });
   } catch (err) {
     console.error('Error deleting task:', err);
