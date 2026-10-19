@@ -211,7 +211,18 @@ function taskRowHtml(t, tasks, isChild) {
 function renderTasks(section, tasks) {
   const pending = tasks.filter(t => !t.is_completed);
   const done = tasks.filter(t => t.is_completed);
-  const visible = taskFilter === "done" ? done : taskFilter === "all" ? tasks : pending;
+  // Pendientes: la fecha más cercana primero (sin fecha al final).
+  // Completadas: la más reciente primero.
+  const byNearest = (a, b) => {
+    const da = new Date(a.due_datetime || a.scheduled_datetime || "9999");
+    const db = new Date(b.due_datetime || b.scheduled_datetime || "9999");
+    return da - db;
+  };
+  const byNewest = (a, b) => new Date(b.completed_at || b.created_at) - new Date(a.completed_at || a.created_at);
+  const byCreated = (a, b) => new Date(b.created_at) - new Date(a.created_at);
+  const visible = taskFilter === "done" ? [...done].sort(byNewest)
+                  : taskFilter === "all" ? [...tasks].sort(byCreated)
+                  : [...pending].sort(byNearest);
 
   const roots = visible.filter(t =>
     !t.parent_task_id || !visible.some(p => String(p.id) === String(t.parent_task_id)));
