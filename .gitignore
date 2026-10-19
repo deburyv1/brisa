@@ -1,6 +1,7 @@
 node_modules/
 server/node_modules/
 shopping-photos/
+clips-rl-out/
 .env
 *.log
 .DS_Store
