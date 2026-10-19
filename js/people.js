@@ -102,7 +102,11 @@ export async function initBirthdays() {
     return;
   }
 
-  const upcoming = sorted.slice(0, 3);
+  // Solo los más cercanos, pero sin cortar un empate: si 3 caen el mismo
+  // día y el 4º es al día siguiente, se muestra también (para no perderlo).
+  const closest = daysUntilBirthday(sorted[0].birthday);
+  const upcoming = sorted.filter(p => daysUntilBirthday(p.birthday) <= closest + 2).slice(0, 5);
+
   const items = upcoming.map(p => {
     const days = daysUntilBirthday(p.birthday);
     return `
