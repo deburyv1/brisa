@@ -45,7 +45,7 @@
       <button class="nav" data-nav="finance"><img src="brisa-icons/budget.ico" class="nav-img" alt="Finanzas"> Finanzas</button>
       <button class="nav" data-nav="people"><img src="brisa-icons/vista_messenger.ico" class="nav-img" alt="Relaciones"> Relaciones</button>
       <button class="nav" data-nav="shopping"><img src="brisa-icons/vista_book_3.ico" class="nav-img" alt="Compras"> Compras</button>
-      <button class="nav" data-nav="rlclips"><img src="brisa-icons/vista_book_3.ico" class="nav-img" alt="Clips"> Clips RL</button>
+      <button class="nav" data-nav="rlclips" onclick="document.querySelectorAll('section').forEach(s=>s.style.display='none'); var s=document.querySelector('#rlclips-section'); if(s){s.style.display='';} var c=document.querySelector('#crumb-current'); if(c)c.textContent='Clips RL'; if(window.initRlClips) window.initRlClips();"><img src="brisa-icons/vista_book_3.ico" class="nav-img" alt="Clips"> Clips RL</button>
       <button class="nav" data-nav="habits"> Hábitos</button>
       <button class="nav" data-nav="ideas"> Ideas</button>
       <button class="nav" data-nav="studio"> Estudio</button>
@@ -216,7 +216,7 @@
 <script src="vendor/quill.min.js"></script>
 <script src="vendor/flatpickr/flatpickr.min.js"></script>
 <script src="vendor/flatpickr/es.js"></script>
-<script type="module" src="js/app.js?v=20261017ar"></script>
+<script type="module" src="js/app.js?v=20261017as"></script>
 
 <!-- Floating timer: round, solid, draggable -->
 <div class="timer-pill" id="timer-pill" title="Temporizador (arrástrame)">
