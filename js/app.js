@@ -44,7 +44,7 @@ import { initAccount } from "./account.js";
 import { initQuickCapture } from "./quickCapture.js";
 import { initPwa } from "./pwa.js";
 import { initStudio } from "./studio.js";
-import { initTrash, renderTrash } from "./trash.js";
+import { initRlClips } from "./rlclips.js";
 
 window.initTasks = initTasks;
 window.initJournal = initJournal;
@@ -67,7 +67,7 @@ window.renderNext = renderNext;
 window.openFocus = openFocus;
 window.initWorkmode = initWorkmode;
 window.startWorkmode = startWorkmode;
-window.initTrash = initTrash;
+window.initRlClips = initRlClips;
 window.renderTrash = renderTrash;
 
 const NAV_LABELS = {
@@ -84,7 +84,7 @@ const NAV_LABELS = {
   studio: "Estudio",
   workmode: "Enfoque",
   account: "Cuenta",
-  trash: "Papelera",
+  rlclips: "Clips RL",
 };
 
 const NAV_SECTIONS = {
@@ -101,6 +101,7 @@ const NAV_SECTIONS = {
   studio: ["#studio-section"],
   workmode: ["#workmode-section"],
   account: ["#account-section"],
+  rlclips: ["#rlclips-section"],
   trash: ["#trash-section"],
 };
 
@@ -124,6 +125,7 @@ const ALL_SECTIONS = [
   "#account-section",
   "#week-section",
   "#trash-section",
+  "#rlclips-section",
 ];
 
 function initNavigation() {
@@ -232,6 +234,7 @@ async function main() {
   initPwa();
   initNavigation();
   initNavDrawer();
+  initRlClips();
   initTrash();
 
   // Load data first so Today markers, badges and guidance see fresh state
@@ -244,6 +247,7 @@ async function main() {
     initInbox(),
     initCalendar(),
     initShopping(),
+    initRlClips(),
     initReadiness(),
     initHabits(),
     initIdeas(),
