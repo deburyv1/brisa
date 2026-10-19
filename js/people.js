@@ -102,22 +102,27 @@ export async function initBirthdays() {
     return;
   }
 
-  const next = sorted[0];
-  const days = daysUntilBirthday(next.birthday);
-
-  container.innerHTML = `
-    <div class="birthdays-header">
-      <div class="birthdays-title">Próximo cumpleaños</div>
-    </div>
-    <div class="birthdays-list">
+  const upcoming = sorted.slice(0, 3);
+  const items = upcoming.map(p => {
+    const days = daysUntilBirthday(p.birthday);
+    return `
       <div class="birthday-item">
-        <div class="birthday-avatar">${getInitials(next.name)}</div>
+        <div class="birthday-avatar">${getInitials(p.name)}</div>
         <div class="birthday-info">
-          <div class="birthday-name">${getDisplayName(next)}</div>
-          <div class="birthday-date">${formatDate(next.birthday)}</div>
+          <div class="birthday-name">${getDisplayName(p)}</div>
+          <div class="birthday-date">${formatDate(p.birthday)}</div>
         </div>
         <div class="birthday-days">${days} días</div>
       </div>
+    `;
+  }).join("");
+
+  container.innerHTML = `
+    <div class="birthdays-header">
+      <div class="birthdays-title">Próximos cumpleaños</div>
+    </div>
+    <div class="birthdays-list">
+      ${items}
     </div>
   `;
 }
