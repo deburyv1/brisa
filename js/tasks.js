@@ -74,9 +74,13 @@ function formatDateTime(dt) {
 
 const PRIORITY_LABELS = { high: "Alta", medium: "Media", low: "Baja" };
 
-function priorityPill(priority) {
-  const label = PRIORITY_LABELS[priority] || priority;
-  return `<span class="task-priority ${priority}">${label}</span>`;
+function isToday(dt) {
+  if (!dt) return false;
+  const d = new Date(dt);
+  const now = new Date();
+  return d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate();
 }
 
 export async function initTasks() {
@@ -190,6 +194,7 @@ function taskRowHtml(t, tasks, isChild) {
       </div>
       <div class="task-actions">
         ${t.is_completed ? "" : `<button class="task-btn task-btn-start" data-action="start" title="Empezar ahora (mismo flujo que AHORA)">▶</button>`}
+        ${!t.is_completed && (!t.due_datetime || !isToday(t.due_datetime)) ? `<button class="task-btn task-btn-postpone" data-action="postpone" title="Patear para mañana (no tiene fecha límite hoy)">⏭ Patear</button>` : ""}
         <button class="task-btn task-btn-ai" data-action="ai" title="Dividir con IA">✨</button>
         <button class="task-btn task-btn-edit" data-action="edit">Editar</button>
         <button class="task-btn task-btn-delete" data-action="delete">Eliminar</button>
@@ -294,6 +299,38 @@ function renderTasks(section, tasks) {
       if (window.openFocus) window.openFocus(id);
     });
 
+    item.querySelector('[data-action="postpone"]')?.addEventListener("click", async () => {
+      const task = (state.tasks || []).find(t => String(t.id) === String(id));
+      if (!task) return;
+      const btn = item.querySelector('[data-action="postpone"]');
+      if (btn) { btn.disabled = true; btn.textContent = "…"; }
+      try {
+        let at;
+        if (task.scheduled_datetime) {
+          const d = new Date(task.scheduled_datetime);
+          d.setDate(d.getDate() + 1);
+          at = d.toISOString();
+        } else {
+          const d = new Date();
+          d.setDate(d.getDate() + 1);
+          d.setHours(9, 0, 0, 0);
+          at = d.toISOString();
+        }
+        await fetch(`${API_BASE}/tasks/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ scheduled_datetime: at }),
+        });
+        if (window.initTasks) await window.initTasks();
+        if (window.renderNext) window.renderNext();
+        if (window.initToday) window.initToday();
+        if (window.initWeek) window.initWeek();
+      } catch (e) {
+        console.error("No se pudo patear:", e);
+        if (btn) { btn.disabled = false; btn.textContent = "⏭ Patear"; }
+      }
+    });
+
     item.querySelector('[data-action="edit"]')?.addEventListener("click", () => {
       if (window.openTaskModal) window.openTaskModal(id);
     });
@@ -363,6 +400,7 @@ async function showTaskDetail(id) {
     <div class="modal-actions">
       <button class="modal-btn modal-btn-secondary" id="task-detail-edit">Editar</button>
       <button class="modal-btn modal-btn-primary" id="task-detail-ai-btn">✨ Dividir con IA</button>
+      ${task.is_completed ? "" : (task.due_datetime && isToday(task.due_datetime) ? "" : `<button class="modal-btn modal-btn-secondary" id="task-detail-postpone">Patear → mañana</button>`)}
     </div>
   `;
   overlay.classList.add("active");
@@ -371,6 +409,41 @@ async function showTaskDetail(id) {
     overlay.classList.remove("active");
     if (window.openTaskModal) window.openTaskModal(id);
   });
+
+  const postponeBtn = body.querySelector("#task-detail-postpone");
+  if (postponeBtn) {
+    postponeBtn.addEventListener("click", async () => {
+      postponeBtn.disabled = true;
+      postponeBtn.textContent = "Pateando…";
+      try {
+        let at;
+        if (task.scheduled_datetime) {
+          const d = new Date(task.scheduled_datetime);
+          d.setDate(d.getDate() + 1);
+          at = d.toISOString();
+        } else {
+          const d = new Date();
+          d.setDate(d.getDate() + 1);
+          d.setHours(9, 0, 0, 0);
+          at = d.toISOString();
+        }
+        await fetch(`${API_BASE}/tasks/${task.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ scheduled_datetime: at }),
+        });
+        overlay.classList.remove("active");
+        if (window.initTasks) await window.initTasks();
+        if (window.renderNext) window.renderNext();
+        if (window.initToday) window.initToday();
+        if (window.initWeek) window.initWeek();
+      } catch (e) {
+        console.error("No se pudo patear:", e);
+        postponeBtn.disabled = false;
+        postponeBtn.textContent = "Patear → mañana";
+      }
+    });
+  }
 
   body.querySelector("#task-detail-ai-btn")?.addEventListener("click", async () => {
     const btn = body.querySelector("#task-detail-ai-btn");
