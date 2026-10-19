@@ -5,6 +5,37 @@
 const API_BASE = "/api";
 import { snapshotForm, isDirty, confirmDiscard } from "./modalGuard.js";
 
+function parseBirthday(raw) {
+  const s = String(raw || "").trim();
+  if (!s) return null;
+  const parts = s.split(/[\/\-]/).map(p => p.trim()).filter(Boolean);
+  if (parts.length === 2) {
+    const [a, b] = parts;
+    const d = Number(a), m = Number(b);
+    if (!Number.isInteger(d) || !Number.isInteger(m) || d < 1 || d > 31 || m < 1 || m > 12) return null;
+    return `2000-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  }
+  if (parts.length === 3) {
+    let dd, mm, yyyy;
+    if (parts[0].length === 4) { [yyyy, mm, dd] = parts; }
+    else { [dd, mm, yyyy] = parts; }
+    const d = Number(dd), m = Number(mm), y = Number(yyyy);
+    if (!Number.isInteger(d) || !Number.isInteger(m) || !Number.isInteger(y)
+        || d < 1 || d > 31 || m < 1 || m > 12 || y < 1900 || y > 2100) return null;
+    return `${String(y).padStart(4, "0")}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  }
+  return null;
+}
+
+function formatBirthdayForInput(dateStr) {
+  if (!dateStr) return "";
+  const s = String(dateStr).slice(0, 10);
+  const [y, m, d] = s.split("-");
+  if (!y || !m || !d) return "";
+  if (y === "2000") return `${d}/${m}`;
+  return `${d}/${m}/${y}`;
+}
+
 export function initModal() {
   const overlay = document.querySelector("#person-modal");
   const closeBtn = document.querySelector("#modal-close");
@@ -32,7 +63,7 @@ export function initModal() {
           form.phone.value = p.phone || "";
           form.rut.value = p.rut || "";
           form.relation.value = p.relation || "";
-          window.setPickerValue(form.birthday, p.birthday ? String(p.birthday).slice(0, 10) : "");
+          form.birthday.value = p.birthday ? formatBirthdayForInput(p.birthday) : "";
           cleanSnapshot = snapshotForm(form);
         })
         .catch(e => console.error("Error cargando persona:", e));
@@ -75,6 +106,20 @@ export function initModal() {
     const data = Object.fromEntries(formData);
 
     if (!data.name || !data.name.trim()) return;
+
+    // Cumpleaños flexible: "dd/mm" (año desconocido) o "dd/mm/aaaa".
+    // Se guarda siempre como fecha (año 2000 si no se indicó), y la UI
+    // muestra solo día y mes.
+    if (data.birthday && String(data.birthday).trim()) {
+      const parsed = parseBirthday(data.birthday);
+      if (!parsed) {
+        alert("Cumpleaños inválido. Usa dd/mm o dd/mm/aaaa (ej: 15/03 o 15/03/1990).");
+        return;
+      }
+      data.birthday = parsed;
+    } else {
+      data.birthday = null;
+    }
 
     try {
       const res = await fetch(
