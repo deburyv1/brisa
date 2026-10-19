@@ -45,6 +45,7 @@ import { initQuickCapture } from "./quickCapture.js";
 import { initPwa } from "./pwa.js";
 import { initStudio } from "./studio.js";
 import { initRlClips } from "./rlclips.js";
+import { initTrash, renderTrash } from "./trash.js";
 
 window.initTasks = initTasks;
 window.initJournal = initJournal;
