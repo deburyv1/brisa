@@ -89,8 +89,7 @@ export async function openFocus(taskId, opts = {}) {
     // Sesión pausada o corriendo: seguir donde se quedó, pero si la
     // tarea tiene checklist escrito, mostrarlo (no saltar a "Paso").
     const children = await fetchChildren(task.id);
-    const open = children.filter(c => !c.is_completed);
-    if (open.length > 0) {
+    if (children.length > 0) {
       renderChecklist(task, children);
     } else {
       renderStep(task, {});
@@ -104,14 +103,180 @@ export async function openFocus(taskId, opts = {}) {
 // the user never picks a methodology.
 async function routeByClarity(task) {
   const children = await fetchChildren(task.id);
-  const open = children.filter(c => !c.is_completed);
-  if (open.length > 0) {
+  if (children.length > 0) {
     renderChecklist(task, children);
   } else if ((task.parent_task_id != null) || (task.first_step && task.first_step.trim())) {
     renderStep(task, {});
   } else {
-    renderUnblockAsk(task);
+    await suggestApproach(task);
   }
+}
+
+async function requestApproach(task, context = "") {
+  const parent = task.parent_task_id != null ? await resolveTask(task.parent_task_id) : null;
+  const event = (state.events || []).find(item => String(item.id) === String(task.event_id));
+  const savedContext = [
+    task.description,
+    task.estimated_minutes ? `Duración estimada: ${task.estimated_minutes} minutos.` : "",
+    task.due_datetime ? `Fecha límite: ${task.due_datetime}.` : "",
+    context,
+  ].filter(Boolean).join("\n\n").slice(0, 4000);
+  const res = await fetch(`${API_BASE}/ai/approach`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title: task.title, context: savedContext, parentTitle: parent?.title || "", eventTitle: event?.title || "" }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "No se pudo sugerir una forma de avanzar.");
+  return data;
+}
+
+async function suggestApproach(task, context = "", clarificationCount = 0) {
+  body().innerHTML = `<div class="focus-approach-loading" role="status" aria-live="polite"><span class="focus-approach-spinner" aria-hidden="true"></span><span>Revisando lo que ya sabes de esta acción…</span></div>`;
+  try {
+    const suggestion = await requestApproach(task, context);
+    currentTask = task;
+    if (suggestion.mode === "step") renderSuggestedStep(task, suggestion);
+    else if (suggestion.mode === "checklist") renderSuggestedChecklist(task, suggestion);
+    else if (suggestion.mode === "clarify") renderApproachQuestion(task, suggestion, clarificationCount);
+    else if (suggestion.mode === "develop") renderDevelop(task, suggestion.reason, suggestion.first_step);
+    else renderApproachFallback(task);
+  } catch (e) {
+    console.warn("No se pudo obtener una ruta sugerida:", e);
+    renderApproachFallback(task);
+  }
+}
+
+function renderApproachFallback(task) {
+  body().innerHTML = `
+    <p class="focus-question">No pude sugerir una ruta todavía.</p>
+    <p class="focus-note">No hace falta resolverlo todo. Cuéntame qué es lo que no está claro y avanzamos desde ahí.</p>
+    ${modeBar("guide")}
+    <button type="button" class="modal-btn modal-btn-primary focus-primary-block" id="focus-fallback-help">Ayúdame a aclararlo</button>
+  `;
+  wireModeBar(task);
+  body().querySelector("#focus-fallback-help")?.addEventListener("click", () => renderUnblockAsk(task));
+}
+
+function renderSuggestedStep(task, suggestion) {
+  body().innerHTML = `
+    ${modeBar("step")}
+    <p class="focus-route-intro">${escapeHtml(suggestion.reason || "Por lo que ya sabemos, este parece un buen comienzo.")}</p>
+    <div class="focus-step-box">
+      <div class="focus-step-label">Te propongo empezar por:</div>
+      <div class="focus-step">${escapeHtml(suggestion.first_step)}</div>
+    </div>
+    <p class="focus-message" id="focus-approach-error" role="alert"></p>
+    <div class="modal-actions">
+      <button type="button" class="modal-btn modal-btn-secondary" id="focus-edit-suggestion">Ajustar</button>
+      <button type="button" class="modal-btn modal-btn-primary focus-primary-block" id="focus-use-suggestion">Usar este paso y empezar</button>
+    </div>
+  `;
+  wireModeBar(task);
+  body().querySelector("#focus-edit-suggestion")?.addEventListener("click", () => renderDefineStep(task, suggestion.first_step));
+  body().querySelector("#focus-use-suggestion")?.addEventListener("click", async (event) => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    button.textContent = "Guardando…";
+    try {
+      const res = await fetch(`${API_BASE}/tasks/${task.id}`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ first_step: suggestion.first_step }),
+      });
+      if (!res.ok) throw new Error("No se pudo guardar el paso. Intenta de nuevo.");
+      task.first_step = suggestion.first_step;
+      if (window.initTasks) await window.initTasks();
+      currentTask = task;
+      renderStep(task, {});
+      await handoffToTimer(10);
+    } catch (e) {
+      button.disabled = false;
+      button.textContent = "Usar este paso y empezar";
+      const msg = body().querySelector("#focus-approach-error");
+      if (msg) msg.textContent = e.message;
+    }
+  });
+}
+
+function renderSuggestedChecklist(task, suggestion) {
+  body().innerHTML = `
+    ${modeBar("checklist")}
+    <p class="focus-route-intro">${escapeHtml(suggestion.reason || "Parece una acción con varias partes. Organicé un primer recorrido para quitarte ese trabajo.")}</p>
+    <ol class="focus-suggested-steps">${suggestion.steps.map(step => `<li>${escapeHtml(step)}</li>`).join("")}</ol>
+    <div class="modal-actions">
+      <button type="button" class="modal-btn modal-btn-secondary" id="focus-edit-plan">Lo quiero hacer de otra forma</button>
+      <button type="button" class="modal-btn modal-btn-primary focus-primary-block" id="focus-use-plan">Usar este checklist</button>
+    </div>
+  `;
+  wireModeBar(task);
+  body().querySelector("#focus-edit-plan")?.addEventListener("click", () => renderUnblockAsk(task));
+  body().querySelector("#focus-use-plan")?.addEventListener("click", async (event) => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    button.textContent = "Guardando…";
+    const saved = [];
+    try {
+      for (const title of suggestion.steps) {
+        const res = await fetch(`${API_BASE}/tasks`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title, parent_task_id: task.id }),
+        });
+        if (!res.ok) throw new Error("No se pudo guardar el checklist completo. Revisa la acción y vuelve a intentarlo.");
+        saved.push(await res.json());
+      }
+      if (window.initTasks) await window.initTasks();
+      if (window.renderNext) await window.renderNext();
+      const children = await fetchChildren(task.id);
+      renderChecklist(task, children, "Checklist sugerido a partir de la información de esta acción.");
+    } catch (e) {
+      if (saved.length > 0) {
+        if (window.initTasks) await window.initTasks();
+        if (window.renderNext) await window.renderNext();
+        renderChecklist(task, await fetchChildren(task.id), "Se guardó parte del checklist. Puedes continuar y agregar lo que falte.");
+        return;
+      }
+      button.disabled = false;
+      button.textContent = "Usar este checklist";
+      const msg = body().querySelector("#focus-approach-error") || document.createElement("p");
+      msg.id = "focus-approach-error";
+      msg.className = "focus-message";
+      msg.textContent = e.message || "No se pudo guardar el checklist.";
+      body().append(msg);
+    }
+  });
+}
+
+function renderApproachQuestion(task, suggestion, clarificationCount) {
+  body().innerHTML = `
+    ${modeBar("guide")}
+    <p class="focus-route-intro">${escapeHtml(suggestion.reason || "Me falta un dato para recomendarte algo útil.")}</p>
+    <p class="focus-question">${escapeHtml(suggestion.question)}</p>
+    <div class="form-group"><input type="text" id="focus-approach-answer" maxlength="500" autocomplete="off" placeholder="Una frase basta"></div>
+    <div class="modal-actions">
+      <button type="button" class="modal-btn modal-btn-secondary" id="focus-answer-skip">No lo sé todavía</button>
+      <button type="button" class="modal-btn modal-btn-primary" id="focus-answer-send">Responder y continuar</button>
+    </div>
+  `;
+  wireModeBar(task);
+  const input = body().querySelector("#focus-approach-answer");
+  input?.focus();
+  body().querySelector("#focus-answer-skip")?.addEventListener("click", () => renderUnblockAsk(task));
+  const submit = async () => {
+    const answer = input?.value.trim();
+    if (!answer) {
+      input?.focus();
+      return;
+    }
+    if (clarificationCount >= 1) {
+      renderUnblockAsk(task, answer);
+      return;
+    }
+    await suggestApproach(task, `Respuesta a la pregunta anterior: ${answer}`, clarificationCount + 1);
+  };
+  body().querySelector("#focus-answer-send")?.addEventListener("click", submit);
+  input?.addEventListener("keydown", event => {
+    if (event.key === "Enter") { event.preventDefault(); submit(); }
+  });
 }
 
 async function fetchChildren(taskId) {
@@ -124,18 +289,21 @@ async function fetchChildren(taskId) {
   return [];
 }
 
-// Mode bar: visible, switchable, no auto-magic hidden from the user.
+// The route is visible and switchable; scheduling stays a contextual action.
 const FOCUS_MODES = [
-  { id: "checklist", label: "Checklist" },
-  { id: "step", label: "Paso" },
-  { id: "guide", label: "Guía" },
-  { id: "event", label: "Evento" },
+  { id: "step", label: "Un paso", title: "Para una tarea clara o pequeña: define un primer movimiento" },
+  { id: "checklist", label: "Checklist", title: "Para una tarea compleja cuyo camino ya conoces" },
+  { id: "guide", label: "Aclarar", title: "Para cuando no sabes cómo partir" },
+  { id: "develop", label: "Desarrollar", title: "Para analizar, decidir o escribir con más espacio" },
 ];
 
 function modeBar(current) {
   return `
-    <div class="focus-modes" title="Cambia cómo trabajas esta acción">
-      ${FOCUS_MODES.map(m => `<button type="button" class="focus-mode-seg ${m.id === current ? "on" : ""}" data-mode="${m.id}">${m.label}</button>`).join("")}
+    <div class="focus-routebar">
+      <div class="focus-modes" role="group" aria-label="Cómo abordar esta acción">
+        ${FOCUS_MODES.map(m => `<button type="button" class="focus-mode-seg ${m.id === current ? "on" : ""}" data-mode="${m.id}" title="${m.title}" aria-pressed="${m.id === current}">${m.label}</button>`).join("")}
+      </div>
+      <button type="button" class="focus-schedule-link ${current === "event" ? "on" : ""}" data-mode="event" title="Asignar fecha y hora a esta acción">Programar fecha</button>
     </div>`;
 }
 
@@ -151,12 +319,44 @@ async function switchMode(task, mode) {
     renderUnblockAsk(task);
   } else if (mode === "event") {
     renderEventMode(task);
+  } else if (mode === "develop") {
+    renderDevelop(task);
   }
 }
 
 function wireModeBar(task) {
-  body().querySelectorAll(".focus-mode-seg").forEach(btn => {
+  body().querySelectorAll("[data-mode]").forEach(btn => {
     btn.addEventListener("click", () => switchMode(task, btn.dataset.mode));
+  });
+}
+
+function renderDevelop(task, reason = "", firstStep = "") {
+  body().innerHTML = `
+    ${modeBar("develop")}
+    <p class="focus-question">${reason ? escapeHtml(reason) : "¿Necesitas pensarla antes de actuar?"}</p>
+    ${firstStep ? `<div class="focus-step-box"><div class="focus-step-label">Primer movimiento sugerido:</div><div class="focus-step">${escapeHtml(firstStep)}</div></div>` : ""}
+    <p class="focus-note">Abre el bloc de esta acción para desarrollar ideas, comparar opciones o anotar decisiones. Se guarda con la tarea.</p>
+    <button type="button" class="modal-btn modal-btn-primary focus-primary-block" id="focus-open-notes">${firstStep ? "Abrir el bloc y empezar" : "Abrir bloc de esta acción"}</button>
+    <p class="focus-staging">Cuando encuentres un paso concreto, puedes volver a “Un paso” o crear un checklist.</p>
+  `;
+  wireModeBar(task);
+  body().querySelector("#focus-open-notes")?.addEventListener("click", async () => {
+    const id = task.id;
+    if (firstStep) {
+      const res = await fetch(`${API_BASE}/tasks/${id}`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ first_step: firstStep }),
+      });
+      if (!res.ok) {
+        const msg = body().querySelector(".focus-staging");
+        if (msg) msg.textContent = "No se pudo guardar el movimiento. Intenta de nuevo.";
+        return;
+      }
+      task.first_step = firstStep;
+      if (window.initTasks) await window.initTasks();
+    }
+    closeFocus();
+    if (window.startWorkmode) await window.startWorkmode(id);
   });
 }
 
@@ -195,8 +395,7 @@ async function handleFriction(task, kind) {
   if (kind === "ready") {
     // Si la tarea ya tiene checklist escrito, partir mostrándolo (no saltar a "Paso").
     const children = await fetchChildren(task.id);
-    const open = children.filter(c => !c.is_completed);
-    if (open.length > 0) {
+    if (children.length > 0) {
       renderChecklist(task, children);
     } else {
       renderStep(task, {});
@@ -223,9 +422,9 @@ function renderStep(task, { presetMin = 10, note = null } = {}) {
     ? `<div class="focus-step">${escapeHtml(task.first_step)}</div>`
     : isChildStep
       ? `<div class="focus-step">${escapeHtml(task.title)}</div>`
-      : `<div class="focus-step missing">Aún no defines el primer paso.</div>
-         <button type="button" class="modal-btn modal-btn-secondary" id="focus-define-now" style="margin-top:8px">Definirlo (20 segundos)</button>`;
+      : `<div class="focus-step missing">Aún no hay un paso concreto para empezar.</div>`;
   body().innerHTML = `
+    <p class="focus-route-intro">${hasStep ? "Ya tienes un primer paso. Parte por ahí o cambia la forma de abordarlo." : "No necesitas resolver todo ahora. Basta con definir un primer movimiento."}</p>
     ${modeBar("step")}
     ${parent ? `<button type="button" class="focus-parent-link" id="focus-parent" title="Ver la acción completa">Parte de: <strong>${escapeHtml(parent.title)}</strong></button>` : ""}
     ${note ? `<p class="focus-note">${escapeHtml(note)}</p>` : ""}
@@ -238,10 +437,14 @@ function renderStep(task, { presetMin = 10, note = null } = {}) {
       </span>
     </button>` : `
     <div class="focus-step-box">
-      <div class="focus-step-label">Ahora mismo, solo esto:</div>
+      <div class="focus-step-label">Primero, encontremos por dónde partir:</div>
       ${stepInner}
+      <div class="focus-empty-actions">
+        <button type="button" class="modal-btn modal-btn-primary" id="focus-define-now">Definir un primer paso</button>
+        <button type="button" class="modal-btn modal-btn-secondary" id="focus-ask-help">Ayúdame a elegir</button>
+      </div>
     </div>`}
-    <div class="focus-timer-row">
+    ${actionable ? `<div class="focus-timer-row">
       <div class="focus-time-btns" title="Duración de la sesión">
         <button class="focus-time-btn" data-min="5">5</button>
         <button class="focus-time-btn" data-min="10">10</button>
@@ -249,7 +452,7 @@ function renderStep(task, { presetMin = 10, note = null } = {}) {
         <input type="number" class="focus-custom-min" id="focus-custom-min" min="1" max="120" placeholder="min" title="Minutos a tu medida">
       </div>
       <button class="modal-btn modal-btn-primary focus-primary-block" id="focus-start" title="Cierra esto y parte el timer flotante">Empezar</button>
-    </div>
+    </div>` : `<p class="focus-staging">Cuando tengamos un paso concreto, podrás empezar sin planificar todo el resto.</p>`}
     <p id="focus-message" class="focus-message"></p>
     <div class="modal-actions focus-quiet-row">
       <button type="button" class="modal-btn modal-btn-secondary" id="focus-stuck" title="Volver a qué me frena">Atascado</button>
@@ -285,6 +488,7 @@ function renderStep(task, { presetMin = 10, note = null } = {}) {
   }
   startBtn?.addEventListener("click", () => handoffToTimer(minutes));
   body().querySelector("#focus-define-now")?.addEventListener("click", () => renderDefineStep(task));
+  body().querySelector("#focus-ask-help")?.addEventListener("click", () => renderUnblockAsk(task));
   body().querySelector("#focus-step-done")?.addEventListener("click", completeTask);
   body().querySelector("#focus-parent")?.addEventListener("click", async () => {
     const p = await resolveTask(task.parent_task_id);
@@ -309,7 +513,7 @@ function renderChecklist(task, children, note = null) {
   const open = children.filter(c => !c.is_completed);
   const next = open[0] || null;
   body().innerHTML = `
-    <p class="focus-permission">El camino está claro. Avanza paso a paso.</p>
+    <p class="focus-permission">El camino está claro. Marca un paso y seguimos con el siguiente.</p>
     ${modeBar("checklist")}
     ${note ? `<p class="focus-note">${escapeHtml(note)}</p>` : ""}
     ${task.first_step && task.first_step.trim() ? `<p class="focus-note">Arranca por: <strong>${escapeHtml(task.first_step)}</strong></p>` : ""}
@@ -319,7 +523,7 @@ function renderChecklist(task, children, note = null) {
       <div class="focus-progress-bar"><span style="width:${Math.round((done / total) * 100)}%"></span></div>
     </div>` : ""}
     <div class="focus-checklist">
-      ${total === 0 ? `<p class="focus-note">Sin pasos todavía: escríbelos abajo, uno a la vez.</p>` : ""}
+      ${total === 0 ? `<p class="focus-note">Anota solo lo que no quieres tener que recordar.</p>` : ""}
       ${children.map(c => `
         <button type="button" class="focus-check-item ${c.is_completed ? "done" : ""}" data-child="${c.id}">
           <span class="focus-check-box">${c.is_completed ? "✓" : ""}</span>
@@ -327,18 +531,19 @@ function renderChecklist(task, children, note = null) {
           ${c.estimated_minutes ? `<span class="focus-check-min">~${c.estimated_minutes} min</span>` : ""}
         </button>`).join("")}
       <div class="focus-add-row">
-        <input type="text" id="focus-add-step" class="prep-input" placeholder="Agregar paso + Enter" autocomplete="off">
+        <input type="text" id="focus-add-step" class="prep-input" placeholder="Agregar un paso + Enter" autocomplete="off" aria-label="Agregar un paso al checklist">
       </div>
     </div>
     <div class="modal-actions">
       ${next
-        ? `<button type="button" class="modal-btn modal-btn-primary focus-primary-block" id="focus-next-step" title="Abrir el siguiente paso pendiente">Empezar siguiente</button>`
-        : `<button type="button" class="modal-btn modal-btn-primary focus-primary-block" id="focus-done" title="Todos los pasos listos: marcar la tarea como hecha">Marcar hecha ✓</button>`}
+        ? `<button type="button" class="modal-btn modal-btn-primary focus-primary-block" id="focus-next-step" title="Abrir este paso en Enfoque">Empezar: ${escapeHtml(next.title.slice(0, 38))}${next.title.length > 38 ? "…" : ""}</button>`
+        : total > 0
+          ? `<button type="button" class="modal-btn modal-btn-primary focus-primary-block" id="focus-done" title="Todos los pasos están listos: marcar la acción como hecha">Marcar acción hecha ✓</button>`
+          : `<button type="button" class="modal-btn modal-btn-primary focus-primary-block" id="focus-add-first-step">Escribir primer paso</button>`}
     </div>
     <div class="modal-actions focus-quiet-row">
       <button type="button" class="modal-btn modal-btn-secondary" id="focus-later" title="Cerrar sin marcar nada">Lo dejo acá</button>
       <button type="button" class="modal-btn modal-btn-secondary" id="focus-stuck" title="Volver a qué me frena">Atascado</button>
-      ${next ? `<button type="button" class="modal-btn modal-btn-secondary" id="focus-done" title="Marcar la tarea como hecha">Marcar hecha ✓</button>` : ""}
     </div>
   `;
   body().querySelectorAll(".focus-check-item").forEach(btn => {
@@ -390,6 +595,7 @@ function renderChecklist(task, children, note = null) {
       addStep();
     }
   });
+  body().querySelector("#focus-add-first-step")?.addEventListener("click", () => addInput?.focus());
   const nextBtn = body().querySelector("#focus-next-step");
   if (nextBtn && next) {
     nextBtn.addEventListener("click", () => openFocus(next.id));
@@ -402,8 +608,8 @@ function renderChecklist(task, children, note = null) {
   wireModeBar(task);
 }
 
-function renderDefineStep(task) {
-  const current = task.first_step && task.first_step.trim() ? task.first_step.trim() : "";
+function renderDefineStep(task, suggested = "") {
+  const current = suggested || (task.first_step && task.first_step.trim() ? task.first_step.trim() : "");
   body().innerHTML = `
     <p class="focus-question">¿Cuál sería el primer paso físico, bien chico?</p>
     ${current ? `<p class="focus-note">Actual: "<strong>${escapeHtml(current)}</strong>". Editarlo lo reemplaza.</p>` : ""}
@@ -461,14 +667,14 @@ function renderDefineStep(task) {
   });
 }
 
-function renderUnblockAsk(task) {
+function renderUnblockAsk(task, initialBlock = "") {
   body().innerHTML = `
-    <p class="focus-question">Cuéntame qué te traba, como me lo contarías a mí.</p>
+    <p class="focus-question">¿Qué parte todavía no está clara?</p>
     ${modeBar("guide")}
     <div class="form-group">
-      <textarea id="focus-block-input" rows="3" placeholder="Ej: no terminé de juntar las fotos y no sé si las que tengo sirven"></textarea>
+      <textarea id="focus-block-input" rows="3" placeholder="Escribe lo que tengas en mente. No hace falta ordenarlo.">${escapeHtml(initialBlock)}</textarea>
     </div>
-    <p class="focus-staging">Separo lo que se puede verificar de lo que pide un primer intento. Sin juicios.</p>
+    <p class="focus-staging">Te ayudo a separar qué falta averiguar y cuál podría ser el primer intento.</p>
     <div class="modal-actions">
       <button type="button" class="modal-btn modal-btn-secondary" id="focus-back">Volver</button>
       <button type="button" class="modal-btn modal-btn-primary" id="focus-unblock-go">Analizar mi traba</button>

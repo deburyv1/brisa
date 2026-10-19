@@ -221,9 +221,14 @@
 
   .next-main { flex-direction: column; align-items: stretch; }
   .next-title { font-size: 17px; }
-  .next-actions { width: 100%; }
+  .next-actions { width: 100%; display: grid; grid-template-columns: 1fr 1fr; }
+  .next-start { grid-column: 1 / -1; }
   .next-start,
-  .next-done { flex: 1; text-align: center; }
+  .next-done,
+  .next-postpone { width: 100%; text-align: center; }
+  .next-agenda summary { flex-wrap: wrap; }
+  .next-agenda-summary { order: 3; flex-basis: 100%; text-align: left; }
+  .next-agenda-task { align-items: flex-start; flex-direction: column; gap: 2px; }
 
   .home-grid { gap: 9px; }
 

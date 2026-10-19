@@ -3,7 +3,7 @@
    Handles note creation and editing
    ============================================ */
 const API_BASE = "/api";
-import { snapshotForm, isDirty, confirmDiscard } from "./modalGuard.js";
+import { snapshotForm, isDirty, confirmDiscard, setFormFeedback, setFormBusy, setFormLoading, isFormSaving } from "./modalGuard.js";
 import { createEditor, editorHTML, htmlWithLightImages, isHTML, sanitizeHTML } from "./richtext.js";
 import { renderMarkdown } from "./markdown.js";
 
@@ -68,28 +68,50 @@ export function initJournalModal() {
   let editingId = null;
   let editingKind = "nota";
   let cleanSnapshot = null;
+  let loadGeneration = 0;
 
   function open(noteId = null, kind = "nota") {
+    const generation = ++loadGeneration;
     editingId = noteId;
     editingKind = kind === "pensamiento" ? "pensamiento" : "nota";
     form.reset();
+    setFormFeedback(form, "");
 
     if (noteId) {
       titleEl.textContent = "Editar escrito";
+      setFormLoading(form, true);
+      quill?.enable(false);
+      cleanSnapshot = null;
       fetch(`${API_BASE}/journal/${noteId}`)
-        .then(r => r.json())
+        .then(r => {
+          if (!r.ok) throw new Error("No se pudo cargar este escrito.");
+          return r.json();
+        })
         .then(note => {
+          if (generation !== loadGeneration) return;
           editingKind = note.kind === "pensamiento" ? "pensamiento" : "nota";
           titleEl.textContent = editingKind === "pensamiento" ? "Editar pensamiento" : "Editar nota";
           form.title.value = note.title || "";
           form.mood.value = note.mood || "";
           fillContent(note.content || "");
+          quill?.enable(true);
+          setFormLoading(form, false);
           cleanSnapshot = snapshotForm(form);
         })
-        .catch(e => console.error("Error cargando nota:", e));
+        .catch(e => {
+          if (generation !== loadGeneration) return;
+          console.error("Error cargando nota:", e);
+          quill?.enable(true);
+          setFormLoading(form, false);
+          setFormFeedback(form, e.message || "No se pudo cargar. Cierra e inténtalo de nuevo.");
+          const submit = form.querySelector("button[type='submit']");
+          if (submit) submit.disabled = true;
+        });
     } else {
       titleEl.textContent = editingKind === "pensamiento" ? "Nuevo pensamiento" : "Nueva nota";
       fillContent("");
+      quill?.enable(true);
+      setFormBusy(form, false);
       cleanSnapshot = snapshotForm(form);
     }
 
@@ -99,7 +121,10 @@ export function initJournalModal() {
   }
 
   function close() {
+    loadGeneration++;
     overlay.classList.remove("active");
+    setFormBusy(form, false);
+    setFormFeedback(form, "");
     form.reset();
     if (quill) quill.setText("");
     editingId = null;
@@ -107,6 +132,7 @@ export function initJournalModal() {
   }
 
   function tryClose() {
+    if (isFormSaving(form)) return;
     if (isDirty(form, cleanSnapshot) && !confirmDiscard()) return;
     close();
   }
@@ -127,30 +153,40 @@ export function initJournalModal() {
     const formData = new FormData(form);
     const data = Object.fromEntries(formData);
 
-    if (!data.title || !data.title.trim()) return;
+    if (!data.title || !data.title.trim()) {
+      setFormFeedback(form, "Escribe un título para guardar.");
+      form.title.focus();
+      return;
+    }
 
     data.kind = editingKind;
+    setFormFeedback(form, "");
+    setFormBusy(form, true);
 
     try {
       data.content = await htmlWithLightImages(data.content || "");
       if (editingId) {
-        await fetch(`${API_BASE}/journal/${editingId}`, {
+        const res = await fetch(`${API_BASE}/journal/${editingId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(data),
         });
+        if (!res.ok) throw new Error("No se pudo guardar el escrito. Intenta de nuevo.");
       } else {
-        await fetch(`${API_BASE}/journal`, {
+        const res = await fetch(`${API_BASE}/journal`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(data),
         });
+        if (!res.ok) throw new Error("No se pudo guardar el escrito. Intenta de nuevo.");
       }
       close();
       if (window.initJournal) window.initJournal();
     } catch (err) {
       console.error("Error guardando nota:", err);
-      alert("No se pudo guardar. Intenta de nuevo.");
+      setFormFeedback(form, err.message || "No se pudo guardar. Intenta de nuevo.");
+    } finally {
+      setFormBusy(form, false);
     }
   });
 

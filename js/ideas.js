@@ -51,53 +51,87 @@ export async function initIdeas() {
         ${done.map(i => ideaHtml(i, true)).join("")}
       </div>
     ` : ""}
+    <div class="ideas-feedback" id="ideas-feedback" role="alert" hidden></div>
   `;
+
+  const showFeedback = (message) => {
+    const el = section.querySelector("#ideas-feedback");
+    if (el) { el.textContent = message; el.hidden = !message; }
+  };
+  const runAction = async (button, action) => {
+    button.disabled = true;
+    showFeedback("");
+    try {
+      await action();
+      if (window.initIdeas) await window.initIdeas();
+      if (window.renderNext) window.renderNext();
+    } catch (e) {
+      button.disabled = false;
+      showFeedback(e.message || "No se pudo guardar el cambio. Intenta de nuevo.");
+    }
+  };
 
   section.querySelectorAll(".idea-row").forEach(row => {
     const id = row.dataset.ideaId;
     const title = row.dataset.ideaTitle || "";
 
-    row.querySelector('[data-action="derive"]')?.addEventListener("click", async () => {
-      try {
-        const task = await fetch(`${API_BASE}/tasks`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title }),
-        }).then(r => r.json());
-        await fetch(`${API_BASE}/ideas/${id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: "done", task_id: task?.id || null }),
-        });
-      } catch (e) {
-        console.error("Error derivando acción:", e);
-      }
-      if (window.initIdeas) window.initIdeas();
-      if (window.initTasks) await window.initTasks();
-      if (window.renderNext) window.renderNext();
+    row.querySelector('[data-action="derive"]')?.addEventListener("click", async (e) => {
+      const button = e.currentTarget;
+      await runAction(button, async () => {
+        let taskId = null;
+        try {
+          const taskRes = await fetch(`${API_BASE}/tasks`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title }),
+          });
+          const task = await taskRes.json().catch(() => ({}));
+          if (!taskRes.ok || !task.id) throw new Error(task.error || "No se pudo crear la acción.");
+          taskId = task.id;
+          const ideaRes = await fetch(`${API_BASE}/ideas/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: "done", task_id: taskId }),
+          });
+          if (!ideaRes.ok) throw new Error("La acción se creó, pero no se pudo vincular con la idea.");
+        } catch (err) {
+          if (taskId) await fetch(`${API_BASE}/tasks/${taskId}`, { method: "DELETE" }).catch(() => {});
+          throw err;
+        }
+        if (window.initTasks) await window.initTasks();
+      });
     });
 
-    row.querySelector('[data-action="revert"]')?.addEventListener("click", async () => {
+    row.querySelector('[data-action="revert"]')?.addEventListener("click", async (e) => {
       const taskId = row.dataset.taskId;
-      try {
-        if (taskId) await fetch(`${API_BASE}/tasks/${taskId}`, { method: "DELETE" });
-        await fetch(`${API_BASE}/ideas/${id}`, {
+      await runAction(e.currentTarget, async () => {
+        if (taskId) {
+          const taskRes = await fetch(`${API_BASE}/tasks/${taskId}`, { method: "DELETE" });
+          if (!taskRes.ok) throw new Error("No se pudo quitar la acción vinculada.");
+        }
+        const res = await fetch(`${API_BASE}/ideas/${id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ status: "open", task_id: null }),
         });
-      } catch (e) {
-        console.error("Error devolviendo idea:", e);
-      }
-      if (window.initIdeas) window.initIdeas();
-      if (window.initTasks) await window.initTasks();
-      if (window.renderNext) window.renderNext();
+        if (!res.ok) throw new Error("No se pudo devolver la idea al semillero.");
+        if (window.initTasks) await window.initTasks();
+      });
     });
 
-    row.querySelector('[data-action="delete"]')?.addEventListener("click", async () => {
-      await fetch(`${API_BASE}/ideas/${id}`, { method: "DELETE" });
-      if (window.initIdeas) window.initIdeas();
-      if (window.renderNext) window.renderNext();
+    row.querySelector('[data-action="convert"]')?.addEventListener("click", async (e) => {
+      await runAction(e.currentTarget, async () => {
+        const res = await fetch(`${API_BASE}/ideas/${id}/convert-to-thought`, { method: "POST" });
+        if (!res.ok) throw new Error("No se pudo mover a Pensamientos.");
+        if (window.initJournal) await window.initJournal();
+      });
+    });
+
+    row.querySelector('[data-action="delete"]')?.addEventListener("click", async (e) => {
+      await runAction(e.currentTarget, async () => {
+        const res = await fetch(`${API_BASE}/ideas/${id}`, { method: "DELETE" });
+        if (!res.ok) throw new Error("No se pudo descartar esta idea.");
+      });
     });
   });
 }
@@ -116,6 +150,7 @@ function ideaHtml(i, isDone) {
       ${isDone
         ? `<button class="tx-btn tx-btn-edit" data-action="revert" title="Devolver al semillero (borra la tarea)">↩ devolver</button>`
         : `<button class="tx-btn tx-btn-edit" data-action="derive" title="Crear una acción desde esta idea (la idea queda)">→ acción</button>`}
+      <button class="tx-btn tx-btn-edit" data-action="convert" title="Mover esta idea a Pensamientos">→ pensamiento</button>
       <button class="tx-btn tx-btn-delete" data-action="delete" title="Descartar">✕</button>
     </div>
   </div>`;

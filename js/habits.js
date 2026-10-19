@@ -17,6 +17,11 @@ function lazyEmoji(input, btn) {
 }
 const QUICK_ICONS = ["🚿", "🛏️", "🍳", "📖", "🚶", "💧", "🧘", "🎸"];
 
+function showHabitFeedback(section, message = "") {
+  const el = section.querySelector("#habits-feedback");
+  if (el) { el.textContent = message; el.hidden = !message; }
+}
+
 async function fetchHabits() {
   try {
     const res = await fetch(`${API_BASE}/habits`);
@@ -70,6 +75,7 @@ export async function initHabits() {
         <button class="habits-add-btn" id="habits-add" title="Agregar hábito">+</button>
       </div>
     </div>
+    <div class="habits-feedback" id="habits-feedback" role="alert" hidden></div>
     <div class="habits-list">
       ${habits.length === 0
         ? `<div class="habits-empty-note">Sin hábitos todavía. Crea el primero arriba y aparece en Tu día.</div>`
@@ -90,15 +96,25 @@ export async function initHabits() {
   });
 
   const add = async () => {
-    const name = section.querySelector("#habits-input")?.value.trim();
+    const input = section.querySelector("#habits-input");
+    const name = input?.value.trim();
     if (!name) return;
-    await fetch(`${API_BASE}/habits`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, icon: iconInput?.value.trim() || null }),
-    });
-    if (window.initHabits) window.initHabits();
-    if (window.initWeek) window.initWeek();
+    const button = section.querySelector("#habits-add");
+    button.disabled = true;
+    showHabitFeedback(section);
+    try {
+      const res = await fetch(`${API_BASE}/habits`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, icon: iconInput?.value.trim() || null }),
+      });
+      if (!res.ok) throw new Error();
+      if (window.initHabits) await window.initHabits();
+      if (window.initWeek) await window.initWeek();
+    } catch {
+      button.disabled = false;
+      showHabitFeedback(section, "No se pudo agregar el hábito. El nombre sigue ahí para que puedas reintentar.");
+    }
   };
   section.querySelector("#habits-add")?.addEventListener("click", add);
   section.querySelector("#habits-input")?.addEventListener("keydown", (e) => {
@@ -107,24 +123,37 @@ export async function initHabits() {
 
   section.querySelectorAll(".habit-row").forEach(row => {
     const id = row.dataset.habitId;
-    row.querySelector('[data-action="toggle"]')?.addEventListener("click", async () => {
+    row.querySelector('[data-action="toggle"]')?.addEventListener("click", async (e) => {
       const habit = habits.find(h => String(h.id) === String(id));
       const done = !habit?.done_today;
-      await fetch(`${API_BASE}/habits/${id}/check`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ done }),
-      });
-      if (window.initHabits) window.initHabits();
-      if (window.initReadiness) window.initReadiness();
-      if (window.initWeek) window.initWeek();
+      const button = e.currentTarget;
+      button.disabled = true;
+      try {
+        const res = await fetch(`${API_BASE}/habits/${id}/check`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ done }),
+        });
+        if (!res.ok) throw new Error();
+        if (window.initHabits) await window.initHabits();
+        if (window.initReadiness) await window.initReadiness();
+        if (window.initWeek) await window.initWeek();
+      } catch {
+        button.disabled = false;
+        showHabitFeedback(section, "No se pudo guardar el cambio de hoy. Intenta de nuevo.");
+      }
     });
     row.querySelector('[data-action="edit"]')?.addEventListener("click", () => openEditor(id, habits));
     row.querySelector('[data-action="delete"]')?.addEventListener("click", async () => {
       if (!confirm("¿Eliminar este hábito? Se pierde su registro.")) return;
-      await fetch(`${API_BASE}/habits/${id}`, { method: "DELETE" });
-      if (window.initHabits) window.initHabits();
-      if (window.initWeek) window.initWeek();
+      try {
+        const res = await fetch(`${API_BASE}/habits/${id}`, { method: "DELETE" });
+        if (!res.ok) throw new Error();
+        if (window.initHabits) await window.initHabits();
+        if (window.initWeek) await window.initWeek();
+      } catch {
+        showHabitFeedback(section, "No se pudo eliminar el hábito. Intenta de nuevo.");
+      }
     });
   });
 }
@@ -210,6 +239,7 @@ async function openEditor(id, habits) {
       <button class="modal-btn modal-btn-secondary" id="habit-edit-cancel">Cancelar</button>
       <button class="modal-btn modal-btn-primary" id="habit-edit-save">Guardar</button>
     </div>
+    <div class="habits-feedback" id="habit-edit-feedback" role="alert" hidden></div>
   `;
   box.scrollIntoView({ behavior: "smooth", block: "nearest" });
   lazyEmoji(box.querySelector("#habit-edit-icon"), box.querySelector("#habit-edit-icon-btn"));
@@ -231,40 +261,61 @@ async function openEditor(id, habits) {
     const name = box.querySelector("#habit-edit-name")?.value.trim();
     const icon = box.querySelector("#habit-edit-icon")?.value.trim() || null;
     const linkId = box.querySelector("#habit-edit-link")?.value || null;
-    if (!name) return;
-    const days = getDays();
-    const timeVal = box.querySelector("#habit-edit-time")?.value || null;
-    await fetch(`${API_BASE}/habits/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name, icon,
-        freq_type: days.length === 7 ? "daily" : "custom",
-        freq_days: days,
-        default_time: timeVal,
-      }),
-    });
-    try {
-      if (linked && String(linked.id) !== String(linkId)) {
-        await fetch(`${API_BASE}/readiness/items/${linked.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ source_type: null, source_id: null }),
-        });
-      }
-      if (linkId && (!linked || String(linked.id) !== String(linkId))) {
-        await fetch(`${API_BASE}/readiness/items/${linkId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ source_type: "habit", source_id: Number(id) }),
-        });
-      }
-    } catch (e) {
-      console.error("Error vinculando condición:", e);
+    const error = box.querySelector("#habit-edit-feedback");
+    if (!name) {
+      error.textContent = "Escribe un nombre para el hábito.";
+      error.hidden = false;
+      box.querySelector("#habit-edit-name")?.focus();
+      return;
     }
-    if (window.initHabits) window.initHabits();
-    if (window.initReadiness) window.initReadiness();
-    if (window.initWeek) window.initWeek();
+    const days = getDays();
+    if (days.length === 0) {
+      error.textContent = "Elige al menos un día.";
+      error.hidden = false;
+      return;
+    }
+    const timeVal = box.querySelector("#habit-edit-time")?.value || null;
+    const saveButton = box.querySelector("#habit-edit-save");
+    saveButton.disabled = true;
+    error.hidden = true;
+    try {
+      const res = await fetch(`${API_BASE}/habits/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name, icon,
+          freq_type: days.length === 7 ? "daily" : "custom",
+          freq_days: days,
+          default_time: timeVal,
+        }),
+      });
+      if (!res.ok) throw new Error();
+      try {
+        if (linked && String(linked.id) !== String(linkId)) {
+          await fetch(`${API_BASE}/readiness/items/${linked.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ source_type: null, source_id: null }),
+          });
+        }
+        if (linkId && (!linked || String(linked.id) !== String(linkId))) {
+          await fetch(`${API_BASE}/readiness/items/${linkId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ source_type: "habit", source_id: Number(id) }),
+          });
+        }
+      } catch (e) {
+        console.error("Error vinculando condición:", e);
+      }
+      if (window.initHabits) window.initHabits();
+      if (window.initReadiness) window.initReadiness();
+      if (window.initWeek) window.initWeek();
+    } catch {
+      saveButton.disabled = false;
+      error.textContent = "No se pudo guardar el hábito. Intenta de nuevo.";
+      error.hidden = false;
+    }
   });
 }
 

@@ -3,7 +3,7 @@
    Handles task creation and editing
    ============================================ */
 const API_BASE = "/api";
-import { snapshotForm, isDirty, confirmDiscard, toISODateTime } from "./modalGuard.js";
+import { snapshotForm, isDirty, confirmDiscard, toISODateTime, setFormFeedback, setFormBusy, setFormLoading, isFormSaving } from "./modalGuard.js";
 
 function toLocalDate(dt) {
   if (!dt) return "";
@@ -35,6 +35,7 @@ export function initTaskModal() {
 
   let editingId = null;
   let cleanSnapshot = null;
+  let loadGeneration = 0;
 
   async function fillReadinessOptions(selectedItemId) {
     const sel = form.querySelector("#task-readiness-select");
@@ -83,17 +84,25 @@ export function initTaskModal() {
   }
 
   function open(taskId = null) {
+    const generation = ++loadGeneration;
     editingId = taskId;
     form.reset();
     window.resetPickers(form);
+    setFormFeedback(form, "");
     const result = document.querySelector("#ai-split-result");
     if (result) { result.style.display = "none"; result.innerHTML = ""; }
 
     if (taskId) {
       titleEl.textContent = "Editar tarea";
+      setFormLoading(form, true);
+      cleanSnapshot = null;
       fetch(`${API_BASE}/tasks/${taskId}`)
-        .then(r => r.json())
+        .then(r => {
+          if (!r.ok) throw new Error("No se pudo cargar esta tarea.");
+          return r.json();
+        })
         .then(async task => {
+          if (generation !== loadGeneration) return;
           form.title.value = task.title || "";
           form.description.value = task.description || "";
           form.first_step.value = task.first_step || "";
@@ -105,10 +114,20 @@ export function initTaskModal() {
           form.estimated_minutes.value = task.estimated_minutes ?? "";
           const linked = await linkedReadinessItem(taskId);
           await fillReadinessOptions(linked?.id || "");
+          if (generation !== loadGeneration) return;
+          setFormLoading(form, false);
           cleanSnapshot = snapshotForm(form);
+        })
+        .catch(err => {
+          if (generation !== loadGeneration) return;
+          setFormLoading(form, false);
+          setFormFeedback(form, err.message || "No se pudo cargar esta tarea. Cierra e inténtalo de nuevo.");
+          const submit = form.querySelector("button[type='submit']");
+          if (submit) submit.disabled = true;
         });
     } else {
       titleEl.textContent = "Nueva tarea";
+      setFormBusy(form, false);
       const pristineSnapshot = snapshotForm(form);
       cleanSnapshot = pristineSnapshot;
       fillReadinessOptions("").then(() => {
@@ -122,13 +141,17 @@ export function initTaskModal() {
   }
 
   function close() {
+    loadGeneration++;
     overlay.classList.remove("active");
+    setFormBusy(form, false);
+    setFormFeedback(form, "");
     form.reset();
     window.resetPickers(form);
     editingId = null;
   }
 
   function tryClose() {
+    if (isFormSaving(form)) return;
     if (isDirty(form, cleanSnapshot) && !confirmDiscard()) return;
     close();
   }
@@ -149,7 +172,13 @@ export function initTaskModal() {
     const formData = new FormData(form);
     const data = Object.fromEntries(formData);
 
-    if (!data.title || !data.title.trim()) return;
+    if (!data.title || !data.title.trim()) {
+      setFormFeedback(form, "Escribe un título para la tarea.");
+      form.title.focus();
+      return;
+    }
+    setFormFeedback(form, "");
+    setFormBusy(form, true);
 
     const payload = { ...data };
     delete payload.scheduled_date;
@@ -162,17 +191,19 @@ export function initTaskModal() {
     try {
       let savedId = editingId;
       if (editingId) {
-        await fetch(`${API_BASE}/tasks/${editingId}`, {
+        const res = await fetch(`${API_BASE}/tasks/${editingId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
+        if (!res.ok) throw new Error("No se pudo guardar la tarea. Revisa los datos e inténtalo de nuevo.");
       } else {
         const res = await fetch(`${API_BASE}/tasks`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
+        if (!res.ok) throw new Error("No se pudo crear la tarea. Revisa los datos e inténtalo de nuevo.");
         const created = await res.json().catch(() => null);
         if (created?.id) savedId = created.id;
       }
@@ -203,7 +234,9 @@ export function initTaskModal() {
       if (window.initTasks) window.initTasks();
     } catch (err) {
       console.error("Error guardando tarea:", err);
-      alert("No se pudo guardar. Intenta de nuevo.");
+      setFormFeedback(form, err.message || "No se pudo guardar. Intenta de nuevo.");
+    } finally {
+      setFormBusy(form, false);
     }
   });
 

@@ -6,6 +6,15 @@
 
 const KEY = "brisa.bankCheck";
 
+export function localDateKey(date = new Date()) {
+  const pad = n => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+export function localMonthKey(date = new Date()) {
+  return localDateKey(date).slice(0, 7);
+}
+
 export function readBankCheck() {
   try {
     return JSON.parse(localStorage.getItem(KEY) || "null");
@@ -18,7 +27,7 @@ export function writeBankCheck(accountId, bank) {
   const rec = {
     accountId,
     bank: Number(bank),
-    date: new Date().toISOString().slice(0, 10),
+    date: localDateKey(),
   };
   try {
     localStorage.setItem(KEY, JSON.stringify(rec));

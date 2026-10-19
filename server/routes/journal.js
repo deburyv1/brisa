@@ -3,6 +3,40 @@ import pool from '../db.js';
 
 const router = Router();
 
+// Reclasificar un pensamiento como idea mantiene el texto y lo mueve de sección.
+router.post('/:id/convert-to-idea', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const found = await client.query(`SELECT * FROM journal WHERE id = $1 AND user_id = ${req.userId} FOR UPDATE`, [req.params.id]);
+    if (!found.rowCount) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Thought not found' });
+    }
+    const thought = found.rows[0];
+    if (thought.kind !== 'pensamiento') {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Only thoughts can be converted to ideas' });
+    }
+    const created = await client.query(
+      `INSERT INTO ideas (user_id, title, description, entry_id) VALUES (${req.userId}, $1, $2, $3) RETURNING *`,
+      [thought.title, thought.content || null, thought.entry_id]
+    );
+    if (thought.entry_id) {
+      await client.query(`UPDATE entries SET target_type = 'idea', target_id = $1, status = 'processed' WHERE id = $2 AND user_id = ${req.userId}`, [created.rows[0].id, thought.entry_id]);
+    }
+    await client.query(`DELETE FROM journal WHERE id = $1 AND user_id = ${req.userId}`, [thought.id]);
+    await client.query('COMMIT');
+    res.status(201).json(created.rows[0]);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Error converting thought to idea:', err);
+    res.status(500).json({ error: 'Database error' });
+  } finally {
+    client.release();
+  }
+});
+
 // Strip rich HTML down to searchable plain text (mirror of client plainText)
 function stripHtml(html) {
   return String(html ?? '')

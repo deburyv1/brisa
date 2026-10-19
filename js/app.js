@@ -16,7 +16,7 @@ import { initTaskDetail } from "./tasks.js";
 import { initCapture, loadEntryIntoCapture } from "./capture.js";
 import { initInbox } from "./inbox.js";
 // nextAction se carga dinámicamente con cache-bust para evitar módulos viejos.
-import { initNext, renderNext } from "./nextAction.js?v=20261017ab";
+import { initNext, renderNext } from "./nextAction.js?v=20261019ab";
 import { initJournal } from "./journal.js";
 import { initJournalModal } from "./journalModal.js";
 import { initFinance } from "./finance.js";
@@ -159,6 +159,14 @@ function initNavigation() {
       }
       if (btn.dataset.nav === "trash" && window.renderTrash) window.renderTrash();
       showSection(btn.dataset.nav);
+      if (btn.dataset.nav === "account" && window.initAccount) {
+        window.initAccount({ render: true, gate: false });
+      } else {
+        // The account view contains a password input when logged out. Remove
+        // it while hidden so password managers do not mistake capture fields
+        // elsewhere on the page for a login form.
+        document.querySelector("#account-key")?.remove();
+      }
       if (window.closeNavDrawer) window.closeNavDrawer();
       window.scrollTo({ top: 0, behavior: "smooth" });
       // La captura del navbar solo donde no hay ya la caja de captura (portada).
@@ -223,7 +231,8 @@ async function main() {
   initEventDetail();
   initTaskNotes();
   initAuth();
-  initAccount();
+  // Keep the credential field out of the DOM until the account view is opened.
+  initAccount({ render: false });
   window.initAccount = initAccount;
   initShopping();
   initReadiness();

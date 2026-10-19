@@ -118,6 +118,20 @@
   opacity: .65;
   cursor: default;
 }
+.push-disable-btn {
+  align-self: flex-start;
+  margin: -4px 0 8px 8px;
+  border: 0;
+  background: transparent;
+  color: rgba(22, 75, 105, .7);
+  font: inherit;
+  font-size: 9px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.push-disable-btn:hover { color: var(--ink); }
+.push-disable-btn:disabled { opacity: .6; cursor: wait; }
 
 .nav {
   position: relative;

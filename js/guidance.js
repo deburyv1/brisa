@@ -3,7 +3,7 @@
    Neutral nudges as clickable shortcuts (never punishment)
    ============================================ */
 import { state } from "./state.js";
-import { readBankCheck, bankDiff } from "./reconcile.js";
+import { readBankCheck, bankDiff, localMonthKey } from "./reconcile.js";
 
 export function checkGuidance() {
   const tasks = state.tasks || [];
@@ -11,7 +11,7 @@ export function checkGuidance() {
   const entries = state.entries || [];
 
   const pendingInbox = entries.filter(e => e.status === "inbox");
-  const month = new Date().toISOString().slice(0, 7); // YYYY-MM, same rule as finance
+  const month = localMonthKey(); // YYYY-MM, same local-date rule as finance
   const uncategorized = transactions.filter(t => !t.category && typeof t.date === "string" && t.date.slice(0, 7) === month);
   const overdue = tasks.filter(t => {
     if (t.is_completed || !t.due_datetime) return false;

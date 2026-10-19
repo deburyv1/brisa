@@ -54,13 +54,15 @@ function renderIdle(section) {
   section.innerHTML = `
     <div class="capture-row">
       <span class="capture-icon">💭</span>
-      <input id="capture-input" class="capture-input" type="text"
-        name="capture-text" placeholder="¿Qué tienes en mente?" autocomplete="off" maxlength="255">
+      <input id="capture-input" class="capture-input" type="search"
+        name="brisa-capture" placeholder="¿Qué tienes en mente?" autocomplete="off" autocapitalize="off"
+        data-1p-ignore="true" data-lpignore="true" data-bwignore="true" readonly maxlength="255">
       <button class="capture-expand" id="capture-expand" title="Escribir más elaborado (Ctrl+E)">⤢</button>
       <button class="capture-btn" id="capture-save">Guardar</button>
     </div>
   `;
   const input = section.querySelector("#capture-input");
+  input?.addEventListener("focus", () => input.removeAttribute("readonly"), { once: true });
   input?.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
       e.preventDefault();

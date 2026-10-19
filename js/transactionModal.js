@@ -3,7 +3,8 @@
    Handles transaction creation and editing
    ============================================ */
 const API_BASE = "/api";
-import { snapshotForm, isDirty, confirmDiscard } from "./modalGuard.js";
+import { snapshotForm, isDirty, confirmDiscard, setFormFeedback, setFormBusy, setFormLoading, isFormSaving } from "./modalGuard.js";
+import { localDateKey } from "./reconcile.js";
 
 const EXPENSE_CATEGORIES = ["Comida", "Transporte", "Casa", "Salud", "Ocio", "Suscripciones", "Regalos", "Trabajo", "Préstamo", "Tarjeta", "Ahorro", "Otro"];
 const INCOME_CATEGORIES = ["Sueldo", "Aguinaldo", "Reembolso", "Préstamo", "Otro"];
@@ -80,20 +81,29 @@ export function initTransactionModal() {
   let editingId = null;
   let currentAccountId = null;
   let cleanSnapshot = null;
+  let loadGeneration = 0;
 
   function open(accountId = null, txId = null, preset = null) {
+    const generation = ++loadGeneration;
     // open(accountId) or open(accountId, txId) or open(accountId, null, preset)
     if (typeof accountId === "object") accountId = null;
     currentAccountId = accountId;
     editingId = txId;
     form.reset();
     window.resetPickers(form);
+    setFormFeedback(form, "");
 
     if (txId) {
       titleEl.textContent = "Editar movimiento";
+      setFormLoading(form, true);
+      cleanSnapshot = null;
       fetch(`${API_BASE}/transactions/${txId}`)
-        .then(r => r.json())
+        .then(r => {
+          if (!r.ok) throw new Error("No se pudo cargar este movimiento.");
+          return r.json();
+        })
         .then(async tx => {
+          if (generation !== loadGeneration) return;
           form.description.value = tx.description || "";
           form.alias.value = tx.alias || "";
           form.details.value = tx.details || "";
@@ -107,13 +117,23 @@ export function initTransactionModal() {
           togglePersonRow(form);
           await fillLinkOptions(form, currentAccountId, tx.linked_id || "", txId);
           await fillPersonOptions(form, tx.person_id || "");
+          if (generation !== loadGeneration) return;
           window.setPickerValue(form.date, tx.date ? String(tx.date).slice(0, 10) : "");
+          setFormLoading(form, false);
           cleanSnapshot = snapshotForm(form);
         })
-        .catch(e => console.error("Error cargando movimiento:", e));
+        .catch(e => {
+          if (generation !== loadGeneration) return;
+          console.error("Error cargando movimiento:", e);
+          setFormLoading(form, false);
+          setFormFeedback(form, e.message || "No se pudo cargar. Cierra e inténtalo de nuevo.");
+          const submit = form.querySelector("button[type='submit']");
+          if (submit) submit.disabled = true;
+        });
     } else {
       titleEl.textContent = "Nuevo movimiento";
-      window.setPickerValue(form.date, new Date().toISOString().slice(0, 10));
+      setFormBusy(form, false);
+      window.setPickerValue(form.date, localDateKey());
       fillCategories(form, form.type.value, preset?.category || "");
       const descInput = form.description;
       descInput.readOnly = false;
@@ -162,13 +182,17 @@ export function initTransactionModal() {
   }
 
   function close() {
+    loadGeneration++;
     overlay.classList.remove("active");
+    setFormBusy(form, false);
+    setFormFeedback(form, "");
     form.reset();
     window.resetPickers(form);
     editingId = null;
   }
 
   function tryClose() {
+    if (isFormSaving(form)) return;
     if (isDirty(form, cleanSnapshot) && !confirmDiscard()) return;
     close();
   }
@@ -198,13 +222,20 @@ export function initTransactionModal() {
     const formData = new FormData(form);
     const data = Object.fromEntries(formData);
 
-    if (!data.description || !data.description.trim()) return;
+    if (!data.description || !data.description.trim()) {
+      setFormFeedback(form, "Escribe una descripción para el movimiento.");
+      form.description.focus();
+      return;
+    }
     if (!data.amount || Number(data.amount) <= 0) {
-      alert("Ingresa un monto mayor a 0.");
+      setFormFeedback(form, "Ingresa un monto mayor a 0.");
+      form.amount.focus();
       return;
     }
 
     try {
+      setFormFeedback(form, "");
+      setFormBusy(form, true);
       const payload = { ...data, account_id: currentAccountId };
       payload.status = data.is_planned ? "planned" : "posted";
       delete payload.is_planned;
@@ -218,15 +249,16 @@ export function initTransactionModal() {
       );
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        alert(err.error || "No se pudo guardar. Intenta de nuevo.");
-        return;
+        throw new Error(err.error || "No se pudo guardar. Intenta de nuevo.");
       }
       close();
       if (window.initFinance) await window.initFinance();
       if (window.renderGuidanceBanner) window.renderGuidanceBanner();
     } catch (err) {
       console.error("Error guardando movimiento:", err);
-      alert("No se pudo guardar. Intenta de nuevo.");
+      setFormFeedback(form, err.message || "No se pudo guardar. Intenta de nuevo.");
+    } finally {
+      setFormBusy(form, false);
     }
   });
 

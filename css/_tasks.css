@@ -52,6 +52,13 @@
   margin-bottom: 12px;
   flex-wrap: wrap;
 }
+.tasks-feedback {
+  margin: 6px 0 10px;
+  color: #8a2732;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.tasks-feedback[hidden] { display: none; }
 
 .tasks-filter-btn {
   border: 1px solid rgba(22, 75, 105, 0.28);
@@ -196,6 +203,7 @@
   place-items: center;
   transition: var(--transition-speed);
 }
+.task-checkbox[aria-disabled="true"] { opacity: .55; cursor: wait; }
 
 .task-checkbox:hover {
   border-color: var(--ink);

@@ -3,6 +3,36 @@ import pool from '../db.js';
 
 const router = Router();
 
+// Cambiar de idea a pensamiento conserva el texto y su captura de origen.
+router.post('/:id/convert-to-thought', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const found = await client.query(`SELECT * FROM ideas WHERE id = $1 AND user_id = ${req.userId} FOR UPDATE`, [req.params.id]);
+    if (!found.rowCount) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Idea not found' });
+    }
+    const idea = found.rows[0];
+    const created = await client.query(
+      `INSERT INTO journal (user_id, title, content, content_text, kind, entry_id) VALUES (${req.userId}, $1, $2, $3, 'pensamiento', $4) RETURNING *`,
+      [idea.title, idea.description || null, idea.description || null, idea.entry_id]
+    );
+    if (idea.entry_id) {
+      await client.query(`UPDATE entries SET target_type = 'journal', target_id = $1, status = 'processed' WHERE id = $2 AND user_id = ${req.userId}`, [created.rows[0].id, idea.entry_id]);
+    }
+    await client.query(`DELETE FROM ideas WHERE id = $1 AND user_id = ${req.userId}`, [idea.id]);
+    await client.query('COMMIT');
+    res.status(201).json(created.rows[0]);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Error converting idea to thought:', err);
+    res.status(500).json({ error: 'Database error' });
+  } finally {
+    client.release();
+  }
+});
+
 // GET /api/ideas
 router.get('/', async (req, res) => {
   try {

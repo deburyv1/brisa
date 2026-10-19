@@ -5,6 +5,7 @@
 export const state = {
   user: { name: "Leonardo" },
   tasks: [],
+  tasksStatus: "loading",
   transactions: [],
   people: [],
   habits: [],

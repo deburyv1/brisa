@@ -40,6 +40,14 @@
   gap: 8px;
   margin-bottom: 12px;
 }
+.shopping-feedback {
+  margin: 6px 0 10px;
+  color: #8a2732;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.shopping-feedback[hidden] { display: none; }
+.shopping-add-btn:disabled { opacity: .65; cursor: wait; }
 
 .shopping-add input[type="text"] {
   flex: 1;
@@ -198,9 +206,14 @@
   text-overflow: ellipsis;
   cursor: pointer;
   border-radius: 6px;
+  border: 0;
+  background: transparent;
+  padding: 2px 4px;
+  font: inherit;
+  text-align: left;
 }
 
-.shopping-name:hover { background: rgba(255, 255, 255, .45); }
+.shopping-name:hover, .shopping-name:focus-visible { background: rgba(255, 255, 255, .45); }
 
 .shopping-edit {
   flex: 1;

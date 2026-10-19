@@ -5,6 +5,24 @@
 
 const API_BASE = "/api";
 
+async function requireOk(res, message) {
+  if (!res.ok) throw new Error(message);
+  return res;
+}
+
+function showDetailFeedback(overlay, message = "") {
+  let el = overlay.querySelector("#event-detail-feedback");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "event-detail-feedback";
+    el.className = "event-detail-feedback";
+    el.setAttribute("role", "alert");
+    overlay.querySelector("#event-detail-when")?.after(el);
+  }
+  el.textContent = message;
+  el.hidden = !message;
+}
+
 let currentEventId = null;
 let travelTickId = null;
 
@@ -72,14 +90,14 @@ function renderTravelRow(overlay, ev) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ travel_minutes: val === "" ? null : Number(val) }),
         });
-        if (res.ok) {
-          ev.travel_minutes = val === "" ? null : Number(val);
-          renderTravelRow(overlay, ev);
-          if (window.initCalendar) window.initCalendar();
-          if (window.initToday) window.initToday();
-        }
+        await requireOk(res, "No se pudo guardar el tiempo de viaje.");
+        ev.travel_minutes = val === "" ? null : Number(val);
+        renderTravelRow(overlay, ev);
+        if (window.initCalendar) window.initCalendar();
+        if (window.initToday) window.initToday();
       } catch (e) {
         console.error("Error guardando viaje:", e);
+        showDetailFeedback(overlay, e.message || "No se pudo guardar el tiempo de viaje. Intenta de nuevo.");
       }
     };
     el.querySelector("#travel-save")?.addEventListener("click", saveTravel);
@@ -95,30 +113,43 @@ function renderTravelRow(overlay, ev) {
 async function renderPrepList(overlay, eventId) {
   const box = overlay.querySelector("#event-prep-list");
   if (!box) return;
+  box.innerHTML = `<div class="focus-note">Cargando pasos…</div>`;
   let tasks = [];
   try {
     const res = await fetch(`${API_BASE}/tasks`);
-    if (res.ok) tasks = (await res.json()).filter(t => String(t.event_id) === String(eventId));
+    await requireOk(res, "No se pudieron cargar los pasos.");
+    tasks = (await res.json()).filter(t => String(t.event_id) === String(eventId));
   } catch (e) {
     console.error("Error cargando preparación:", e);
+    box.innerHTML = `<div class="focus-note">No se pudieron cargar los pasos. <button class="tx-btn tx-btn-edit" id="event-prep-retry">Reintentar</button></div>`;
+    box.querySelector("#event-prep-retry")?.addEventListener("click", () => renderPrepList(overlay, eventId));
+    return;
   }
-  const done = tasks.filter(t => t.is_completed).length;
-  const open = tasks.filter(t => !t.is_completed);
+  const phases = [
+    ["prep", "Preparar con anticipación"],
+    ["leave", "Antes de salir"],
+    ["during", "Ese día"],
+    ["unassigned", "Sin momento asignado"],
+  ];
+  const open = tasks.filter(t => !t.is_completed && t.event_phase).sort((a, b) => phases.findIndex(p => p[0] === a.event_phase) - phases.findIndex(p => p[0] === b.event_phase));
   box.innerHTML = tasks.length === 0
-    ? `<div class="focus-note">Sin pasos todavía. Agrega el primero arriba.</div>`
-    : `<div class="focus-note">Antes del evento · ${done} de ${tasks.length} listos</div>` + tasks.map(t => `
-      <label class="prep-row">
-        <input type="checkbox" data-prep-toggle="${t.id}" ${t.is_completed ? "checked" : ""}>
-        <span class="${t.is_completed ? "prep-done" : ""}">${escapeHtml(t.title)}</span>
-      </label>`).join("") + (open.length > 0 ? `
-      <button class="modal-btn modal-btn-secondary" id="event-prep-focus" style="margin-top:8px" title="Abrir el siguiente paso en Enfoque">▶ Enfocar: ${escapeHtml(open[0].title.slice(0, 40))}</button>` : "");;
+    ? `<div class="event-prep-empty">Sin pasos todavía. Agrega solo lo que te ayude.</div>`
+    : phases.map(([phase, label]) => {
+      const group = tasks.filter(t => (t.event_phase || "unassigned") === phase);
+      if (!group.length) return "";
+      const done = group.filter(t => t.is_completed).length;
+      return `<section class="event-phase-group"><h3>${label}<span>${done}/${group.length}</span></h3>${group.map(t => `
+        <label class="prep-row"><input type="checkbox" data-prep-toggle="${t.id}" ${t.is_completed ? "checked" : ""}>
+          <span class="${t.is_completed ? "prep-done" : ""}">${escapeHtml(t.title)}</span>${phase === "unassigned" ? `<select class="event-phase-select" data-phase-task="${t.id}" aria-label="Cuándo hacer ${escapeHtml(t.title)}"><option value="">Elegir momento</option><option value="prep">Preparar antes</option><option value="leave">Antes de salir</option><option value="during">Ese día</option></select>` : ""}</label>`).join("")}</section>`;
+    }).join("") + (open.length > 0 ? `
+      <button class="modal-btn modal-btn-secondary" id="event-prep-focus" style="margin-top:8px" title="Abrir el siguiente paso en Enfoque">▶ Enfocar siguiente: ${escapeHtml(open[0].title.slice(0, 40))}</button>` : "");
   box.querySelector("#event-prep-focus")?.addEventListener("click", async () => {
     try {
       const res = await fetch(`${API_BASE}/tasks`);
       if (!res.ok) return;
       const next = (await res.json())
         .filter(t => !t.is_completed && String(t.event_id) === String(eventId))
-        .sort((a, b) => String(a.created_at) > String(b.created_at) ? 1 : -1)[0];
+        .sort((a, b) => phases.findIndex(p => p[0] === (a.event_phase || "prep")) - phases.findIndex(p => p[0] === (b.event_phase || "prep")))[0];
       if (next && window.startWorkmode) {
         document.querySelector("#event-detail-modal")?.classList.remove("active");
         window.startWorkmode(next.id);
@@ -127,10 +158,33 @@ async function renderPrepList(overlay, eventId) {
       console.error("Error enfocando:", e);
     }
   });
+  box.querySelectorAll("[data-phase-task]").forEach(select => select.addEventListener("change", async () => {
+    if (!select.value) return;
+    select.disabled = true;
+    try {
+      const res = await fetch(`${API_BASE}/tasks/${select.dataset.phaseTask}`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ event_phase: select.value }),
+      });
+      if (res.status === 400) {
+        const payload = await res.clone().json().catch(() => ({}));
+        if (payload.error === "Nothing to update") {
+          throw new Error("Brisa necesita reiniciar su servidor para guardar este cambio. Reinicia la app y vuelve a intentarlo.");
+        }
+      }
+      await requireOk(res, "No se pudo cambiar el momento de este paso.");
+      if (window.renderNext) await window.renderNext();
+      await renderPrepList(overlay, eventId);
+    } catch (e) {
+      select.disabled = false;
+      select.value = "";
+      showDetailFeedback(overlay, e.message || "No se pudo cambiar el momento.");
+    }
+  }));
   box.querySelectorAll("[data-prep-toggle]").forEach(cb => {
     cb.addEventListener("change", async () => {
       try {
-        await fetch(`${API_BASE}/tasks/${cb.dataset.prepToggle}`, {
+        const res = await fetch(`${API_BASE}/tasks/${cb.dataset.prepToggle}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -138,6 +192,7 @@ async function renderPrepList(overlay, eventId) {
             completed_at: cb.checked ? new Date().toISOString() : null,
           }),
         });
+        await requireOk(res, "No se pudo actualizar este paso.");
         if (window.initTasks) await window.initTasks();
         if (window.initReadiness) window.initReadiness();
         if (window.renderNext) window.renderNext();
@@ -145,6 +200,8 @@ async function renderPrepList(overlay, eventId) {
         await renderPrepList(overlay, eventId);
       } catch (e) {
         console.error("Error actualizando paso:", e);
+        cb.checked = !cb.checked;
+        showDetailFeedback(overlay, e.message || "No se pudo actualizar este paso. Intenta de nuevo.");
       }
     });
   });
@@ -183,6 +240,7 @@ function formatWhen(ev) {
 export function initEventDetail() {
   const overlay = document.querySelector("#event-detail-modal");
   if (!overlay) return;
+  const showError = (message = "") => showDetailFeedback(overlay, message);
 
   overlay.querySelector("#event-detail-close")?.addEventListener("click", close);
   overlay.querySelector("#event-detail-ok")?.addEventListener("click", close);
@@ -198,6 +256,7 @@ export function initEventDetail() {
       if (window.openEventDetail) await window.openEventDetail(currentEventId);
     } catch (e) {
       console.error("Error actualizando evento:", e);
+      showError(e.message || "No se pudo actualizar el evento. Intenta de nuevo.");
     }
   }
   overlay.querySelector("#event-detail-cancel")?.addEventListener("click", async () => {
@@ -211,9 +270,12 @@ export function initEventDetail() {
   overlay.querySelector("#event-detail-delete")?.addEventListener("click", async () => {
     if (!currentEventId) return;
     try {
-      await fetch(`${API_BASE}/events/${currentEventId}`, { method: "DELETE" });
+      const res = await fetch(`${API_BASE}/events/${currentEventId}`, { method: "DELETE" });
+      await requireOk(res, "No se pudo eliminar el evento.");
     } catch (e) {
       console.error("Error eliminando evento:", e);
+      showError(e.message || "No se pudo eliminar el evento. Intenta de nuevo.");
+      return;
     }
     close();
     if (window.initCalendar) window.initCalendar();
@@ -228,41 +290,54 @@ export function initEventDetail() {
   async function applyEventStatus(eventId, status) {
     const now = new Date().toISOString();
     if (status === "done") {
-      const ev = await fetch(`${API_BASE}/events/${eventId}`).then(r => r.json()).catch(() => null);
-      const linked = await fetch(`${API_BASE}/tasks`).then(r => r.ok ? r.json() : []).catch(() => []);
+      const eventFetch = await fetch(`${API_BASE}/events/${eventId}`);
+      await requireOk(eventFetch, "No se pudo cargar el evento.");
+      const ev = await eventFetch.json();
+      const tasksFetch = await fetch(`${API_BASE}/tasks`);
+      await requireOk(tasksFetch, "No se pudieron cargar los pasos del evento.");
+      const linked = await tasksFetch.json();
       for (const t of (linked || []).filter(t => String(t.event_id) === String(eventId) && !t.is_completed)) {
-        await fetch(`${API_BASE}/tasks/${t.id}`, {
+        const taskRes = await fetch(`${API_BASE}/tasks/${t.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ is_completed: true, completed_at: now }),
         });
+        await requireOk(taskRes, "No se pudieron actualizar todos los pasos del evento. Vuelve a intentarlo.");
       }
-      await fetch(`${API_BASE}/events/${eventId}`, {
+      const eventRes = await fetch(`${API_BASE}/events/${eventId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "done", completed_at: now }),
       });
+      await requireOk(eventRes, "No se pudo actualizar el evento.");
     } else if (status === "open") {
-      const ev = await fetch(`${API_BASE}/events/${eventId}`).then(r => r.json()).catch(() => null);
-      const linked = await fetch(`${API_BASE}/tasks`).then(r => r.ok ? r.json() : []).catch(() => []);
+      const eventFetch = await fetch(`${API_BASE}/events/${eventId}`);
+      await requireOk(eventFetch, "No se pudo cargar el evento.");
+      const ev = await eventFetch.json();
+      const tasksFetch = await fetch(`${API_BASE}/tasks`);
+      await requireOk(tasksFetch, "No se pudieron cargar los pasos del evento.");
+      const linked = await tasksFetch.json();
       for (const t of (linked || []).filter(t => String(t.event_id) === String(eventId) && t.is_completed && t.completed_at && ev && ev.completed_at && t.completed_at >= ev.completed_at)) {
-        await fetch(`${API_BASE}/tasks/${t.id}`, {
+        const taskRes = await fetch(`${API_BASE}/tasks/${t.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ is_completed: false, completed_at: null }),
         });
+        await requireOk(taskRes, "No se pudieron restaurar todos los pasos del evento. Vuelve a intentarlo.");
       }
-      await fetch(`${API_BASE}/events/${eventId}`, {
+      const eventRes = await fetch(`${API_BASE}/events/${eventId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "open", completed_at: null }),
       });
+      await requireOk(eventRes, "No se pudo reabrir el evento.");
     } else {
-      await fetch(`${API_BASE}/events/${eventId}`, {
+      const eventRes = await fetch(`${API_BASE}/events/${eventId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status, completed_at: null }),
       });
+      await requireOk(eventRes, "No se pudo actualizar el evento.");
     }
     if (window.initCalendar) window.initCalendar();
     if (window.initWeek) window.initWeek();
@@ -281,6 +356,7 @@ export function initEventDetail() {
       if (window.openEventDetail) await window.openEventDetail(currentEventId);
     } catch (e) {
       console.error("Error actualizando evento:", e);
+      showError(e.message || "No se pudo actualizar el evento. Intenta de nuevo.");
     } finally {
       btn.disabled = false;
     }
@@ -289,18 +365,22 @@ export function initEventDetail() {
     const v = overlay.querySelector("#event-move-date")?.value;
     if (!v || !currentEventId) return;
     try {
-      const cur = await fetch(`${API_BASE}/events/${currentEventId}`).then(r => r.json());
+      const curRes = await fetch(`${API_BASE}/events/${currentEventId}`);
+      await requireOk(curRes, "No se pudo cargar el evento.");
+      const cur = await curRes.json();
+      if (!cur?.start) throw new Error("No se pudo cargar el evento.");
       const s = new Date(cur.start);
       const [y, m, d] = v.split("-").map(Number);
       const at = new Date(y, (m || 1) - 1, d || 1, s.getHours(), s.getMinutes(), 0, 0);
       const dur = cur.end ? new Date(cur.end).getTime() - s.getTime() : 0;
       const body = { start: at.toISOString() };
       if (cur.end) body.end = new Date(at.getTime() + dur).toISOString();
-      await fetch(`${API_BASE}/events/${currentEventId}`, {
+      const res = await fetch(`${API_BASE}/events/${currentEventId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
+      await requireOk(res, "No se pudo mover el evento.");
       if (window.initCalendar) window.initCalendar();
       if (window.initWeek) window.initWeek();
       if (window.initToday) window.initToday();
@@ -308,6 +388,7 @@ export function initEventDetail() {
       if (window.openEventDetail) await window.openEventDetail(currentEventId);
     } catch (e) {
       console.error("Error moviendo evento:", e);
+      showError(e.message || "No se pudo mover el evento. Intenta de nuevo.");
     }
   });
   overlay.addEventListener("click", (e) => {
@@ -336,12 +417,13 @@ export function initEventDetail() {
     if (!ev) return;
 
     currentEventId = ev.id;
+    showError("");
     overlay.querySelector("#event-detail-title").textContent = ev.title || "Evento";
     overlay.querySelector("#event-detail-when").textContent = ev.start ? formatWhen(ev) : "";
     overlay.querySelector("#event-detail-location").textContent = ev.location ? `📍 ${ev.location}` : "";
     overlay.querySelector("#event-detail-desc").textContent = ev.description || "";
     const doneBtn = overlay.querySelector("#event-detail-done");
-    if (doneBtn) doneBtn.textContent = ev.status === "done" ? "Devolver" : "Hecho ✓";
+    if (doneBtn) doneBtn.textContent = ev.status === "done" ? "Reabrir evento" : "Marcar hecho";
     const cancelledBox = overlay.querySelector("#event-detail-cancelled");
     if (cancelledBox) cancelledBox.style.display = ev.status === "cancelled" ? "" : "none";
     const cancelBtn = overlay.querySelector("#event-detail-cancel");
@@ -358,9 +440,10 @@ export function initEventDetail() {
     }
     const prepInput = overlay.querySelector("#event-prep-input");
     if (prepInput) prepInput.value = "";
+    showError("");
     await renderPrepList(overlay, ev.id);
+    if (overlay.querySelector("#event-routine-manager")?.open) renderRoutineList(overlay);
     overlay.classList.add("active");
-    prepInput?.focus();
   };
 
   overlay.querySelector("#event-prep-add")?.addEventListener("click", addPrep);
@@ -370,31 +453,85 @@ export function initEventDetail() {
       addPrep();
     }
   });
+  overlay.querySelector("#event-routine-manager")?.addEventListener("toggle", (e) => {
+    if (e.target.open) renderRoutineList(overlay);
+  });
+
+  async function renderRoutineList(root) {
+    const list = root.querySelector("#event-routine-list");
+    if (!list) return;
+    list.textContent = "Cargando rutina…";
+    try {
+      const res = await fetch(`${API_BASE}/events/checklist-templates`);
+      await requireOk(res, "No se pudo cargar la rutina.");
+      const items = await res.json();
+      list.innerHTML = items.length ? items.map(item => `
+        <div class="event-routine-item"><span>${escapeHtml(item.title)} · ${phaseLabel(item.event_phase)}</span>
+          <button type="button" class="tx-btn tx-btn-delete" data-template-delete="${item.id}" aria-label="Quitar ${escapeHtml(item.title)} de la rutina">Quitar</button></div>`).join("")
+        : `<p>Tu rutina está vacía. Al agregar un paso, marca “Guardar para futuras salidas”.</p>`;
+      list.querySelectorAll("[data-template-delete]").forEach(button => button.addEventListener("click", async () => {
+        button.disabled = true;
+        try {
+          const del = await fetch(`${API_BASE}/events/checklist-templates/${button.dataset.templateDelete}`, { method: "DELETE" });
+          await requireOk(del, "No se pudo quitar este paso de la rutina.");
+          await renderRoutineList(root);
+        } catch (e) {
+          button.disabled = false;
+          showDetailFeedback(root, e.message);
+        }
+      }));
+    } catch (e) {
+      list.textContent = e.message || "No se pudo cargar la rutina.";
+    }
+  }
+
+  function phaseLabel(phase) {
+    return ({ prep: "preparar antes", leave: "antes de salir", during: "ese día" })[phase] || "preparar antes";
+  }
 
   async function addPrep() {
     const input = overlay.querySelector("#event-prep-input");
+    const addButton = overlay.querySelector("#event-prep-add");
     const titleEl = overlay.querySelector("#event-detail-title");
     const text = input?.value.trim();
-    if (!text || !currentEventId) return;
+    if (!text || !currentEventId || addButton?.disabled) return;
+    addButton.disabled = true;
+    addButton.textContent = "Agregando…";
+    showError("");
     try {
-      await fetch(`${API_BASE}/tasks`, {
+      const repeat = overlay.querySelector("#event-prep-repeat")?.checked;
+      const phase = overlay.querySelector("#event-prep-phase")?.value || "prep";
+      const res = await fetch(repeat ? `${API_BASE}/events/checklist-templates` : `${API_BASE}/tasks`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: JSON.stringify(repeat ? {
+          title: text,
+          event_id: currentEventId,
+          event_phase: phase,
+        } : {
           title: text,
           description: `Preparación para: ${titleEl?.textContent || ""}`,
           event_id: currentEventId,
+          event_phase: phase,
         }),
       });
+      await requireOk(res, "No se pudo guardar este paso.");
+      if (repeat) {
+        await renderRoutineList(overlay);
+      }
+      overlay.querySelector("#event-prep-repeat").checked = false;
+      overlay.querySelector("#event-prep-phase").value = "prep";
       if (window.initTasks) await window.initTasks();
       if (window.renderNext) window.renderNext();
       await renderPrepList(overlay, currentEventId);
       input.value = "";
-      input.placeholder = "Agregado ✓ ¿algo más?";
-      setTimeout(() => { input.placeholder = "Ej: sacar la ropa del closet"; }, 2500);
+      input.focus();
     } catch (e) {
       console.error("Error creando preparación:", e);
-      alert("No se pudo guardar. Intenta de nuevo.");
+      showError(e.message || "No se pudo guardar este paso. Intenta de nuevo.");
+    } finally {
+      addButton.disabled = false;
+      addButton.textContent = "Agregar";
     }
   };
 }

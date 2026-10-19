@@ -1,10 +1,9 @@
 /* ============================================
    BRISA - Next Action Module
-   Deterministic "what now" selection. No scoring magic:
-   1. For today first (programada o con fecha límite hoy)
-   2. Higher priority next
-   3. Shorter estimated time next
-   4. In the evening (>= 22:00), long tasks sink
+   Deterministic "what now" selection:
+   1. Past-due commitments, then today's commitments in time order
+   2. A short, clearly optional step when today is clear
+   3. The full horizon remains available below the suggestion
    ============================================ */
 import { state } from "./state.js";
 
@@ -39,43 +38,102 @@ function formatWhen(dt) {
   return d.toLocaleDateString("es-ES", { day: "numeric", month: "short" }) + time;
 }
 
-function score(task, evening) {
-  // "Es de hoy" si la programaste para hoy o si vence hoy: una fecha
-  // límite de hoy pesa igual que una hora puesta hoy.
-  const isForToday =
-    (task.scheduled_datetime && isToday(task.scheduled_datetime)) ||
-    (task.due_datetime && isToday(task.due_datetime));
-  const forToday = isForToday ? 0 : 1;
-  const longPenalty = evening && (task.estimated_minutes || 0) > 30 ? 1 : 0;
-  const priority = PRIORITY_WEIGHT[task.priority] ?? 1;
-  const est = task.estimated_minutes ?? 9999;
-  return [forToday, longPenalty, priority, est];
+function localDayStart(date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
-function compare(a, b, evening) {
-  const sa = score(a, evening);
-  const sb = score(b, evening);
-  for (let i = 0; i < sa.length; i++) {
-    if (sa[i] !== sb[i]) return sa[i] - sb[i];
-  }
-  return 0;
+function dayOffset(value, now) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return Infinity;
+  return Math.round((localDayStart(date) - localDayStart(now)) / 86400000);
+}
+
+function isPastDue(value, now) {
+  if (!value) return false;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return false;
+  // A date-only deadline includes the whole day.
+  if (isDayOnly(date)) return dayOffset(value, now) < 0;
+  return date.getTime() < now.getTime();
+}
+
+function priorityAndSize(a, b) {
+  const priorityDiff = (PRIORITY_WEIGHT[a.priority] ?? 1) - (PRIORITY_WEIGHT[b.priority] ?? 1);
+  if (priorityDiff) return priorityDiff;
+  return (a.estimated_minutes ?? Infinity) - (b.estimated_minutes ?? Infinity);
+}
+
+function taskTime(task) {
+  const value = task.scheduled_datetime || task.due_datetime;
+  if (!value) return Infinity;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return Infinity;
+  return isDayOnly(date) ? new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59).getTime() : date.getTime();
+}
+
+function taskHorizonTime(task) {
+  return [task.scheduled_datetime, task.due_datetime]
+    .filter(Boolean)
+    .map(value => {
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return Infinity;
+      return isDayOnly(date) ? new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59).getTime() : date.getTime();
+    })
+    .reduce((earliest, time) => Math.min(earliest, time), Infinity);
 }
 
 export function pickNextAction(tasks, now = new Date()) {
-  // "Ahora" es para lo programado: una tarea sin fecha ni fecha límite no
-  // es "ahora", es "sin fecha" (se muestra abajo, no como principal).
-  // Pero las sin fecha siguen apareciendo en "Otras pendientes", agrupadas
-  // por su motivo (acción padre o evento), para no perderse.
-  const all = (tasks || []).filter(t => !t.is_completed);
-  const scheduled = all.filter(t => t.scheduled_datetime || t.due_datetime);
+  const source = (tasks || []).filter(t => !t.is_completed);
+  const ids = new Set((tasks || []).map(t => String(t.id)));
+  // A child is a step inside its parent action, not a separate commitment.
+  // Keep orphaned children visible in case their parent was removed.
+  const all = source.filter(t => t.parent_task_id == null || !ids.has(String(t.parent_task_id)));
+  const overdue = all.filter(t => isPastDue(t.due_datetime, now)
+    || (t.scheduled_datetime && isPastDue(t.scheduled_datetime, now)));
+  const overdueIds = new Set(overdue.map(t => String(t.id)));
+  const today = all.filter(t => !overdueIds.has(String(t.id))
+    && ((t.scheduled_datetime && dayOffset(t.scheduled_datetime, now) === 0)
+      || (t.due_datetime && dayOffset(t.due_datetime, now) === 0)));
+  const todayIds = new Set(today.map(t => String(t.id)));
+  const upcoming = all.filter(t => !overdueIds.has(String(t.id)) && !todayIds.has(String(t.id))
+    && [t.scheduled_datetime, t.due_datetime].some(d => d && dayOffset(d, now) > 0 && dayOffset(d, now) <= 7));
+  const upcomingIds = new Set(upcoming.map(t => String(t.id)));
+  const later = all.filter(t => !overdueIds.has(String(t.id)) && !todayIds.has(String(t.id))
+    && !upcomingIds.has(String(t.id)) && (t.scheduled_datetime || t.due_datetime));
   const unscheduled = all.filter(t => !t.scheduled_datetime && !t.due_datetime);
-  if (scheduled.length === 0) return { current: null, alternatives: [] };
-  const evening = now.getHours() >= 22;
-  const sortedScheduled = [...scheduled].sort((a, b) => compare(a, b, evening));
-  const sortedUnscheduled = [...unscheduled].sort((a, b) => compare(a, b, evening));
-  const current = sortedScheduled[0];
-  const alternatives = [...sortedScheduled.slice(1, 4), ...sortedUnscheduled].slice(0, 6);
-  return { current, alternatives };
+
+  overdue.sort((a, b) => priorityAndSize(a, b) || taskTime(a) - taskTime(b));
+  today.sort((a, b) => taskTime(a) - taskTime(b) || priorityAndSize(a, b));
+  upcoming.sort((a, b) => taskHorizonTime(a) - taskHorizonTime(b) || priorityAndSize(a, b));
+  later.sort((a, b) => taskTime(a) - taskTime(b) || priorityAndSize(a, b));
+  unscheduled.sort((a, b) => priorityAndSize(a, b));
+
+  const current = overdue[0] || today[0] || null;
+  const shortest = (items) => [...items].filter(t => Number(t.estimated_minutes) > 0 && Number(t.estimated_minutes) <= 15)
+    .sort((a, b) => a.estimated_minutes - b.estimated_minutes || priorityAndSize(a, b))[0] || null;
+  const quickPickOptions = [
+    [shortest(unscheduled), "unscheduled"],
+    [shortest(upcoming), "upcoming"],
+    [unscheduled[0] || null, "unscheduled"],
+    [upcoming[0] || null, "upcoming"],
+    [later[0] || null, "later"],
+  ];
+  const [quickPick, quickPickType] = current ? [null, null]
+    : quickPickOptions.find(([task]) => task) || [null, null];
+  const reason = overdue[0]
+    ? isPastDue(overdue[0].due_datetime, now) ? "Su fecha límite ya pasó." : "Su hora programada ya pasó."
+    : today[0]?.due_datetime && isToday(today[0].due_datetime) && !today[0].scheduled_datetime
+      ? "Tiene fecha límite hoy."
+      : today[0] ? "Es lo siguiente en tu agenda de hoy."
+        : quickPickType === "unscheduled" ? Number(quickPick?.estimated_minutes) <= 15
+          ? "No hay tareas para hoy; elegí una tarea breve sin fecha. Puedes dejarla para después."
+          : "No hay tareas para hoy; esta tarea no tiene fecha y puede esperar."
+          : quickPickType === "upcoming" ? "Hoy está despejado; puedes adelantar esta tarea, aunque tiene una fecha posterior."
+            : quickPickType === "later" ? "Hoy está despejado; esta tarea futura también puede esperar."
+          : "No tienes tareas pendientes para hoy.";
+  const alternatives = [...overdue, ...today, ...upcoming, ...later, ...unscheduled]
+    .filter(t => String(t.id) !== String(current?.id)).slice(0, 6);
+  return { current, quickPick, quickPickType, reason, overdue, today, upcoming, later, unscheduled, alternatives };
 }
 
 export function initNext() {
@@ -85,8 +143,28 @@ export function initNext() {
 export async function renderNext() {
   const section = document.querySelector("#next-section");
   if (!section) return;
+  if (state.tasksStatus === "loading") {
+    section.innerHTML = `<div class="next-loading" role="status" aria-live="polite"><span class="next-loading-spinner" aria-hidden="true"></span><span>Cargando tus acciones de hoy y fechas próximas…</span></div>`;
+    return;
+  }
+  if (state.tasksStatus === "error") {
+    section.innerHTML = `<div class="next-load-error" role="alert"><span>No pude cargar tus acciones.</span><button type="button" id="next-retry" class="next-retry">Reintentar</button></div>`;
+    section.querySelector("#next-retry")?.addEventListener("click", async (event) => {
+      const button = event.currentTarget;
+      button.disabled = true;
+      button.textContent = "Cargando…";
+      if (window.initTasks) await window.initTasks();
+      await renderNext();
+    });
+    return;
+  }
+  const agendaWasOpen = section.querySelector(".next-agenda")?.open || false;
 
-  const { current, alternatives } = pickNextAction(state.tasks || []);
+  // Event checklist items live with their event; do not surface them as
+  // unrelated standalone actions in the daily recommendation.
+  const eventTaskIds = new Set((state.tasks || []).filter(t => t.event_id).map(t => String(t.id)));
+  const plan = pickNextAction((state.tasks || []).filter(t => !t.event_id && !eventTaskIds.has(String(t.parent_task_id))));
+  const { current, quickPick, quickPickType, reason, overdue, today, upcoming, later, unscheduled } = plan;
 
   // Eventos: para mostrar a qué evento sirve cada tarea (las de preparación)
   // y cuándo es, incluyendo el tiempo de viaje.
@@ -97,134 +175,113 @@ export async function renderNext() {
   } catch { /* ignore */ }
   const eventById = (id) => (events || []).find(e => String(e.id) === String(id));
 
-  if (!current) {
-    // Tareas sin fecha: siguen siendo accesibles, pero no son "ahora".
-    const unscheduled = (state.tasks || []).filter(t =>
-      !t.is_completed && !t.scheduled_datetime && !t.due_datetime);
-    section.innerHTML = `
-      <div class="next-empty">
-        <div class="next-empty-icon">🌱</div>
-        <div class="next-empty-text"><strong>Nada programado para hoy.</strong><br>Programa una tarea para que aparezca acá, o elige una sin fecha.</div>
+  const taskList = (items, type) => items.map(t => {
+    const when = type === "overdue"
+      ? t.due_datetime && isPastDue(t.due_datetime, new Date())
+        ? `Límite vencido ${formatWhen(t.due_datetime)}`
+        : `Programada ${formatWhen(t.scheduled_datetime)}`
+      : t.scheduled_datetime ? `Programada ${formatWhen(t.scheduled_datetime)}`
+        : t.due_datetime ? `Límite ${formatWhen(t.due_datetime)}` : "Sin fecha";
+    const estimate = t.estimated_minutes ? ` · ~${t.estimated_minutes} min` : "";
+    const children = (state.tasks || []).filter(child => String(child.parent_task_id) === String(t.id));
+    const childProgress = children.length
+      ? ` · ${children.filter(child => child.is_completed).length}/${children.length} pasos` : "";
+    return `<button class="next-agenda-task" data-start="${t.id}">
+      <span class="next-agenda-title">${escapeHtml(t.title)}</span>
+      <span class="next-agenda-meta">${escapeHtml(when + estimate + childProgress)}</span>
+    </button>`;
+  }).join("");
+  const agendaGroups = [
+    ["Atrasadas", overdue, "overdue"],
+    ["Hoy", today, "today"],
+    ["Próximos 7 días", upcoming, "upcoming"],
+    ["Más adelante", later, "later"],
+    ["Sin fecha", unscheduled, "unscheduled"],
+  ].filter(([, items]) => items.length > 0);
+  const summary = [
+    `${overdue.length} atrasadas`,
+    `${today.length} hoy`,
+    `${upcoming.length} próximos 7 días`,
+    `${unscheduled.length} sin fecha`,
+    ...(later.length ? [`${later.length} más adelante`] : []),
+  ].join(" · ");
+  const agenda = agendaGroups.length ? `
+    <details class="next-agenda">
+      <summary><span>Ver todas las acciones</span><span class="next-agenda-summary">${escapeHtml(summary)}</span></summary>
+      <div class="next-agenda-list">${agendaGroups.map(([label, items, type]) => `
+        <section class="next-agenda-group">
+          <h3>${escapeHtml(label)} <span>${items.length}</span></h3>
+          ${taskList(items, type)}
+        </section>`).join("")}
       </div>
-      ${unscheduled.length > 0 ? `
-        <div class="next-also-label" style="margin-top:10px">Sin fecha <span class="next-also-hint">(programa una para que sea "ahora")</span></div>
-        <div class="next-also">
-          ${unscheduled.slice(0, 6).map(t => `
-            <button class="next-alt" data-start="${t.id}" title="Empezar esta (sin fecha)">
-              ${escapeHtml(t.title)}${t.estimated_minutes ? ` · ${t.estimated_minutes} min` : ""}
-            </button>
-          `).join("")}
+    </details>` : `<div class="next-reassurance">No hay tareas vencidas ni pendientes para hoy.</div>`;
+
+  let main;
+  if (current) {
+    const detail = current.first_step || current.description || "Sin detalles todavía.";
+    const parent = current.parent_task_id
+      ? (state.tasks || []).find(t => String(t.id) === String(current.parent_task_id)) : null;
+    const linkedEvent = current.event_id ? eventById(current.event_id) : null;
+    const est = current.estimated_minutes
+      ? `~${current.estimated_minutes} min`
+      : (parent?.estimated_minutes ? `~${parent.estimated_minutes} min` : "sin estimar");
+    const when = [
+      current.scheduled_datetime ? `Programada ${formatWhen(current.scheduled_datetime)}` : "",
+      current.due_datetime ? `límite ${formatWhen(current.due_datetime)}` : "",
+    ].filter(Boolean).join(" · ");
+    const parentWhen = parent ? [
+      parent.scheduled_datetime ? `Programada ${formatWhen(parent.scheduled_datetime)}` : "",
+      parent.due_datetime ? `límite ${formatWhen(parent.due_datetime)}` : "",
+    ].filter(Boolean).join(" · ") : "";
+    const eventWhen = linkedEvent ? formatWhen(linkedEvent.start) : "";
+    const eventLeave = linkedEvent?.travel_minutes
+      ? new Date(new Date(linkedEvent.start).getTime() - Number(linkedEvent.travel_minutes) * 60000)
+          .toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }) : "";
+    const canPostpone = !current.due_datetime || !isToday(current.due_datetime);
+    main = `
+      <div class="next-label">Ahora <span class="next-label-hint">· siguiente según tus fechas</span></div>
+      <div class="next-main">
+        <div class="next-info">
+          ${parent ? `<div class="next-parent">↳ Parte de: ${escapeHtml(parent.title)}${parentWhen ? ` · ${escapeHtml(parentWhen)}` : ""}</div>` : ""}
+          ${linkedEvent ? `<div class="next-event-link">🎪 Para: <strong>${escapeHtml(linkedEvent.title)}</strong>${eventWhen ? ` · ${escapeHtml(eventWhen)}` : ""}${eventLeave ? ` · sales a las ${escapeHtml(eventLeave)}` : ""}</div>` : ""}
+          <div class="next-title">${escapeHtml(current.title)}</div>
+          <div class="next-detail">${escapeHtml(detail)}</div>
+          <div class="next-meta">${escapeHtml(when)}${when ? " · " : ""}${est}</div>
+          <div class="next-reason">${escapeHtml(reason)}</div>
         </div>
-      ` : ""}
-    `;
-    section.querySelectorAll("[data-start]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        if (window.openFocus) window.openFocus(btn.dataset.start);
-      });
-    });
-    return;
+        <div class="next-actions">
+          <button class="next-start" data-start="${current.id}">Empezar</button>
+          <button class="next-done" data-done="${current.id}" title="Marcar como hecha y pasar a la siguiente">Hecho</button>
+          ${canPostpone ? `<button class="next-postpone" data-postpone="${current.id}" title="Mover a mañana a las 9:00 (no tiene fecha límite hoy)">Pasar a mañana</button>` : ""}
+        </div>
+      </div>`;
+  } else if (quickPick) {
+    const est = quickPick.estimated_minutes ? ` · ~${quickPick.estimated_minutes} min` : "";
+    const quickWhen = quickPickType === "unscheduled" ? "Sin fecha"
+      : quickPickType === "upcoming" ? `Programada ${formatWhen(quickPick.scheduled_datetime || quickPick.due_datetime)}`
+        : `Más adelante · ${formatWhen(quickPick.scheduled_datetime || quickPick.due_datetime)}`;
+    main = `
+      <div class="next-label">Si tienes un momento <span class="next-label-hint">· sugerencia opcional</span></div>
+      <div class="next-main">
+        <div class="next-info">
+          <div class="next-title">${escapeHtml(quickPick.title)}</div>
+          <div class="next-detail">${escapeHtml(quickPick.first_step || quickPick.description || "Sin detalles todavía.")}</div>
+          <div class="next-meta">${escapeHtml(quickWhen + est)}</div>
+          <div class="next-reason">${escapeHtml(reason)}</div>
+        </div>
+        <div class="next-actions"><button class="next-start" data-start="${quickPick.id}">Empezar</button></div>
+      </div>`;
+  } else {
+    main = `<div class="next-empty"><div class="next-empty-icon">🌱</div><div class="next-empty-text"><strong>Hoy está despejado.</strong><br>Revisé tus tareas vencidas y no hay pendientes para hoy.</div></div>`;
   }
 
-  const detail = current.first_step || current.description || "Sin detalles todavía.";
-  const parent = current.parent_task_id
-    ? (state.tasks || []).find(t => String(t.id) === String(current.parent_task_id))
-    : null;
-  const linkedEvent = current.event_id ? eventById(current.event_id) : null;
-  const est = current.estimated_minutes
-    ? `~${current.estimated_minutes} min`
-    : (parent?.estimated_minutes ? `~${parent.estimated_minutes} min` : "sin estimar");
-  const scheduleOf = (t) => {
-    if (!t) return "";
-    if (t.scheduled_datetime) return formatWhen(t.scheduled_datetime);
-    if (t.due_datetime) return `límite ${formatWhen(t.due_datetime)}`;
-    return "";
-  };
-  const ownWhen = scheduleOf(current);
-  const parentWhen = scheduleOf(parent);
-  const when = ownWhen || (parentWhen ? `${parentWhen} (acción)` : "Sin fecha programada");
-  const eventWhen = linkedEvent ? formatWhen(linkedEvent.start) : "";
-  const eventLeave = linkedEvent?.travel_minutes
-    ? new Date(new Date(linkedEvent.start).getTime() - Number(linkedEvent.travel_minutes) * 60000)
-        .toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })
-    : "";
-  // "Patear" cuando no hay fecha límite hoy: lo que tiene deadline no se
-  // puede patear; lo demás sí (programado para un día o sin fecha).
-  const canPostpone = !current.due_datetime || !isToday(current.due_datetime);
-
-  section.innerHTML = `
-    <div class="next-label">Ahora <span class="next-label-hint">(lo siguiente que te toca)</span></div>
-    <div class="next-main">
-      <div class="next-info">
-        ${parent ? `<div class="next-parent">↳ Parte de: ${escapeHtml(parent.title)}${parentWhen ? ` · ${escapeHtml(parentWhen)}` : ""}</div>` : ""}
-        ${linkedEvent ? `<div class="next-event-link">🎪 Para: <strong>${escapeHtml(linkedEvent.title)}</strong>${eventWhen ? ` · ${escapeHtml(eventWhen)}` : ""}${eventLeave ? ` · salís a las ${escapeHtml(eventLeave)}` : ""}</div>` : ""}
-        <div class="next-title">${escapeHtml(current.title)}</div>
-        <div class="next-detail">${escapeHtml(detail)}</div>
-        <div class="next-meta">${escapeHtml(when)} · ${est}</div>
-      </div>
-      <div class="next-actions">
-        <button class="next-done" data-done="${current.id}" title="Marcar como hecha y pasar a la siguiente">✓ Hecho</button>
-        <button class="next-start" data-start="${current.id}">Empezar</button>
-        ${canPostpone ? `<button class="next-postpone" data-postpone="${current.id}" title="Patearla para mañana (no tiene fecha límite hoy)">Patear → mañana</button>` : ""}
-      </div>
-    </div>
-    ${alternatives.length > 0 ? `
-      <div class="next-also-label">Otras pendientes <span class="next-also-hint">(no son parte de esta tarea)</span></div>
-      <div class="next-also">
-        ${(() => {
-          // Agrupar por motivo (acción padre o evento): las que sirven para
-          // lo mismo no deben aparecer como sueltas. Se priorizan grupos
-          // distintos para que no se mezclen 3 pasos del mismo asunto.
-          const groups = new Map();
-          for (const t of alternatives) {
-            const key = t.event_id ? `e:${t.event_id}` : (t.parent_task_id ? `p:${t.parent_task_id}` : `s:${t.id}`);
-            if (!groups.has(key)) groups.set(key, []);
-            groups.get(key).push(t);
-          }
-          // orden de grupos: por la mejor prioridad de sus items
-          const groupList = [...groups.entries()].map(([key, items]) => ({
-            key,
-            items,
-            best: items.reduce((a, b) => compare(a, b, false) <= 0 ? a : b),
-          })).sort((a, b) => compare(a.best, b.best, false));
-          // tomar hasta 3 grupos, 2 items por grupo
-          const shown = groupList.slice(0, 3);
-          let html = "";
-          for (const g of shown) {
-            const first = g.items[0];
-            const ev = first.event_id ? eventById(first.event_id) : null;
-            const par = first.parent_task_id ? (state.tasks || []).find(x => String(x.id) === String(first.parent_task_id)) : null;
-            const label = ev ? `🎪 ${ev.title}` : (par ? `↳ ${par.title}` : "");
-            const isGroup = g.key !== `s:${first.id}` && g.items.length > 1;
-            if (isGroup) {
-              html += `<div class="next-alt-group"><div class="next-alt-group-label">${escapeHtml(label)}</div>`;
-              html += g.items.slice(0, 2).map(t => `
-                <button class="next-alt" data-start="${t.id}" title="Empezar esta en vez de la sugerida">
-                  <span class="next-alt-title">${escapeHtml(t.title)}</span>
-                  <span class="next-alt-meta">${t.estimated_minutes ? `${t.estimated_minutes} min` : "sin estimar"}${t.scheduled_datetime ? ` · ${formatWhen(t.scheduled_datetime)}` : ""}</span>
-                </button>`).join("");
-              html += `</div>`;
-            } else {
-              // item suelto: muestra su motivo si lo tiene
-              html += g.items.slice(0, 2).map(t => {
-                const ev2 = t.event_id ? eventById(t.event_id) : null;
-                const par2 = t.parent_task_id ? (state.tasks || []).find(x => String(x.id) === String(t.parent_task_id)) : null;
-                const ctx = ev2 ? `🎪 ${ev2.title}` : (par2 ? `↳ ${par2.title}` : "");
-                return `
-                <button class="next-alt" data-start="${t.id}" title="Empezar esta en vez de la sugerida">
-                  ${ctx ? `<span class="next-alt-ctx">${escapeHtml(ctx)}</span>` : ""}
-                  <span class="next-alt-title">${escapeHtml(t.title)}</span>
-                  <span class="next-alt-meta">${t.estimated_minutes ? `${t.estimated_minutes} min` : "sin estimar"}${t.scheduled_datetime ? ` · ${formatWhen(t.scheduled_datetime)}` : ""}</span>
-                </button>`;
-              }).join("");
-            }
-          }
-          return html;
-        })()}
-      </div>
-    ` : ""}
+  section.innerHTML = `${main}${agenda}
     <div class="next-event" id="next-event" style="display:none"></div>
-    <div class="next-ideas" id="next-ideas" style="display:none"></div>
-  `;
+    <div class="next-ideas" id="next-ideas" style="display:none"></div>`;
+  if (agendaWasOpen) {
+    const nextAgenda = section.querySelector(".next-agenda");
+    if (nextAgenda) nextAgenda.open = true;
+  }
 
   section.querySelectorAll("[data-start]").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -237,7 +294,7 @@ export async function renderNext() {
     const id = btn.dataset.postpone;
     const task = (state.tasks || []).find(t => String(t.id) === String(id));
     btn.disabled = true;
-    btn.textContent = "Pateando…";
+      btn.textContent = "Moviendo…";
     try {
       let at;
       if (task?.scheduled_datetime) {
@@ -264,7 +321,7 @@ export async function renderNext() {
     } catch (err) {
       console.error("No se pudo patear:", err);
       btn.disabled = false;
-      btn.textContent = "Patear → mañana";
+      btn.textContent = "Pasar a mañana";
     }
   });
 
@@ -350,26 +407,42 @@ async function fillNextEvent(section) {
   const box = section.querySelector("#next-event");
   if (!box) return;
   try {
-    const res = await fetch(`${API_BASE}/events`);
+    const [res, taskRes] = await Promise.all([fetch(`${API_BASE}/events`), fetch(`${API_BASE}/tasks`)]);
     if (!res.ok) return;
+    const allEvents = await res.json();
+    const tasks = taskRes.ok ? await taskRes.json() : [];
     const now = Date.now();
-    const upcoming = (await res.json())
-      .filter(e => e.start && e.status !== "done" && e.status !== "cancelled" && new Date(e.start).getTime() > now)
-      .sort((a, b) => new Date(a.start) - new Date(b.start))
-      .slice(0, 3);
+    const allUpcoming = allEvents
+      .filter(e => {
+        if (!e.start || e.status === "done" || e.status === "cancelled") return false;
+        const start = new Date(e.start);
+        return start.getTime() > now || (isDayOnly(start) && isToday(e.start));
+      })
+      .sort((a, b) => new Date(a.start) - new Date(b.start));
+    const upcoming = allUpcoming.slice(0, 3);
     if (upcoming.length === 0) return;
     if (!section.isConnected || section.querySelector("#next-event") !== box) return;
     const fmtWhen = (s) => new Date(s).toLocaleDateString("es-ES", {
       weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
     });
+    const eventRow = (e) => {
+      const linked = tasks.filter(t => String(t.event_id) === String(e.id));
+      const done = linked.filter(t => t.is_completed).length;
+      const prep = linked.filter(t => !t.is_completed && (t.event_phase || "prep") === "prep").length;
+      const leave = linked.filter(t => !t.is_completed && t.event_phase === "leave").length;
+      const during = linked.filter(t => !t.is_completed && t.event_phase === "during").length;
+      const status = !linked.length ? "Sin preparación registrada"
+        : `${done}/${linked.length} listos${prep ? ` · ${prep} para preparar` : ""}${leave ? ` · ${leave} antes de salir` : ""}${during ? ` · ${during} ese día` : ""}`;
+      return `<div class="next-event-row">
+        <span><strong>${escapeHtml(e.title)}</strong> · ${escapeHtml(fmtWhen(e.start))}<small class="next-event-prep-status">${status}</small></span>
+        <button class="next-alt" data-prep="${e.id}" title="Ver el evento y sus pasos de preparación">Ver preparación</button>
+      </div>`;
+    };
     box.style.display = "";
     box.innerHTML = `
-      <div class="next-event-label">Próximos eventos</div>
-      ${upcoming.map(e => `
-        <div class="next-event-row">
-          <span><strong>${escapeHtml(e.title)}</strong> · ${escapeHtml(fmtWhen(e.start))}</span>
-          <button class="next-alt" data-prep="${e.id}" title="Ver el evento y su preparación">¿Preparar algo?</button>
-        </div>`).join("")}
+      <div class="next-event-label">Próximos eventos · ${upcoming.length} de ${allUpcoming.length}</div>
+      ${upcoming.map(eventRow).join("")}
+      ${allUpcoming.length > 3 ? `<details class="next-event-all"><summary>Ver los otros ${allUpcoming.length - 3} eventos próximos</summary>${allUpcoming.slice(3).map(eventRow).join("")}</details>` : ""}
     `;
     box.querySelectorAll("[data-prep]").forEach(btn => {
       btn.addEventListener("click", () => {

@@ -3,7 +3,7 @@
    Accounts + import + quick categorize via /api
    ============================================ */
 import { state } from "./state.js";
-import { readBankCheck, writeBankCheck, bankDiff, brisaBalance } from "./reconcile.js";
+import { readBankCheck, writeBankCheck, bankDiff, brisaBalance, localDateKey, localMonthKey } from "./reconcile.js";
 
 const API_BASE = "/api";
 
@@ -17,7 +17,7 @@ function categoriesFor(type) {
 let activeAccountId = null;
 let activeAccount = null;
 let showOnlyUncategorized = false;
-let currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+let currentMonth = localMonthKey(); // YYYY-MM, en la fecha local
 let currentPatterns = [];
 let searchText = "";
 let compareMode = false;
@@ -823,7 +823,7 @@ function renderFinance(section, accounts, account, allTxs, monthTxs, txs, uncate
             amount: row.amount,
             type: row.type,
             category: row.category,
-            date: new Date().toISOString().slice(0, 10),
+            date: localDateKey(),
             account_id: row.account_id,
             linked_id: row.linked_id,
             is_recurring: row.is_recurring,

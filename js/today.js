@@ -330,7 +330,7 @@ function wireMarkers(section, dayTasks, events, isToday, key) {
         <div class="today-pop-title">${escapeHtml(t.title)}</div>
         <div class="today-pop-time">${overdue ? `⏰ ${overdueText(t.scheduled_datetime)} · ¿lo hiciste o se reprograma?` : `Hoy ${formatTime(d)}`}</div>
         <div class="today-pop-actions">
-          <button class="modal-btn modal-btn-primary" data-act="focus" title="Abrir en Enfoque: fricción, guía y bloc">▶ Enfocar</button>
+          <button class="modal-btn modal-btn-primary" data-act="${overdue ? "take-now" : "focus"}" title="${overdue ? "Reprogramar para ahora y abrir Enfoque" : "Abrir en Enfoque: fricción, guía y bloc"}">${overdue ? "▶ Tomar ahora" : "▶ Enfocar"}</button>
           <button class="modal-btn modal-btn-secondary" data-act="note" title="Anotar un avance sin salir de aquí">✎ Anotar</button>
           <button class="modal-btn modal-btn-primary" data-act="done">✓ Hecho</button>
           <button class="modal-btn modal-btn-secondary" data-act="plus1">+1 h</button>
@@ -338,6 +338,33 @@ function wireMarkers(section, dayTasks, events, isToday, key) {
           <button class="modal-btn modal-btn-secondary" data-act="otherday" title="Elegir otro día (conserva la hora)">Otro día…</button>
           <button class="modal-btn modal-btn-danger" data-act="delete" title="Eliminar esta acción">✕ Eliminar</button>
         </div>`);
+      pop.querySelector('[data-act="take-now"]')?.addEventListener("click", async (event) => {
+        const button = event.currentTarget;
+        button.disabled = true;
+        button.textContent = "Abriendo…";
+        try {
+          const res = await fetch(`/api/tasks/${t.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ scheduled_datetime: new Date().toISOString() }),
+          });
+          if (!res.ok) throw new Error("No se pudo reprogramar la tarea.");
+          closePop();
+          await refreshAll();
+          if (window.openFocus) await window.openFocus(t.id);
+        } catch (err) {
+          button.disabled = false;
+          button.textContent = "▶ Tomar ahora";
+          let feedback = pop.querySelector(".today-pop-feedback");
+          if (!feedback) {
+            feedback = document.createElement("div");
+            feedback.className = "today-pop-feedback";
+            feedback.setAttribute("role", "alert");
+            pop.appendChild(feedback);
+          }
+          feedback.textContent = err.message || "No se pudo reprogramar. Intenta de nuevo.";
+        }
+      });
       pop.querySelector('[data-act="focus"]')?.addEventListener("click", () => {
         closePop();
         if (window.openFocus) window.openFocus(t.id);

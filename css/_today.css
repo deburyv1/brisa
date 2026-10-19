@@ -481,6 +481,12 @@
   font-size: 10px;
   white-space: nowrap;
 }
+.today-pop-feedback {
+  margin-top: 7px;
+  color: #8a2732;
+  font-size: 10px;
+  line-height: 1.4;
+}
 
 .today-task.work { background: #23c6e3; }
 .today-task.life { background: #a3dec8; }

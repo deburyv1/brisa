@@ -3,7 +3,7 @@
    Handles person creation and editing
    ============================================ */
 const API_BASE = "/api";
-import { snapshotForm, isDirty, confirmDiscard } from "./modalGuard.js";
+import { snapshotForm, isDirty, confirmDiscard, setFormFeedback, setFormBusy, setFormLoading, isFormSaving } from "./modalGuard.js";
 
 function parseBirthday(raw) {
   const s = String(raw || "").trim();
@@ -13,7 +13,7 @@ function parseBirthday(raw) {
     const [a, b] = parts;
     const d = Number(a), m = Number(b);
     if (!Number.isInteger(d) || !Number.isInteger(m) || d < 1 || d > 31 || m < 1 || m > 12) return null;
-    return `2000-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+    return validBirthday(2000, m, d) ? `2000-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}` : null;
   }
   if (parts.length === 3) {
     let dd, mm, yyyy;
@@ -22,9 +22,14 @@ function parseBirthday(raw) {
     const d = Number(dd), m = Number(mm), y = Number(yyyy);
     if (!Number.isInteger(d) || !Number.isInteger(m) || !Number.isInteger(y)
         || d < 1 || d > 31 || m < 1 || m > 12 || y < 1900 || y > 2100) return null;
-    return `${String(y).padStart(4, "0")}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+    return validBirthday(y, m, d) ? `${String(y).padStart(4, "0")}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}` : null;
   }
   return null;
+}
+
+function validBirthday(year, month, day) {
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
 }
 
 function formatBirthdayForInput(dateStr) {
@@ -47,28 +52,46 @@ export function initModal() {
 
   let editingId = null;
   let cleanSnapshot = null;
+  let loadGeneration = 0;
 
   function open(personId = null) {
+    const generation = ++loadGeneration;
     editingId = personId;
     form.reset();
     window.resetPickers(form);
+    setFormFeedback(form, "");
 
     if (personId) {
       if (titleEl) titleEl.textContent = "Editar persona";
+      setFormLoading(form, true);
+      cleanSnapshot = null;
       fetch(`${API_BASE}/people/${personId}`)
-        .then(r => r.json())
+        .then(r => {
+          if (!r.ok) throw new Error("No se pudo cargar esta persona.");
+          return r.json();
+        })
         .then(p => {
+          if (generation !== loadGeneration) return;
           form.name.value = p.name || "";
           form.nickname.value = p.nickname || "";
           form.phone.value = p.phone || "";
           form.rut.value = p.rut || "";
           form.relation.value = p.relation || "";
           form.birthday.value = p.birthday ? formatBirthdayForInput(p.birthday) : "";
+          setFormLoading(form, false);
           cleanSnapshot = snapshotForm(form);
         })
-        .catch(e => console.error("Error cargando persona:", e));
+        .catch(e => {
+          if (generation !== loadGeneration) return;
+          console.error("Error cargando persona:", e);
+          setFormLoading(form, false);
+          setFormFeedback(form, e.message || "No se pudo cargar. Cierra e inténtalo de nuevo.");
+          const submit = form.querySelector("button[type='submit']");
+          if (submit) submit.disabled = true;
+        });
     } else {
       if (titleEl) titleEl.textContent = "Nueva persona";
+      setFormBusy(form, false);
       cleanSnapshot = snapshotForm(form);
     }
 
@@ -78,13 +101,17 @@ export function initModal() {
   }
 
   function close() {
+    loadGeneration++;
     overlay.classList.remove("active");
+    setFormBusy(form, false);
+    setFormFeedback(form, "");
     form.reset();
     window.resetPickers(form);
     editingId = null;
   }
 
   function tryClose() {
+    if (isFormSaving(form)) return;
     if (isDirty(form, cleanSnapshot) && !confirmDiscard()) return;
     close();
   }
@@ -105,7 +132,11 @@ export function initModal() {
     const formData = new FormData(form);
     const data = Object.fromEntries(formData);
 
-    if (!data.name || !data.name.trim()) return;
+    if (!data.name || !data.name.trim()) {
+      setFormFeedback(form, "Escribe un nombre para la persona.");
+      form.name.focus();
+      return;
+    }
 
     // Cumpleaños flexible: "dd/mm" (año desconocido) o "dd/mm/aaaa".
     // Se guarda siempre como fecha (año 2000 si no se indicó), y la UI
@@ -113,7 +144,8 @@ export function initModal() {
     if (data.birthday && String(data.birthday).trim()) {
       const parsed = parseBirthday(data.birthday);
       if (!parsed) {
-        alert("Cumpleaños inválido. Usa dd/mm o dd/mm/aaaa (ej: 15/03 o 15/03/1990).");
+        setFormFeedback(form, "Cumpleaños inválido. Usa dd/mm o dd/mm/aaaa (ej: 15/03 o 15/03/1990).");
+        form.birthday.focus();
         return;
       }
       data.birthday = parsed;
@@ -122,6 +154,8 @@ export function initModal() {
     }
 
     try {
+      setFormFeedback(form, "");
+      setFormBusy(form, true);
       const res = await fetch(
         editingId ? `${API_BASE}/people/${editingId}` : `${API_BASE}/people`,
         {
@@ -136,7 +170,9 @@ export function initModal() {
       if (window.initBirthdays) window.initBirthdays();
     } catch (err) {
       console.error("Error guardando persona:", err);
-      alert("No se pudo guardar. Intenta de nuevo.");
+      setFormFeedback(form, err.message || "No se pudo guardar. Intenta de nuevo.");
+    } finally {
+      setFormBusy(form, false);
     }
   });
 

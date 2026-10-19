@@ -8,6 +8,11 @@ const API_BASE = "/api";
 
 let taskFilter = "pending";
 
+function showTasksFeedback(section, message = "") {
+  const el = section.querySelector("#tasks-feedback");
+  if (el) { el.textContent = message; el.hidden = !message; }
+}
+
 async function fetchTasks() {
   try {
     const res = await fetch(`${API_BASE}/tasks`);
@@ -93,6 +98,12 @@ export async function initTasks() {
   if (!section) return;
 
   const tasks = await fetchTasks();
+  if (tasks === null) {
+    state.tasksStatus = "error";
+  } else {
+    state.tasks = tasks;
+    state.tasksStatus = "ready";
+  }
   // Precargar eventos para que taskRowHtml muestre a qué evento sirve
   // cada tarea (correspondencia clara en la lista).
   try {
@@ -101,8 +112,6 @@ export async function initTasks() {
       eventsCache = res.ok ? await res.json() : [];
     }
   } catch { eventsCache = eventsCache || []; }
-  state.tasks = tasks || [];
-
   const badge = document.querySelector('.nav[data-nav="tasks"] i');
   if (badge) badge.textContent = (tasks || []).filter(t => !t.is_completed).length;
 
@@ -185,7 +194,7 @@ function taskRowHtml(t, tasks, isChild) {
   const evTitle = t.event_id ? eventTitleSync(t.event_id) : "";
   return `
     <div class="task-item ${t.is_completed ? "done" : ""}${!t.is_completed && t.priority === "high" ? " urgent" : ""}${isChild ? " child" : ""}" data-task-id="${t.id}">
-      <div class="task-checkbox ${t.is_completed ? "done" : ""}" data-action="toggle" role="checkbox" tabindex="0" title="Marcar completada"></div>
+      <div class="task-checkbox ${t.is_completed ? "done" : ""}" data-action="toggle" role="checkbox" aria-checked="${!!t.is_completed}" aria-label="${t.is_completed ? "Marcar pendiente" : "Marcar completada"}: ${escapeHtml(t.title)}" tabindex="0" title="${t.is_completed ? "Marcar pendiente" : "Marcar completada"}"></div>
       <div class="task-info">
         <div class="task-name">${isChild ? "↳ " : ""}${escapeHtml(t.title)}</div>
         <div class="task-meta">
@@ -239,6 +248,7 @@ function renderTasks(section, tasks) {
         <button class="tasks-filter-btn ${taskFilter === v ? "active" : ""}" data-filter="${v}">${label}</button>
       `).join("")}
     </div>
+    <div class="tasks-feedback" id="tasks-feedback" role="alert" hidden></div>
     <div class="tasks-list">
       ${visible.length === 0 ? `
         <div class="tasks-empty">
@@ -268,17 +278,27 @@ function renderTasks(section, tasks) {
   section.querySelectorAll(".task-item").forEach(item => {
     const id = item.dataset.taskId;
 
-    item.querySelector('[data-action="toggle"]')?.addEventListener("click", async () => {
+    item.querySelector('[data-action="toggle"]')?.addEventListener("click", async (e) => {
+      if (e.currentTarget.getAttribute("aria-disabled") === "true") return;
       const task = state.tasks.find(t => t.id == id);
+      if (!task) return;
       const completing = !task.is_completed;
-      await updateTask(id, {
-        is_completed: completing,
-        completed_at: completing ? new Date().toISOString() : null,
-      });
-      if (window.initTasks) await window.initTasks();
-      if (window.initReadiness) window.initReadiness();
-      if (window.renderNext) window.renderNext();
-      if (window.initToday) window.initToday();
+      const toggle = e.currentTarget;
+      toggle.setAttribute("aria-disabled", "true");
+      showTasksFeedback(section);
+      try {
+        await updateTask(id, {
+          is_completed: completing,
+          completed_at: completing ? new Date().toISOString() : null,
+        });
+        if (window.initTasks) await window.initTasks();
+        if (window.initReadiness) await window.initReadiness();
+        if (window.renderNext) window.renderNext();
+        if (window.initToday) await window.initToday();
+      } catch {
+        toggle.setAttribute("aria-disabled", "false");
+        showTasksFeedback(section, "No se pudo actualizar la tarea. Sigue pendiente; intenta de nuevo.");
+      }
     });
     item.querySelector('[data-action="toggle"]')?.addEventListener("keydown", (e) => {
       if (e.key === "Enter" || e.key === " ") {
@@ -332,11 +352,12 @@ function renderTasks(section, tasks) {
           d.setHours(9, 0, 0, 0);
           at = d.toISOString();
         }
-        await fetch(`${API_BASE}/tasks/${id}`, {
+        const res = await fetch(`${API_BASE}/tasks/${id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ scheduled_datetime: at }),
         });
+        if (!res.ok) throw new Error();
         if (window.initTasks) await window.initTasks();
         if (window.renderNext) window.renderNext();
         if (window.initToday) window.initToday();
@@ -344,6 +365,7 @@ function renderTasks(section, tasks) {
       } catch (e) {
         console.error("No se pudo patear:", e);
         if (btn) { btn.disabled = false; btn.textContent = "⏭ Patear"; }
+        showTasksFeedback(section, "No se pudo mover la tarea para mañana. Intenta de nuevo.");
       }
     });
 
@@ -356,12 +378,20 @@ function renderTasks(section, tasks) {
       showTaskDetail(id);
     });
 
-    item.querySelector('[data-action="delete"]')?.addEventListener("click", async () => {
-      await deleteTask(id);
-      if (window.initTasks) await window.initTasks();
-      if (window.renderNext) window.renderNext();
-      if (window.initToday) window.initToday();
-      if (window.initWeek) window.initWeek();
+    item.querySelector('[data-action="delete"]')?.addEventListener("click", async (e) => {
+      const btn = e.currentTarget;
+      btn.disabled = true;
+      showTasksFeedback(section);
+      try {
+        await deleteTask(id);
+        if (window.initTasks) await window.initTasks();
+        if (window.renderNext) window.renderNext();
+        if (window.initToday) await window.initToday();
+        if (window.initWeek) await window.initWeek();
+      } catch {
+        btn.disabled = false;
+        showTasksFeedback(section, "No se pudo borrar esta tarea. Sigue en tu lista; intenta de nuevo.");
+      }
     });
   });
 }

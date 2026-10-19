@@ -71,7 +71,9 @@ async function enablePush() {
     return { ok: false, error: "Sin permiso de avisos no te puedo avisar." };
   }
 
-  const keyRes = await fetch("/api/push/key").then((r) => r.json());
+  const keyResponse = await fetch("/api/push/key");
+  if (!keyResponse.ok) return { ok: false, error: "No se pudo revisar la configuración de avisos." };
+  const keyRes = await keyResponse.json();
   if (!keyRes.enabled || !keyRes.publicKey) {
     return { ok: false, error: "El servidor no tiene los avisos configurados." };
   }
@@ -85,13 +87,15 @@ async function enablePush() {
     });
   }
 
-  await fetch("/api/push/subscribe", {
+  const subscribeRes = await fetch("/api/push/subscribe", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(sub.toJSON()),
   });
+  if (!subscribeRes.ok) throw new Error("No se pudo registrar este dispositivo.");
 
-  await fetch("/api/push/test", { method: "POST" });
+  const testRes = await fetch("/api/push/test", { method: "POST" });
+  if (!testRes.ok) throw new Error("El dispositivo quedó registrado, pero no se pudo enviar la prueba.");
   refreshPushButton();
   return { ok: true };
 }
@@ -99,11 +103,12 @@ async function enablePush() {
 async function disablePush() {
   const sub = await getSubscription();
   if (sub) {
-    await fetch("/api/push/unsubscribe", {
+    const res = await fetch("/api/push/unsubscribe", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ endpoint: sub.endpoint }),
     });
+    if (!res.ok) throw new Error("No se pudo desactivar el dispositivo en el servidor.");
     await sub.unsubscribe().catch(() => {});
   }
   refreshPushButton();
@@ -114,23 +119,37 @@ let pushBusy = false;
 
 function refreshPushButton() {
   const btn = document.querySelector("#push-btn");
+  const disableBtn = document.querySelector("#push-disable-btn");
   if (!btn) return;
   if (!pushSupported()) {
     btn.hidden = true;
+    if (disableBtn) disableBtn.hidden = true;
     return;
   }
   btn.hidden = false;
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const standalone = window.matchMedia("(display-mode: standalone)").matches
+    || navigator.standalone === true;
+  if (ios && !standalone) {
+    btn.disabled = true;
+    btn.textContent = "Instala Brisa para recibir avisos";
+    if (disableBtn) disableBtn.hidden = true;
+    return;
+  }
   getSubscription().then((sub) => {
     const on = !!sub && Notification.permission === "granted";
     btn.classList.toggle("on", on);
     btn.textContent = on ? "Avisos activados · toca para probar" : "Avisar a mi teléfono";
+    if (disableBtn) disableBtn.hidden = !on;
   }).catch(() => {
     btn.textContent = "Avisar a mi teléfono";
+    if (disableBtn) disableBtn.hidden = true;
   });
 }
 
 function initPushUi() {
   const btn = document.querySelector("#push-btn");
+  const disableBtn = document.querySelector("#push-disable-btn");
   if (!btn) return;
 
   btn.addEventListener("click", async () => {
@@ -140,7 +159,9 @@ function initPushUi() {
     try {
       const sub = await getSubscription();
       if (sub && Notification.permission === "granted") {
-        const r = await fetch("/api/push/test", { method: "POST" }).then((x) => x.json());
+        const testRes = await fetch("/api/push/test", { method: "POST" });
+        if (!testRes.ok) throw new Error("No se pudo enviar el aviso de prueba.");
+        const r = await testRes.json();
         btn.textContent = r.sent > 0 ? "Enviado ✓" : "Sin dispositivos";
         setTimeout(refreshPushButton, 1600);
       } else {
@@ -160,15 +181,26 @@ function initPushUi() {
     }
   });
 
-  refreshPushButton();
+  disableBtn?.addEventListener("click", async () => {
+    if (pushBusy) return;
+    pushBusy = true;
+    disableBtn.disabled = true;
+    disableBtn.textContent = "Desactivando…";
+    try {
+      await disablePush();
+      btn.textContent = "Avisos desactivados";
+      setTimeout(refreshPushButton, 1600);
+    } catch (err) {
+      console.error("Error desactivando avisos:", err);
+      disableBtn.textContent = "No se pudo desactivar";
+      setTimeout(refreshPushButton, 2600);
+    } finally {
+      pushBusy = false;
+      disableBtn.disabled = false;
+    }
+  });
 
-  // iOS needs the PWA installed for notifications: say so, gently.
-  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  const standalone = window.matchMedia("(display-mode: standalone)").matches
-    || navigator.standalone === true;
-  if (ios && !standalone) {
-    btn.textContent = "Instala Brisa para recibir avisos";
-  }
+  refreshPushButton();
 }
 
 window.brisaPush = { enable: enablePush, disable: disablePush, status: refreshPushButton };

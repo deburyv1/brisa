@@ -147,8 +147,24 @@ function renderJournal(section, rows, query = "") {
     const id = card.dataset.noteId;
 
     card.addEventListener("click", (e) => {
-      if (e.target.closest('[data-action="delete"]')) return;
+      if (e.target.closest('[data-action="delete"], [data-action="convert"]')) return;
       if (window.openJournalModal) window.openJournalModal(id);
+    });
+
+    card.querySelector('[data-action="convert"]')?.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const button = e.currentTarget;
+      button.disabled = true;
+      try {
+        const res = await fetch(`${API_BASE}/journal/${id}/convert-to-idea`, { method: "POST" });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(body.error || "No se pudo mover a Ideas.");
+        if (window.initJournal) await window.initJournal();
+        if (window.initIdeas) await window.initIdeas();
+      } catch (err) {
+        button.disabled = false;
+        alert(err.message || "No se pudo mover a Ideas.");
+      }
     });
 
     card.querySelector('[data-action="delete"]')?.addEventListener("click", async (e) => {
@@ -169,6 +185,7 @@ function noteCard(n) {
       <div class="note-preview md">${renderRich(n.content || "Sin contenido")}</div>
       <div class="note-card-foot">
         <div class="note-mood">${n.mood ? `· ${escapeHtml(n.mood)}` : ""}</div>
+        ${n.kind === "pensamiento" ? `<button class="tx-btn tx-btn-edit" data-action="convert" title="Mover a Ideas">→ idea</button>` : ""}
         <button class="note-delete" data-action="delete">Eliminar</button>
       </div>
     </div>

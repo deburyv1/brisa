@@ -35,15 +35,48 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+app.set('trust proxy', 1);
+
+const allowedOrigins = new Set(
+  (process.env.BRISA_ALLOWED_ORIGINS || '')
+    .split(',').map(origin => origin.trim()).filter(Boolean)
+);
+
+function isTrustedOrigin(origin, req) {
+  if (allowedOrigins.has(origin)) return true;
+  try {
+    const url = new URL(origin);
+    return url.host === req.get('host') && url.protocol === `${req.protocol}:`;
+  } catch {
+    return false;
+  }
+}
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  credentials: true,
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.has(origin)) return callback(null, !!origin);
+    callback(null, false);
+  },
+}));
 // Pasted photos travel as data URLs: allow them, they get
 // downscaled client-side before storage (richtext.js)
 app.use(express.json({ limit: "15mb" }));
 
 // Auth wall: the login endpoints stay open, everything else needs a session.
 app.use('/api', (req, res, next) => {
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+    const origin = req.get('origin');
+    const referer = req.get('referer');
+    let source = origin;
+    if (!source && referer) {
+      try { source = new URL(referer).origin; } catch { /* rejected below */ }
+    }
+    if (!source || !isTrustedOrigin(source, req)) {
+      return res.status(403).json({ error: 'Origen no permitido' });
+    }
+  }
   if (req.path === '/auth' || req.path.startsWith('/auth/')) return next();
   return requireAuth(req, res, next);
 });

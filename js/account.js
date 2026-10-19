@@ -6,10 +6,10 @@
 
 const API_BASE = "/api/auth";
 
-export function initAccount() {
+export function initAccount({ render = true, gate = true } = {}) {
   const section = document.querySelector("#account-section");
-  if (section) renderAccount(section);
-  maybeGate();
+  if (section && render) renderAccount(section);
+  if (gate) maybeGate();
 }
 
 const CACHE_USER_KEY = "brisa.cacheUser";
@@ -43,6 +43,9 @@ async function fetchStatus() {
 
 async function renderAccount(section) {
   const data = await fetchStatus();
+  // Navigation may have moved away while the session request was in flight.
+  // Do not leave a hidden password input in the page for password managers.
+  if (!section.isConnected || section.style.display === "none") return;
   syncUserCaches(data.user?.id);
   if (data.authenticated && data.user) {
     const exp = data.expires

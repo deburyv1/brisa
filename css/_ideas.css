@@ -87,3 +87,11 @@
   color: rgba(22, 75, 105, 0.68);
   padding: 12px;
 }
+
+.ideas-feedback {
+  margin-top: 10px;
+  color: #8a2732;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.ideas-feedback[hidden] { display: none; }

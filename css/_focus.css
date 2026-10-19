@@ -214,15 +214,25 @@ button.focus-step-box.as-complete:hover .focus-step-check::after {
   color: var(--ink);
 }
 
-/* Mode switcher: three clear pills, current one lit */
+/* Task approaches, with scheduling kept as a secondary contextual action. */
+.focus-routebar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+}
+
 .focus-modes {
   display: flex;
+  flex: 1 1 auto;
   gap: 6px;
-  margin: 0 0 12px;
+  min-width: 0;
+  margin: 0;
 }
 
 .focus-mode-seg {
   flex: 1;
+  min-width: 0;
   border: 1px solid rgba(22, 75, 105, 0.28);
   border-radius: 99px;
   padding: 7px 4px;
@@ -235,6 +245,104 @@ button.focus-step-box.as-complete:hover .focus-step-check::after {
   transition: var(--transition-speed);
 }
 
+.focus-schedule-link {
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 99px;
+  padding: 8px 10px;
+  color: rgba(22, 75, 105, 0.78);
+  background: transparent;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.focus-schedule-link:hover,
+.focus-schedule-link.on {
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.48);
+}
+
+.focus-route-intro {
+  margin: 0 0 10px;
+  color: rgba(22, 75, 105, 0.78);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.focus-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.focus-empty-actions .modal-btn {
+  flex: 1 1 180px;
+}
+
+.focus-approach-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 64px;
+  color: rgba(22, 75, 105, 0.78);
+  font-size: 13px;
+}
+
+.focus-approach-spinner {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  border: 2px solid rgba(22, 75, 105, 0.2);
+  border-top-color: #078fba;
+  border-radius: 50%;
+  animation: focus-approach-spin 0.8s linear infinite;
+}
+
+@keyframes focus-approach-spin {
+  to { transform: rotate(360deg); }
+}
+
+.focus-suggested-steps {
+  display: grid;
+  gap: 7px;
+  margin: 12px 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: focus-step;
+}
+
+.focus-suggested-steps li {
+  counter-increment: focus-step;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 7px 10px;
+  border: 1px solid rgba(22, 75, 105, 0.14);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.35);
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.focus-suggested-steps li::before {
+  content: counter(focus-step);
+  display: grid;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  color: #17617e;
+  background: rgba(255, 255, 255, 0.72);
+  font-size: 11px;
+  font-weight: 700;
+}
+
 .focus-mode-seg:hover {
   background: rgba(255, 255, 255, 0.55);
 }
@@ -244,6 +352,24 @@ button.focus-step-box.as-complete:hover .focus-step-check::after {
   background: linear-gradient(180deg, #00c6ff, #0072ff);
   border-color: transparent;
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.8), 0 4px 12px rgba(0, 113, 170, .3);
+}
+
+@media (max-width: 520px) {
+  .focus-routebar {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .focus-mode-seg {
+    padding: 8px 3px;
+    font-size: 10px;
+  }
+
+  .focus-schedule-link {
+    align-self: flex-end;
+    padding: 6px 8px;
+  }
 }
 
 .focus-custom-min {

@@ -14,7 +14,7 @@
   <link rel="icon" href="brisa-icon.png">
   <link rel="icon" type="image/svg+xml" href="brisa-icon.svg">
   <link rel="stylesheet" href="vendor/flatpickr/flatpickr.min.css">
-  <link rel="stylesheet" href="css/app.css?v=20261017av">
+  <link rel="stylesheet" href="css/app.css?v=20261019companion2">
   <link rel="stylesheet" href="vendor/quill.snow.css">
 </head>
 <body>
@@ -56,11 +56,11 @@
 
     <!-- Player Panel -->
     <div class="player-panel" id="player-panel">
-      <button class="player-toggle">
+      <button class="player-toggle" type="button" aria-expanded="false" aria-controls="player-content">
         <span>Música</span>
         <span class="player-toggle-icon">▼</span>
       </button>
-      <div class="player-content">
+      <div class="player-content" id="player-content">
         <div class="player-inner"></div>
       </div>
     </div>
@@ -69,6 +69,7 @@
     <button id="auth-btn" class="nav auth-btn" title="Inicia sesión con tu cuenta Google">Entrar con Google</button>
 
     <button id="push-btn" class="push-btn" hidden>Avisar a mi teléfono</button>
+    <button id="push-disable-btn" class="push-disable-btn" type="button" hidden>Desactivar avisos</button>
 
     <div class="sidebar-clock aero-inset">
       <div class="clock-label">AHORA</div>
@@ -111,8 +112,9 @@
       <!-- Captura siempre a la vista, en toda vista salvo la portada
            (que ya tiene su propia caja "¿Qué tienes en mente?"). -->
       <form class="top-capture" id="top-capture" autocomplete="off" style="display:none">
-        <input id="quick-input" class="top-capture-input" type="text"
-          name="quick-capture" placeholder="Anótalo y sigue en lo tuyo…" autocomplete="off"
+        <input id="quick-input" class="top-capture-input" type="search"
+          name="brisa-quick-capture" placeholder="Anótalo y sigue en lo tuyo…" autocomplete="off" autocapitalize="off"
+          data-1p-ignore="true" data-lpignore="true" data-bwignore="true" readonly
           title="Anotar sin perder el flujo (tecla C)">
         <button type="submit" id="quick-save" class="top-capture-btn">Guardar</button>
       </form>
@@ -141,7 +143,9 @@
     <section class="capture aero-panel" id="capture-section"></section>
 
     <!-- Next Action Section -->
-    <section class="next" id="next-section"></section>
+    <section class="next" id="next-section" aria-label="Tu siguiente acción">
+      <div class="next-loading" role="status" aria-live="polite"><span class="next-loading-spinner" aria-hidden="true"></span><span>Cargando tus acciones de hoy y fechas próximas…</span></div>
+    </section>
 
     <!-- Today Section -->
     <section class="today" id="today-section"></section>
@@ -216,7 +220,7 @@
 <script src="vendor/quill.min.js"></script>
 <script src="vendor/flatpickr/flatpickr.min.js"></script>
 <script src="vendor/flatpickr/es.js"></script>
-<script type="module" src="js/app.js?v=20261017av"></script>
+<script type="module" src="js/app.js?v=20261019companion2"></script>
 
 <!-- Floating timer: round, solid, draggable -->
 <div class="timer-pill" id="timer-pill" title="Temporizador (arrástrame)">
@@ -578,6 +582,7 @@
         <label>Ubicación<span class="optional">(opcional)</span></label>
         <input type="text" name="location" placeholder="Ej: Clínica Santa María">
       </div>
+      <label class="theme-check event-routine-option"><input type="checkbox" name="use_departure_checklist"> Copiar mi rutina habitual a esta salida</label>
       <div class="form-group">
         <label>Viaje en minutos<span class="optional">(opcional)</span></label>
         <input type="number" name="travel_minutes" min="0" max="480" placeholder="Ej: 30">
@@ -596,36 +601,50 @@
 
 <!-- Modal: Detalle de evento + preparación -->
 <div class="modal-overlay" id="event-detail-modal">
-  <div class="modal">
+  <div class="modal event-detail-dialog" role="dialog" aria-modal="true" aria-labelledby="event-detail-title">
     <div class="modal-header">
       <div class="modal-title" id="event-detail-title">Evento</div>
-      <button class="modal-close" title="Cerrar" id="event-detail-close">✕</button>
+      <button class="modal-close" title="Cerrar" aria-label="Cerrar detalle del evento" id="event-detail-close">✕</button>
     </div>
     <p id="event-detail-when" class="focus-note"></p>
+    <div id="event-detail-feedback" class="event-detail-feedback" role="alert" hidden></div>
     <div id="event-detail-cancelled" class="event-cancelled" style="display:none">
       <span>Cancelado · no avisará ni saldrá en tu día.</span>
       <button class="tx-btn tx-btn-edit" id="event-detail-reopen" title="Volver a abrir">Reabrir</button>
     </div>
     <div class="event-move-row" id="event-move-row">
-      <input type="date" id="event-move-date" class="capture-datetime" title="Cambiar de día (conserva la hora)">
+      <input type="date" id="event-move-date" class="capture-datetime" title="Cambiar de día (conserva la hora)" aria-label="Nuevo día del evento">
       <button class="tx-btn tx-btn-edit" id="event-move" title="Mover a ese día">Mover día</button>
     </div>
     <p id="event-detail-travel" class="focus-note"></p>
     <p id="event-detail-location" class="focus-note"></p>
     <p id="event-detail-desc" class="focus-note"></p>
     <div id="event-prep-list" class="prep-list"></div>
-    <div class="focus-step-box">
-      <div class="focus-step-label">¿Necesitas preparar algo?</div>
-      <div style="display:flex;gap:8px">
-        <input type="text" id="event-prep-input" class="prep-input" placeholder="Ej: sacar la ropa del closet">
-        <button class="modal-btn modal-btn-primary" id="event-prep-add">+</button>
+    <div class="focus-step-box event-prep-box">
+      <div class="event-prep-heading">
+        <div class="focus-step-label">Preparación <span>opcional</span></div>
+        <p>Agrega un paso si te ayuda.</p>
+      </div>
+      <div class="event-prep-form">
+        <input type="text" id="event-prep-input" class="prep-input" placeholder="Ej.: preparar las llaves" aria-label="Nuevo paso de preparación" maxlength="200">
+        <select id="event-prep-phase" aria-label="Cuándo hacer este paso">
+          <option value="prep">Preparar antes</option>
+          <option value="leave">Antes de salir</option>
+          <option value="during">Ese día</option>
+        </select>
+        <label class="event-routine-option"><input type="checkbox" id="event-prep-repeat"> Guardar para futuras salidas</label>
+        <button type="button" class="modal-btn modal-btn-primary" id="event-prep-add">Agregar</button>
       </div>
     </div>
+    <details class="event-routine-manager" id="event-routine-manager">
+      <summary>Editar rutina habitual de salida</summary>
+      <div id="event-routine-list" class="event-routine-list"></div>
+    </details>
     <div class="modal-actions">
       <button type="button" class="modal-btn modal-btn-secondary" id="event-detail-delete">Eliminar</button>
       <button type="button" class="modal-btn modal-btn-secondary" id="event-detail-edit">Editar</button>
-      <button type="button" class="modal-btn modal-btn-secondary" id="event-detail-done">Hecho ✓</button>
-      <button type="button" class="modal-btn modal-btn-primary" id="event-detail-ok">Listo</button>
+      <button type="button" class="modal-btn modal-btn-secondary" id="event-detail-done">Marcar hecho</button>
+      <button type="button" class="modal-btn modal-btn-primary" id="event-detail-ok">Cerrar</button>
     </div>
     <button class="week-btn-text" id="event-detail-cancel" title="Cancelar sin borrar: no avisará más">Cancelar evento</button>
   </div>
@@ -737,7 +756,7 @@
 <div class="modal-overlay" id="focus-modal">
   <div class="modal">
     <div class="modal-header">
-      <div class="modal-title">De a un paso</div>
+      <div class="modal-title">Enfoque</div>
       <button class="modal-close" title="Cerrar" id="focus-close">✕</button>
     </div>
     <h3 id="focus-title" class="focus-title"></h3>

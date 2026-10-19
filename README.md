@@ -3,6 +3,38 @@
 Dashboard personal con estética Frutiger Aero (glassmorphism): tareas, notas,
 finanzas, relaciones, clima y línea de tiempo del día.
 
+## Filosofía de producto
+
+Brisa busca entregar el mayor valor posible con la menor interacción. Está
+enfocada en personas con disfunción ejecutiva, incluidas personas con TDAH y
+TEA, y debe acompañarlas en lo cotidiano desde capturar algo hasta terminarlo.
+No basta con guardar información: Brisa debe ayudar a recordar qué importa,
+elegir un siguiente movimiento y llevarlo a cabo.
+
+Principios de interacción:
+
+- Usar la información ya disponible en toda la app para sugerir automáticamente
+  una forma útil de avanzar. Explicar brevemente la sugerencia y permitir
+  cambiarla sin perder datos ni progreso.
+- Si falta información para sugerir con confianza, ayudar a elegir o avanzar con
+  la pregunta o acción más pequeña posible. No dejar a la persona frente a una
+  pantalla vacía ni exigirle que diseñe su propio flujo.
+- Reducir pasos, decisiones y carga de memoria. Priorizar una acción clara por
+  pantalla, entradas breves, valores predeterminados útiles y estados
+  comprensibles; evitar ruido, urgencia artificial y pedir datos que la app
+  pueda inferir.
+- Acompañar el ciclo completo: capturar, organizar, preparar, empezar, retomar,
+  reprogramar y cerrar. Las ayudas deben aparecer cuando hacen falta y conservar
+  el contexto entre módulos.
+- Las cosas pueden cambiar de tipo. Facilitar moverlas o transformarlas entre
+  acciones, eventos, ideas, pensamientos y otros módulos sin duplicar ni perder
+  su información.
+- Explicar por qué aparecen las sugerencias y mantener visible el panorama de
+  tareas vencidas, de hoy y próximas para reducir la incertidumbre de “¿qué se
+  me está olvidando?” sin llenar la vista de opciones.
+- Los pasos de una acción se muestran dentro de su acción y no como compromisos
+  independientes.
+
 ## Requisitos
 
 - Docker + Docker Compose (desarrollo local recomendado), o

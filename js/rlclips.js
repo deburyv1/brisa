@@ -11,15 +11,24 @@ export async function initRlClips() {
   const section = document.querySelector("#rlclips-section");
   if (!section) return;
 
-  const data = await fetch(`${API_BASE}/rlclips`).then(r => r.json()).catch(() => null);
+  let data = null;
+  try {
+    const res = await fetch(`${API_BASE}/rlclips`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    data = await res.json();
+  } catch (e) {
+    console.warn("No se pudieron cargar clips:", e);
+  }
 
   if (!data) {
     section.innerHTML = `
       <div class="rl-empty">
         <div class="rl-empty-icon">⚠️</div>
-        <div class="rl-empty-text">No se pudo conectar con el servidor.</div>
+        <div class="rl-empty-text">No se pudo cargar esta vista.</div>
+        <button class="rl-btn rl-btn-secondary" id="rl-retry">Reintentar</button>
       </div>
     `;
+    section.querySelector("#rl-retry")?.addEventListener("click", initRlClips);
     return;
   }
 
@@ -28,8 +37,10 @@ export async function initRlClips() {
       <div class="rl-empty">
         <div class="rl-empty-icon">📁</div>
         <div class="rl-empty-text">La carpeta de clips no está montada.<br>Monta <code>D:/debury/clips rocket league</code> en <code>/clips-rl</code>.</div>
+        <button class="rl-btn rl-btn-secondary" id="rl-retry">Revisar de nuevo</button>
       </div>
     `;
+    section.querySelector("#rl-retry")?.addEventListener("click", initRlClips);
     return;
   }
 

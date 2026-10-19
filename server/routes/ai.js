@@ -3,6 +3,17 @@ import { Router } from 'express';
 const router = Router();
 
 const GEMINI_MODEL = 'gemini-3.5-flash-lite';
+const INPUT_LIMITS = { title: 500, context: 4000, parentTitle: 500, eventTitle: 500, block: 2000 };
+
+function validateTextFields(body, fields) {
+  for (const field of fields) {
+    const value = body[field];
+    if (value != null && (typeof value !== 'string' || value.length > INPUT_LIMITS[field])) {
+      return `${field} debe ser texto de hasta ${INPUT_LIMITS[field]} caracteres`;
+    }
+  }
+  return null;
+}
 
 function buildPrompt(taskTitle, context = '', parentTitle = '', eventTitle = '') {
   return `Eres un asistente que ayuda a personas con dificultades ejecutivas a descomponer tareas.
@@ -79,7 +90,9 @@ function parseSteps(raw) {
 
 // POST /api/ai/split { title, context?, parentTitle?, eventTitle? } → { steps: string[] }
 router.post('/split', async (req, res) => {
-  const { title, context, parentTitle, eventTitle } = req.body;
+  const { title, context, parentTitle, eventTitle } = req.body || {};
+  const invalid = validateTextFields(req.body || {}, ['title', 'context', 'parentTitle', 'eventTitle']);
+  if (invalid) return res.status(400).json({ error: invalid });
   if (!title || !title.trim()) {
     return res.status(400).json({ error: 'Title is required' });
   }
@@ -93,6 +106,65 @@ router.post('/split', async (req, res) => {
   } catch (err) {
     console.error('Gemini split error:', err);
     res.status(502).json({ error: 'No se pudo dividir la tarea. Intenta de nuevo.' });
+  }
+});
+
+function buildApproachPrompt(title, context = '', parentTitle = '', eventTitle = '') {
+  return `Eres Brisa, un acompañante práctico para personas con disfunción ejecutiva. Usa la información disponible para elegir automáticamente la ayuda más útil. Reduce decisiones y no inventes datos.
+
+Acción: "${title}"
+${context ? `Información guardada: ${context}` : 'No hay más información guardada.'}
+${parentTitle ? `Acción mayor: "${parentTitle}"` : ''}
+${eventTitle ? `Evento asociado: "${eventTitle}"` : ''}
+
+Elige UNA ruta:
+- "step": objetivo claro y pequeño; escribe un primer paso físico de 5-15 minutos.
+- "checklist": resultado concreto que requiere varios pasos; escribe 2-5 pasos accionables y ordenados.
+- "clarify": falta un dato importante o el objetivo es ambiguo; formula UNA pregunta sencilla que permita continuar.
+- "develop": requiere analizar, comparar, planificar o redactar; escribe un primer movimiento visible, como abrir el documento o anotar opciones.
+
+Usa "clarify" solo si no puedes proponer responsablemente un primer avance. Evita recomendaciones genéricas como "investigar" o "pensar". No repitas el título como paso. El texto debe ser breve, amable y en español.
+
+Responde SOLO JSON válido. mode debe ser exactamente uno de: step, checklist, clarify, develop. Incluye las cinco claves; usa cadenas vacías o [] donde no correspondan:
+{"mode":"step","reason":"motivo breve","first_step":"paso concreto o vacío","steps":[],"question":"una pregunta o vacío"}`;
+}
+
+function parseApproach(raw) {
+  const match = raw.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error('No JSON object in approach response');
+  const obj = JSON.parse(match[0]);
+  const modes = new Set(['step', 'checklist', 'clarify', 'develop']);
+  const mode = modes.has(obj.mode) ? obj.mode : null;
+  const clean = (value, max) => String(value || '').trim().slice(0, max);
+  const steps = (Array.isArray(obj.steps) ? obj.steps : [])
+    .map(step => String(step || '').trim()).filter(Boolean).slice(0, 5);
+  const result = {
+    mode,
+    reason: clean(obj.reason, 220),
+    first_step: clean(obj.first_step, 240),
+    steps,
+    question: clean(obj.question, 240),
+  };
+  if (!mode) throw new Error('Invalid approach mode');
+  if (mode === 'step' && !result.first_step) throw new Error('Missing first step');
+  if (mode === 'checklist' && steps.length < 2) throw new Error('Checklist needs two steps');
+  if (mode === 'clarify' && !result.question) throw new Error('Missing clarification question');
+  if (mode === 'develop' && !result.first_step) throw new Error('Missing development action');
+  return result;
+}
+
+// POST /api/ai/approach { title, context?, parentTitle?, eventTitle? }
+router.post('/approach', async (req, res) => {
+  const { title, context, parentTitle, eventTitle } = req.body || {};
+  const invalid = validateTextFields(req.body || {}, ['title', 'context', 'parentTitle', 'eventTitle']);
+  if (invalid) return res.status(400).json({ error: invalid });
+  if (!title || !title.trim()) return res.status(400).json({ error: 'Title is required' });
+  try {
+    const raw = await callGemini(buildApproachPrompt(title.trim(), context || '', parentTitle || '', eventTitle || ''), 2, 512);
+    res.json(parseApproach(raw));
+  } catch (err) {
+    console.error('Gemini approach error:', err);
+    res.status(502).json({ error: 'No se pudo sugerir una forma de avanzar.' });
   }
 });
 
@@ -134,7 +206,9 @@ function parseUnblock(raw) {
 
 // POST /api/ai/unblock { title, block, parentTitle?, eventTitle? }
 router.post('/unblock', async (req, res) => {
-  const { title, block, parentTitle, eventTitle } = req.body;
+  const { title, block, parentTitle, eventTitle } = req.body || {};
+  const invalid = validateTextFields(req.body || {}, ['title', 'block', 'parentTitle', 'eventTitle']);
+  if (invalid) return res.status(400).json({ error: invalid });
   if (!title || !title.trim()) {
     return res.status(400).json({ error: 'Title is required' });
   }

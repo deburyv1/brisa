@@ -22,6 +22,19 @@ function formatMoney(n) {
   return Number(n || 0).toLocaleString("es-ES", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 
+function showShoppingFeedback(section, message = "") {
+  let feedback = section.querySelector("#shopping-feedback");
+  if (!feedback) {
+    feedback = document.createElement("div");
+    feedback.id = "shopping-feedback";
+    feedback.className = "shopping-feedback";
+    feedback.setAttribute("role", "alert");
+    section.querySelector(".shopping-add")?.after(feedback);
+  }
+  feedback.textContent = message;
+  feedback.hidden = !message;
+}
+
 export async function initShopping() {
   const section = document.querySelector("#shopping-section");
   if (!section) return;
@@ -50,8 +63,8 @@ export async function initShopping() {
     </div>
     <div class="shopping-add">
       <input type="text" id="shopping-input" placeholder="¿Qué falta? Ej: novas" maxlength="255" autocomplete="off">
-      <input type="number" id="shopping-est" placeholder="$ ref" min="0" step="any">
-      <button class="shopping-add-btn" id="shopping-add" title="Agregar a la lista">+</button>
+      <input type="number" id="shopping-est" placeholder="$ ref" aria-label="Monto estimado, opcional" min="0" step="any">
+      <button type="button" class="shopping-add-btn" id="shopping-add" title="Agregar a la lista" aria-label="Agregar producto">+</button>
     </div>
     <div class="shopping-list">
       ${pending.length === 0 ? `<div class="shopping-empty">Nada pendiente. 🎉</div>` : pending.map(itemHtml).join("")}
@@ -70,14 +83,24 @@ export async function initShopping() {
   const add = async () => {
     const description = input?.value.trim();
     if (!description) return;
-    await fetch(`${API_BASE}/shopping`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ description, estimated_amount: est?.value || null }),
-    });
-    await initShopping();
-    // Back to the input for fast consecutive entry
-    document.querySelector("#shopping-input")?.focus();
+    const button = section.querySelector("#shopping-add");
+    if (button?.disabled) return;
+    if (button) { button.disabled = true; button.textContent = "…"; }
+    showShoppingFeedback(section);
+    try {
+      const res = await fetch(`${API_BASE}/shopping`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description, estimated_amount: est?.value || null }),
+      });
+      if (!res.ok) throw new Error("No se pudo agregar. El texto sigue en la lista para que puedas reintentar.");
+      await initShopping();
+      // Back to the input for fast consecutive entry
+      document.querySelector("#shopping-input")?.focus();
+    } catch (e) {
+      showShoppingFeedback(section, e.message || "No se pudo agregar. Intenta de nuevo.");
+      if (button) { button.disabled = false; button.textContent = "+"; }
+    }
   };
 
   section.querySelector("#shopping-add")?.addEventListener("click", add);
@@ -88,9 +111,17 @@ export async function initShopping() {
     }
   });
 
-  section.querySelector("#shopping-clear")?.addEventListener("click", async () => {
-    await fetch(`${API_BASE}/shopping?purchased=1`, { method: "DELETE" });
-    if (window.initShopping) window.initShopping();
+  section.querySelector("#shopping-clear")?.addEventListener("click", async (e) => {
+    const button = e.currentTarget;
+    button.disabled = true;
+    try {
+      const res = await fetch(`${API_BASE}/shopping?purchased=1`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      if (window.initShopping) await window.initShopping();
+    } catch {
+      button.disabled = false;
+      showShoppingFeedback(section, "No se pudieron limpiar los productos comprados. Intenta de nuevo.");
+    }
   });
 
   section.querySelectorAll(".shopping-item").forEach(row => {
@@ -98,12 +129,17 @@ export async function initShopping() {
 
     row.querySelector('[data-action="toggle"]')?.addEventListener("click", async () => {
       const item = (items || []).find(x => String(x.id) === String(id));
-      await fetch(`${API_BASE}/shopping/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ is_purchased: !item?.is_purchased }),
-      });
-      if (window.initShopping) window.initShopping();
+      try {
+        const res = await fetch(`${API_BASE}/shopping/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ is_purchased: !item?.is_purchased }),
+        });
+        if (!res.ok) throw new Error();
+        if (window.initShopping) window.initShopping();
+      } catch {
+        showShoppingFeedback(section, "No se pudo actualizar el estado de compra. Intenta de nuevo.");
+      }
     });
 
     row.querySelector('[data-action="buy"]')?.addEventListener("click", async () => {
@@ -126,8 +162,13 @@ export async function initShopping() {
     });
 
     row.querySelector('[data-action="delete"]')?.addEventListener("click", async () => {
-      await fetch(`${API_BASE}/shopping/${id}`, { method: "DELETE" });
-      if (window.initShopping) window.initShopping();
+      try {
+        const res = await fetch(`${API_BASE}/shopping/${id}`, { method: "DELETE" });
+        if (!res.ok) throw new Error();
+        if (window.initShopping) window.initShopping();
+      } catch {
+        showShoppingFeedback(section, "No se pudo quitar este producto. Intenta de nuevo.");
+      }
     });
 
     // Tocar el texto lo edita ahí mismo (Enter guarda, Esc vuelve)
@@ -144,19 +185,33 @@ export async function initShopping() {
       nameEl.replaceWith(field);
       field.focus();
       field.select();
+      let finishing = false;
       const finish = async (save) => {
+        if (finishing) return;
+        finishing = true;
         const value = field.value.trim();
         if (!value) save = false;
+        if (save && value !== current) {
+          field.disabled = true;
+          try {
+            const res = await fetch(`${API_BASE}/shopping/${id}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ description: value }),
+            });
+            if (!res.ok) throw new Error();
+            nameEl.textContent = value;
+            field.replaceWith(nameEl);
+            delete nameEl.dataset.editing;
+            if (window.initShopping) window.initShopping();
+            return;
+          } catch {
+            showShoppingFeedback(section, "No se pudo guardar el nombre. Se restauró el texto anterior.");
+          }
+        }
+        nameEl.textContent = current;
         field.replaceWith(nameEl);
         delete nameEl.dataset.editing;
-        nameEl.textContent = value || current;
-        if (!save || value === current) return;
-        await fetch(`${API_BASE}/shopping/${id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ description: value }),
-        });
-        if (window.initShopping) window.initShopping();
       };
       field.addEventListener("keydown", (e) => {
         if (e.key === "Enter") { e.preventDefault(); finish(true); }
@@ -292,13 +347,13 @@ function itemHtml(i) {
     : `<button class="shopping-places-btn" data-action="places">Dónde comprar en Santiago</button>`;
   return `
   <div class="shopping-item ${i.is_purchased ? "done" : ""}" data-item-id="${i.id}">
-    <button class="shopping-photo" data-action="photo" title="Foto del producto">${photoHtml}
+    <button class="shopping-photo" data-action="photo" title="Foto del producto" aria-label="Cambiar foto de ${escapeHtml(i.description)}">${photoHtml}
       <span class="shopping-photo-badge" title="Cambiar foto">↻</span>
     </button>
-    <button class="shopping-check ${i.is_purchased ? "done" : ""}" data-action="toggle">${i.is_purchased ? "✓" : ""}</button>
+    <button class="shopping-check ${i.is_purchased ? "done" : ""}" data-action="toggle" aria-label="${i.is_purchased ? "Marcar pendiente" : "Marcar comprado"}: ${escapeHtml(i.description)}" aria-pressed="${!!i.is_purchased}">${i.is_purchased ? "✓" : ""}</button>
     <div class="shopping-info">
       <div class="shopping-line">
-        <span class="shopping-name" data-action="edit" title="Tocar para editar">${escapeHtml(i.description)}</span>
+        <button type="button" class="shopping-name" data-action="edit" title="Tocar para editar" aria-label="Editar ${escapeHtml(i.description)}">${escapeHtml(i.description)}</button>
         ${i.estimated_amount ? `<span class="shopping-est">~${formatMoney(i.estimated_amount)}</span>` : ""}
       </div>
       <div class="shopping-places">${places}</div>

@@ -4,6 +4,19 @@
 
 const API_BASE = "/api";
 
+function showCalendarFeedback(section, message = "") {
+  let el = section.querySelector("[data-calendar-feedback]");
+  if (!el) {
+    el = document.createElement("div");
+    el.dataset.calendarFeedback = "";
+    el.className = "calendar-feedback";
+    el.setAttribute("role", "alert");
+    section.querySelector(".calendar-header")?.after(el);
+  }
+  el.textContent = message;
+  el.hidden = !message;
+}
+
 async function fetchEvents() {
   try {
     const res = await fetch(`${API_BASE}/events`);
@@ -68,7 +81,7 @@ export async function initCalendar() {
       </div>
       <div class="calendar-empty">
         <div class="calendar-empty-icon">📅</div>
-        <div class="calendar-empty-text">Sin eventos próximos.<br>Creá el primero para empezar.</div>
+        <div class="calendar-empty-text">Sin eventos próximos.<br>Crea el primero para empezar.</div>
       </div>
     `;
     section.querySelector("#add-event")?.addEventListener("click", () => {
@@ -93,7 +106,7 @@ export async function initCalendar() {
         <div class="calendar-day-title">${formatDay(key)}</div>
         <div class="calendar-list">
           ${groups[key].map(ev => `
-            <div class="calendar-item" data-event-id="${ev.id}" data-action="open" style="cursor:pointer">
+            <div class="calendar-item" data-event-id="${ev.id}" data-action="open" role="group" tabindex="0" aria-label="Evento: ${escapeHtml(ev.title)}. Pulsa Enter para abrir el detalle." style="cursor:pointer">
               <div class="calendar-time">${formatRange(ev)}</div>
               <div class="calendar-info">
                 <div class="calendar-name">${escapeHtml(ev.title)}</div>
@@ -101,7 +114,7 @@ export async function initCalendar() {
               </div>
               <div class="tx-actions">
                 <button class="tx-btn tx-btn-edit" data-action="edit">Editar</button>
-                <button class="tx-btn tx-btn-delete" data-action="delete">Eliminar</button>
+                <button class="tx-btn tx-btn-delete" data-action="delete" aria-label="Eliminar evento">Eliminar</button>
               </div>
             </div>
           `).join("")}
@@ -122,13 +135,27 @@ export async function initCalendar() {
     });
     item.querySelector('[data-action="delete"]')?.addEventListener("click", async (e) => {
       e.stopPropagation();
-      await fetch(`${API_BASE}/events/${id}`, { method: "DELETE" });
-      if (window.initCalendar) window.initCalendar();
-      if (window.initToday) window.initToday();
-      if (window.initWeek) window.initWeek();
+      const button = e.currentTarget;
+      button.disabled = true;
+      try {
+        const res = await fetch(`${API_BASE}/events/${id}`, { method: "DELETE" });
+        if (!res.ok) throw new Error();
+        if (window.initCalendar) await window.initCalendar();
+        if (window.initToday) await window.initToday();
+        if (window.initWeek) await window.initWeek();
+      } catch {
+        button.disabled = false;
+        showCalendarFeedback(section, "No se pudo eliminar el evento. Sigue en tu calendario; intenta de nuevo.");
+      }
     });
     item.addEventListener("click", () => {
       if (window.openEventDetail) window.openEventDetail(id);
+    });
+    item.addEventListener("keydown", (e) => {
+      if ((e.key === "Enter" || e.key === " ") && !e.target.closest("button")) {
+        e.preventDefault();
+        if (window.openEventDetail) window.openEventDetail(id);
+      }
     });
   });
 }

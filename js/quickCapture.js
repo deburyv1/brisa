@@ -15,6 +15,10 @@ export function initQuickCapture() {
   const saveBtn = document.querySelector("#quick-save");
   if (!form || !input || !saveBtn) return;
 
+  // Keep password managers from treating this capture box as a username.
+  // Unlock it on the user's first focus so keyboard and shortcut capture work.
+  input.addEventListener("focus", () => input.removeAttribute("readonly"), { once: true });
+
   let resetTimer = null;
 
   // Deja el cursor al final: lo que escribas sigue donde ibas.

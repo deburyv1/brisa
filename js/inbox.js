@@ -8,6 +8,19 @@ import { renderRich } from "./richtext.js";
 
 const API_BASE = "/api";
 
+function showInboxFeedback(section, message = "") {
+  let feedback = section.querySelector("[data-inbox-feedback]");
+  if (!feedback) {
+    feedback = document.createElement("div");
+    feedback.dataset.inboxFeedback = "";
+    feedback.className = "inbox-feedback";
+    feedback.setAttribute("role", "alert");
+    section.querySelector(".inbox-header")?.after(feedback);
+  }
+  feedback.textContent = message;
+  feedback.hidden = !message;
+}
+
 async function fetchInbox() {
   try {
     const res = await fetch(`${API_BASE}/entries?status=inbox`);
@@ -72,7 +85,7 @@ export async function initInbox() {
           <div class="inbox-actions">
             <button class="tx-btn tx-btn-edit" data-action="process">Revisar</button>
             <button class="tx-btn tx-btn-archive" data-action="archive" title="Sale del inbox, pero no se borra">Archivar</button>
-            <button class="tx-btn tx-btn-delete" data-action="delete" title="Borrar la captura">✕</button>
+            <button class="tx-btn tx-btn-delete" data-action="delete" title="Borrar la captura" aria-label="Borrar captura">✕</button>
           </div>
         </div>
       `).join("")}
@@ -91,19 +104,37 @@ export async function initInbox() {
     });
 
     item.querySelector('[data-action="archive"]')?.addEventListener("click", async () => {
-      await fetch(`${API_BASE}/entries/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "archived" }),
-      });
-      if (window.initInbox) await window.initInbox();
-      if (window.renderGuidanceBanner) window.renderGuidanceBanner();
+      const button = item.querySelector('[data-action="archive"]');
+      button.disabled = true;
+      showInboxFeedback(section);
+      try {
+        const res = await fetch(`${API_BASE}/entries/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "archived" }),
+        });
+        if (!res.ok) throw new Error();
+        if (window.initInbox) await window.initInbox();
+        if (window.renderGuidanceBanner) window.renderGuidanceBanner();
+      } catch {
+        button.disabled = false;
+        showInboxFeedback(section, "No se pudo archivar esta captura. Sigue en el Inbox; intenta de nuevo.");
+      }
     });
 
     item.querySelector('[data-action="delete"]')?.addEventListener("click", async () => {
-      await fetch(`${API_BASE}/entries/${id}`, { method: "DELETE" });
-      if (window.initInbox) await window.initInbox();
-      if (window.renderGuidanceBanner) window.renderGuidanceBanner();
+      const button = item.querySelector('[data-action="delete"]');
+      button.disabled = true;
+      showInboxFeedback(section);
+      try {
+        const res = await fetch(`${API_BASE}/entries/${id}`, { method: "DELETE" });
+        if (!res.ok) throw new Error();
+        if (window.initInbox) await window.initInbox();
+        if (window.renderGuidanceBanner) window.renderGuidanceBanner();
+      } catch {
+        button.disabled = false;
+        showInboxFeedback(section, "No se pudo borrar esta captura. Sigue en el Inbox; intenta de nuevo.");
+      }
     });
   });
 }

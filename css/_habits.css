@@ -21,6 +21,13 @@
   color: rgba(22, 75, 105, 0.78);
 }
 .habits-sub { font-size: 10px; color: rgba(22, 75, 105, .68); margin-top: 2px; }
+.habits-feedback {
+  margin: 6px 0 10px;
+  color: #8a2732;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.habits-feedback[hidden] { display: none; }
 
 .habits-icon-pick { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 6px; }
 .habits-emoji {

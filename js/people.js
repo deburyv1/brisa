@@ -89,7 +89,7 @@ export async function initBirthdays() {
     container.innerHTML = `
       <div class="birthdays-empty">
         <div class="birthdays-empty-icon">🎂</div>
-        <div class="birthdays-empty-text">No hay cumpleaños próximos.<br>Agregá personas con cumpleaños (día y mes alcanza).</div>
+        <div class="birthdays-empty-text">No hay cumpleaños próximos.<br>Agrega personas con cumpleaños; con el día y el mes basta.</div>
         <button class="birthdays-empty-btn" id="create-first-person">+ Crear primera persona</button>
       </div>
     `;

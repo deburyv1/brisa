@@ -3,7 +3,7 @@
    Handles event creation
    ============================================ */
 const API_BASE = "/api";
-import { snapshotForm, isDirty, confirmDiscard, toISODateTime } from "./modalGuard.js";
+import { snapshotForm, isDirty, confirmDiscard, toISODateTime, setFormFeedback, setFormBusy, setFormLoading, isFormSaving } from "./modalGuard.js";
 
 function splitLocal(iso) {
   if (!iso) return { date: "", time: "" };
@@ -27,18 +27,29 @@ export function initEventModal() {
 
   let editingId = null;
   let cleanSnapshot = null;
+  let loadGeneration = 0;
 
   function open(eventId = null) {
+    const generation = ++loadGeneration;
     editingId = eventId;
     form.reset();
+    form.use_departure_checklist.closest("label").hidden = Boolean(eventId);
     window.resetPickers(form);
+    setFormFeedback(form, "");
     if (eventId) {
       titleEl.textContent = "Editar evento";
+      setFormLoading(form, true);
+      cleanSnapshot = null;
       fetch(`${API_BASE}/events/${eventId}`)
-        .then(r => r.json())
+        .then(r => {
+          if (!r.ok) throw new Error("No se pudo cargar este evento.");
+          return r.json();
+        })
         .then(ev => {
+          if (generation !== loadGeneration) return;
           form.title.value = ev.title || "";
           form.location.value = ev.location || "";
+          form.use_departure_checklist.checked = Boolean(ev.use_departure_checklist);
           form.description.value = ev.description || "";
           form.travel_minutes.value = ev.travel_minutes ?? "";
           const s = splitLocal(ev.start);
@@ -47,11 +58,21 @@ export function initEventModal() {
           const e = splitLocal(ev.end);
           window.setPickerValue(form.end_date, e.date);
           window.setPickerValue(form.end_time, e.time);
+          setFormLoading(form, false);
           cleanSnapshot = snapshotForm(form);
         })
-        .catch(e => console.error("Error cargando evento:", e));
+        .catch(e => {
+          if (generation !== loadGeneration) return;
+          console.error("Error cargando evento:", e);
+          setFormLoading(form, false);
+          setFormFeedback(form, e.message || "No se pudo cargar. Cierra e inténtalo de nuevo.");
+          const submit = form.querySelector("button[type='submit']");
+          if (submit) submit.disabled = true;
+        });
     } else {
       titleEl.textContent = "Nuevo evento";
+      form.use_departure_checklist.checked = false;
+      setFormBusy(form, false);
       cleanSnapshot = snapshotForm(form);
     }
     overlay.classList.add("active");
@@ -60,13 +81,18 @@ export function initEventModal() {
   }
 
   function close() {
+    loadGeneration++;
     overlay.classList.remove("active");
+    setFormBusy(form, false);
+    setFormFeedback(form, "");
     form.reset();
+    form.use_departure_checklist.closest("label").hidden = false;
     window.resetPickers(form);
     editingId = null;
   }
 
   function tryClose() {
+    if (isFormSaving(form)) return;
     if (isDirty(form, cleanSnapshot) && !confirmDiscard()) return;
     close();
   }
@@ -82,21 +108,43 @@ export function initEventModal() {
     if (e.key === "Escape" && overlay.classList.contains("active")) tryClose();
   });
 
+  form.location.addEventListener("input", () => {
+    if (!editingId && form.location.value.trim()) form.use_departure_checklist.checked = true;
+  });
+
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const formData = new FormData(form);
     const data = Object.fromEntries(formData);
 
-    if (!data.title || !data.title.trim()) return;
-    if (!data.start_date) {
-      alert("El evento necesita al menos una fecha.");
+    if (!data.title || !data.title.trim()) {
+      setFormFeedback(form, "Escribe un título para el evento.");
+      form.title.focus();
       return;
+    }
+    if (!data.start_date) {
+      setFormFeedback(form, "El evento necesita al menos una fecha.");
+      form.start_date.focus();
+      return;
+    }
+    if (data.end_date) {
+      const endBeforeStart = data.end_date < data.start_date;
+      const sameDayWithTimes = data.end_date === data.start_date && (data.start_time || data.end_time)
+        && (data.end_time || "00:00") <= (data.start_time || "00:00");
+      if (endBeforeStart || sameDayWithTimes) {
+        setFormFeedback(form, "La fecha y hora de término debe ser posterior al inicio.");
+        form.end_date.focus();
+        return;
+      }
     }
     const at = (d, t) => (d ? `${d}T${t || "00:00"}` : null);
 
     try {
+      setFormFeedback(form, "");
+      setFormBusy(form, true);
       const body = JSON.stringify({
         ...data,
+        use_departure_checklist: form.use_departure_checklist.checked,
         start: toISODateTime(at(data.start_date, data.start_time)),
         end: toISODateTime(at(data.end_date, data.end_time)),
       });
@@ -119,9 +167,13 @@ export function initEventModal() {
       if (window.initCalendar) window.initCalendar();
       if (window.initToday) window.initToday();
       if (window.initWeek) window.initWeek();
+      if (window.initTasks) await window.initTasks();
+      if (window.renderNext) await window.renderNext();
     } catch (err) {
       console.error("Error guardando evento:", err);
-      alert("No se pudo guardar. Intenta de nuevo.");
+      setFormFeedback(form, err.message || "No se pudo guardar. Intenta de nuevo.");
+    } finally {
+      setFormBusy(form, false);
     }
   });
 

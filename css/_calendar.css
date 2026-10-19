@@ -20,6 +20,54 @@
   justify-content: space-between;
   margin-bottom: 14px;
 }
+.calendar-feedback {
+  margin: 8px 0 12px;
+  color: #8a2732;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.calendar-feedback[hidden] { display: none; }
+.event-detail-feedback {
+  margin: 8px 0;
+  color: #8a2732;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.event-detail-feedback[hidden] { display: none; }
+
+.event-prep-box { margin: 12px 0; padding: 14px 16px; }
+.event-prep-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.event-prep-heading .focus-step-label { margin: 0 0 8px; }
+.event-prep-heading .focus-step-label span { font-weight: 500; letter-spacing: 0; text-transform: none; }
+.event-prep-heading p { margin: 0 0 8px; font-size: 10px; color: rgba(22, 75, 105, .62); }
+.event-prep-form { display: flex; gap: 8px; align-items: center; }
+.event-prep-form .prep-input { font-size: 13px; }
+.event-prep-form #event-prep-add { flex: 0 0 auto; min-width: 92px; }
+.event-prep-empty { margin: 0 0 8px; font-size: 11px; color: rgba(22, 75, 105, .62); }
+.event-detail-dialog .modal-actions { align-items: center; margin-top: 10px; }
+.event-detail-dialog #event-detail-delete {
+  flex: 0 0 auto;
+  color: #9a3941;
+  background: rgba(255, 255, 255, .2);
+  border-color: rgba(154, 57, 65, .28);
+}
+.event-detail-dialog #event-detail-edit { flex: 0 0 auto; }
+.event-detail-dialog #event-detail-done { margin-left: auto; }
+.event-detail-dialog #event-detail-ok { flex: 0 0 auto; min-width: 92px; }
+.event-detail-dialog #event-detail-cancel { display: inline-block; margin-top: 10px; }
+.event-detail-dialog .prep-row { overflow-wrap: anywhere; }
+
+@media (max-width: 520px) {
+  .event-prep-box { padding: 12px; }
+  .event-prep-heading { display: block; }
+  .event-prep-form { align-items: stretch; }
+  .event-prep-form #event-prep-add { min-width: 76px; }
+  .event-detail-dialog .modal-actions { display: grid; grid-template-columns: 1fr 1fr; }
+  .event-detail-dialog #event-detail-delete,
+  .event-detail-dialog #event-detail-edit,
+  .event-detail-dialog #event-detail-done,
+  .event-detail-dialog #event-detail-ok { width: 100%; min-width: 0; margin: 0; }
+}
 
 .calendar-title {
   font-size: 10px;

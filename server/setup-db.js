@@ -248,9 +248,13 @@ try {
   await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS owner VARCHAR(10) DEFAULT 'mine'`);
   await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS person_id INTEGER REFERENCES people(id) ON DELETE SET NULL`);
   await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS details TEXT`);
-  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS travel_minutes INTEGER`);
-  await pool.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS event_id INTEGER REFERENCES events(id) ON DELETE SET NULL`);
-
+  await pool.query(`CREATE TABLE IF NOT EXISTS event_checklist_templates (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER DEFAULT 1,
+    title VARCHAR(255) NOT NULL,
+    event_phase VARCHAR(20) NOT NULL DEFAULT 'leave',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
   await pool.query(`CREATE TABLE IF NOT EXISTS shopping_items (
     id SERIAL PRIMARY KEY,
     user_id INTEGER DEFAULT 1,
@@ -266,9 +270,6 @@ try {
   await pool.query(`ALTER TABLE shopping_items ADD COLUMN IF NOT EXISTS card JSONB`);
   await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS status VARCHAR(10) DEFAULT 'posted'`);
   await pool.query(`ALTER TABLE people ADD COLUMN IF NOT EXISTS phone VARCHAR(20)`);
-  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS source VARCHAR(20) DEFAULT 'local'`);
-  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS external_id VARCHAR(255)`);
-
   await pool.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS estimated_minutes INTEGER`);
   await pool.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP`);
   await pool.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS parent_task_id INTEGER REFERENCES tasks(id) ON DELETE SET NULL`);
@@ -283,6 +284,7 @@ try {
     target_id INTEGER,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`);
+  await pool.query(`ALTER TABLE journal ADD COLUMN IF NOT EXISTS entry_id INTEGER REFERENCES entries(id) ON DELETE SET NULL`);
 
   await pool.query(`CREATE TABLE IF NOT EXISTS events (
     id SERIAL PRIMARY KEY,
@@ -295,6 +297,12 @@ try {
     entry_id INTEGER REFERENCES entries(id) ON DELETE SET NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`);
+  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS travel_minutes INTEGER`);
+  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS use_departure_checklist BOOLEAN DEFAULT FALSE`);
+  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS source VARCHAR(20) DEFAULT 'local'`);
+  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS external_id VARCHAR(255)`);
+  await pool.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS event_id INTEGER REFERENCES events(id) ON DELETE SET NULL`);
+  await pool.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS event_phase VARCHAR(20)`);
 
   await pool.query(`CREATE TABLE IF NOT EXISTS ideas (
     id SERIAL PRIMARY KEY,
@@ -359,6 +367,17 @@ try {
   // multi-user stays v2 — same nullable pattern as ideas/reminders).
   await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS google_email VARCHAR(255) UNIQUE');
   await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS google_avatar TEXT');
+
+  // Opaque sessions are stored by hash and expire in the database, not as a
+  // read/modify/write JSON array in settings.
+  await pool.query(`CREATE TABLE IF NOT EXISTS brisa_sessions (
+    token_hash CHAR(64) PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    expires_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+  )`);
+  await pool.query('CREATE INDEX IF NOT EXISTS brisa_sessions_expiry_idx ON brisa_sessions (expires_at)');
+  await pool.query("DELETE FROM settings WHERE key = 'brisa.sessions'");
 
   await pool.query(`CREATE TABLE IF NOT EXISTS spotify_tokens (
     user_id INTEGER PRIMARY KEY,
