@@ -412,16 +412,19 @@ function renderDefineStep(task) {
     </div>
     <div class="modal-actions">
       <button type="button" class="modal-btn modal-btn-secondary" id="focus-back">Volver</button>
+      <button type="button" class="modal-btn modal-btn-secondary" id="focus-define-close">Guardar y cerrar</button>
       <button type="button" class="modal-btn modal-btn-primary" id="focus-define-save">Guardar y empezar</button>
     </div>
   `;
   const input = body().querySelector("#focus-define-input");
   input?.focus();
   body().querySelector("#focus-back")?.addEventListener("click", () => renderFriction(task));
-  body().querySelector("#focus-define-save")?.addEventListener("click", async () => {
+
+  const saveStep = async () => {
     const step = input?.value.trim();
-    if (!step) return;
-    if (step.length < 4) {      input?.focus();
+    if (!step) return false;
+    if (step.length < 4) {
+      input?.focus();
       input?.select();
       let nudge = body().querySelector("#focus-define-nudge");
       if (!nudge) {
@@ -431,7 +434,7 @@ function renderDefineStep(task) {
         input?.after(nudge);
       }
       nudge.textContent = "Muy cortito: descríbelo en una frase (ej: abre la boleta y mira el monto).";
-      return;
+      return false;
     }
     try {
       await fetch(`${API_BASE}/tasks/${task.id}`, {
@@ -441,10 +444,20 @@ function renderDefineStep(task) {
       });
       task.first_step = step;
       if (window.initTasks) await window.initTasks();
+      return true;
     } catch (e) {
       console.error("Error guardando paso:", e);
+      return false;
     }
-    renderStep(task, {});
+  };
+
+  body().querySelector("#focus-define-close")?.addEventListener("click", async () => {
+    const ok = await saveStep();
+    if (ok) closeFocus();
+  });
+  body().querySelector("#focus-define-save")?.addEventListener("click", async () => {
+    const ok = await saveStep();
+    if (ok) renderStep(task, {});
   });
 }
 
