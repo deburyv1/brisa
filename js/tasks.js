@@ -74,6 +74,11 @@ function formatDateTime(dt) {
 
 const PRIORITY_LABELS = { high: "Alta", medium: "Media", low: "Baja" };
 
+function priorityPill(priority) {
+  const label = PRIORITY_LABELS[priority] || priority;
+  return `<span class="task-priority ${priority}">${label}</span>`;
+}
+
 function isToday(dt) {
   if (!dt) return false;
   const d = new Date(dt);
