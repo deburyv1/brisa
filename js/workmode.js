@@ -247,6 +247,7 @@ function render(section) {
           </div>
           <div class="workmode-switch-panel" id="workmode-switch-panel"></div>
           <button class="modal-btn modal-btn-secondary" id="workmode-done">Marcar hecha ✓</button>
+          <button class="modal-btn modal-btn-secondary" id="workmode-postpone" title="Patear para mañana (sin fecha límite hoy)">Patear → mañana</button>
           <button class="modal-btn modal-btn-secondary" id="workmode-discard" title="Descartar este paso o la tarea">Descartar</button>
           <div class="workmode-switch-panel" id="workmode-discard-panel"></div>
         </div>
@@ -438,6 +439,40 @@ function render(section) {
     if (window.initToday) window.initToday();
     currentId = null;
     render(section);
+
+  section.querySelector("#workmode-postpone")?.addEventListener("click", async () => {
+    await flushSave();
+    const btn = section.querySelector("#workmode-postpone");
+    if (btn) { btn.disabled = true; btn.textContent = "Pateando…"; }
+    try {
+      let at;
+      if (task.scheduled_datetime) {
+        const d = new Date(task.scheduled_datetime);
+        d.setDate(d.getDate() + 1);
+        at = d.toISOString();
+      } else {
+        const d = new Date();
+        d.setDate(d.getDate() + 1);
+        d.setHours(9, 0, 0, 0);
+        at = d.toISOString();
+      }
+      await fetch(`${API_BASE}/tasks/${task.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scheduled_datetime: at }),
+      });
+      if (window.brisaTimer) window.brisaTimer.stop();
+      if (window.initTasks) await window.initTasks();
+      if (window.renderNext) window.renderNext();
+      if (window.initToday) window.initToday();
+      if (window.initWeek) window.initWeek();
+      currentId = null;
+      render(section);
+    } catch (e) {
+      console.error("No se pudo patear:", e);
+      if (btn) { btn.disabled = false; btn.textContent = "Patear → mañana"; }
+    }
+  });
   });
 
   quill = createEditor(section.querySelector("#workmode-quill"), {
