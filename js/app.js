@@ -69,6 +69,7 @@ window.openFocus = openFocus;
 window.initWorkmode = initWorkmode;
 window.startWorkmode = startWorkmode;
 window.initRlClips = initRlClips;
+window.initTrash = initTrash;
 window.renderTrash = renderTrash;
 
 const NAV_LABELS = {
