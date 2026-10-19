@@ -55,7 +55,7 @@ function renderIdle(section) {
     <div class="capture-row">
       <span class="capture-icon">💭</span>
       <input id="capture-input" class="capture-input" type="text"
-        placeholder="¿Qué tienes en mente?" autocomplete="off" maxlength="255">
+        name="capture-text" placeholder="¿Qué tienes en mente?" autocomplete="off" maxlength="255">
       <button class="capture-expand" id="capture-expand" title="Escribir más elaborado (Ctrl+E)">⤢</button>
       <button class="capture-btn" id="capture-save">Guardar</button>
     </div>

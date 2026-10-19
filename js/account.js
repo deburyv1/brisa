@@ -131,7 +131,13 @@ async function keyLogin(key, errEl, section) {
 
 async function maybeGate() {
   const data = await fetchStatus();
-  if (data.authenticated) return;
+  if (data.authenticated) {
+    // El portón se quita del DOM: si queda un input type="password" en la
+    // página, el navegador trata cualquier guardado como un login y ofrece
+    // "guardar contraseña" al capturar.
+    document.querySelector("#auth-gate")?.remove();
+    return;
+  }
   const overlay = document.querySelector("#auth-gate");
   if (!overlay) return;
   overlay.classList.add("active");
