@@ -14,15 +14,6 @@ let isFull = false;
 export function initGlass() {
   applyTheme(current, { full: false });
 
-  document.querySelector("#glass-toggle")?.addEventListener("click", () => {
-    isFull = !document.body.classList.contains("full-glass");
-    const keep = current.wallpaper;
-    current = { ...(isFull ? PRESETS.full : PRESETS.normal), wallpaper: keep };
-    saveTheme(current);
-    applyTheme(current, { full: isFull });
-    syncPanel();
-  });
-
   document.querySelector("#theme-open")?.addEventListener("click", () => {
     syncPanel();
     loadWallpapers();
@@ -52,8 +43,6 @@ function syncPanel() {
   set("#theme-blur", current.blur, "#theme-blur-val");
   set("#theme-alpha", current.alpha, "#theme-alpha-val");
   set("#theme-sat", current.sat, "#theme-sat-val");
-  const sheen = document.querySelector("#theme-sheen");
-  if (sheen) sheen.checked = !!current.sheen;
   const night = document.querySelector("#theme-night");
   if (night) night.checked = current.night !== false;
 }
@@ -65,7 +54,6 @@ function bindLive() {
       blur: Number(document.querySelector("#theme-blur")?.value ?? current.blur),
       alpha: Number(document.querySelector("#theme-alpha")?.value ?? current.alpha),
       sat: Number(document.querySelector("#theme-sat")?.value ?? current.sat),
-      sheen: document.querySelector("#theme-sheen")?.checked ?? current.sheen,
       night: document.querySelector("#theme-night")?.checked ?? current.night,
     };
     isFull = false;
@@ -73,7 +61,7 @@ function bindLive() {
     applyTheme(current, { full: false });
     syncLabels();
   };
-  ["#theme-blur", "#theme-alpha", "#theme-sat", "#theme-sheen", "#theme-night"].forEach(sel => {
+  ["#theme-blur", "#theme-alpha", "#theme-sat", "#theme-night"].forEach(sel => {
     document.querySelector(sel)?.addEventListener("input", onSlider);
     document.querySelector(sel)?.addEventListener("change", onSlider);
   });

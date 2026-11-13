@@ -5,55 +5,46 @@
    ============================================ */
 
 const API_BASE = "/api/auth";
+const CACHE_USER_KEY = "brisa.cacheUser";
+const USER_LOCAL_KEYS = ["brisa.avatar", "brisa.bankCheck", "brisa.timerTask", "brisa.timerRun"];
 
-export function initAuth() {
-  const btn = document.querySelector("#auth-btn");
-  if (!btn) return;
-
-  // Initial status
-  fetch(`${API_BASE}/status`)
-    .then(r => r.json())
-    .then(data => {
-      if (data.authenticated && data.user) {
-        paintLoggedIn(btn, data.user);
-      } else {
-        paintLoggedOut(btn);
-      }
-    })
-    .catch(() => paintLoggedOut(btn));
-
-  btn.addEventListener("click", async () => {
-    // Single clear path: everything auth-related lives in Cuenta.
-    document.querySelector('.nav[data-nav="account"]')?.click();
-  });
-}
-
-function paintLoggedOut(btn) {
-  btn.textContent = "Entrar";
-  btn.title = "Ir a Cuenta para entrar con Google";
-  btn.disabled = false;
-}
-
-function paintLoggedIn(btn, user) {
-  try {
-    window.__googleAvatar = user.avatar || null;
-    window.__googleName = user.name || user.email || "";
-  } catch { /* ignore */ }
-  if (window.refreshAvatar) window.refreshAvatar();
-  if (user.avatar) {
-    const img = document.createElement("img");
-    img.src = user.avatar;
-    img.alt = user.name || "Avatar";
-    img.style.cssText = "width:22px;height:22px;border-radius:50%;object-fit:cover;";
-    btn.innerHTML = "";
-    btn.appendChild(img);
-    const span = document.createElement("span");
-    span.textContent = user.name || user.email;
-    span.style.cssText = "font-size:11px;font-weight:700;color:var(--ink);text-shadow:var(--text-glow);";
-    btn.appendChild(span);
-  } else {
-    btn.textContent = user.name || "Sesión activa";
+export function syncUserCaches(userId) {
+  let previous;
+  try { previous = localStorage.getItem(CACHE_USER_KEY); } catch { return; }
+  const current = userId == null ? "" : String(userId);
+  if (previous === current) return;
+  for (const key of USER_LOCAL_KEYS) {
+    try { localStorage.removeItem(key); } catch { /* ignore */ }
   }
-  btn.title = "Ir a tu Cuenta";
-  btn.disabled = false;
+  try { sessionStorage.clear(); } catch { /* ignore */ }
+  try {
+    if (current) localStorage.setItem(CACHE_USER_KEY, current);
+    else localStorage.removeItem(CACHE_USER_KEY);
+  } catch { /* ignore */ }
+}
+
+function applyFeatures(user) {
+  const enabled = new Set(Array.isArray(user?.features) ? user.features : []);
+  document.querySelectorAll("[data-feature]").forEach(el => {
+    el.hidden = !enabled.has(el.dataset.feature);
+  });
+  window.brisaFeatures = enabled;
+}
+
+export async function initAuth() {
+  try {
+    const response = await fetch(`${API_BASE}/status`);
+    const data = await response.json();
+    const user = data.authenticated ? data.user : null;
+    syncUserCaches(user?.id);
+    applyFeatures(user);
+    window.__googleAvatar = user?.avatar || null;
+    window.__googleName = user?.name || user?.email || "";
+    if (window.refreshAvatar) window.refreshAvatar();
+    return data;
+  } catch {
+    applyFeatures(null);
+    return { authenticated: false, user: null, unavailable: true };
+  }
+
 }

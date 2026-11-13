@@ -4,33 +4,13 @@
    identity is mandatory).
    ============================================ */
 
+import { syncUserCaches } from "./auth.js";
 const API_BASE = "/api/auth";
 
-export function initAccount({ render = true, gate = true } = {}) {
+export function initAccount({ render = true, gate = true, status = null } = {}) {
   const section = document.querySelector("#account-section");
   if (section && render) renderAccount(section);
-  if (gate) maybeGate();
-}
-
-const CACHE_USER_KEY = "brisa.cacheUser";
-// Datos de una persona guardados en el navegador (no en el servidor).
-const USER_LOCAL_KEYS = ["brisa.avatar", "brisa.bankCheck", "brisa.timerTask", "brisa.timerRun"];
-
-/* Si en este navegador entra otra cuenta, se limpian los cachés de la
-   anterior para que no alcance a ver ni su foto, ni su saldo de banco. */
-function syncUserCaches(userId) {
-  let prev;
-  try { prev = localStorage.getItem(CACHE_USER_KEY); } catch { return; }
-  const now = userId == null ? "" : String(userId);
-  if (prev === now) return;
-  for (const k of USER_LOCAL_KEYS) {
-    try { localStorage.removeItem(k); } catch { /* ignore */ }
-  }
-  try { sessionStorage.clear(); } catch { /* ignore */ }
-  try {
-    if (now) localStorage.setItem(CACHE_USER_KEY, now);
-    else localStorage.removeItem(CACHE_USER_KEY);
-  } catch { /* ignore */ }
+  if (gate) maybeGate(status);
 }
 
 async function fetchStatus() {
@@ -71,9 +51,8 @@ async function renderAccount(section) {
     section.querySelector("#account-logout")?.addEventListener("click", async () => {
       await fetch(`${API_BASE}/logout`, { method: "POST" });
       syncUserCaches(null);
-      renderAccount(section);
-      if (window.initAuth) window.initAuth();
-      maybeGate();
+      // Reload so another account can never briefly see this account's DOM data.
+      window.location.reload();
     });
     section.querySelector("#account-photo")?.addEventListener("click", () => {
       if (window.openAvatarModal) window.openAvatarModal();
@@ -90,12 +69,12 @@ async function renderAccount(section) {
     section.innerHTML = `
       <div class="auth-card aero-panel">
         <div class="auth-title">Cuenta</div>
-        <div class="auth-meta">Sin sesión. Entra con tu clave de Brisa o con Google.</div>
-        <input type="password" class="auth-gate-input" id="account-key" placeholder="Clave de Brisa" autocomplete="current-password" autocapitalize="off" spellcheck="false">
+        <div class="auth-meta">Crea tu espacio personal o entra a una cuenta existente.</div>
+        ${data.key_enabled ? `<input type="password" class="auth-gate-input" id="account-key" placeholder="Clave de Brisa" autocomplete="current-password" autocapitalize="off" spellcheck="false">` : ""}
         <p class="auth-gate-error" id="account-key-error" hidden></p>
         <div class="modal-actions">
-          <button class="modal-btn modal-btn-primary" id="account-key-btn">Entrar con clave</button>
-          <button class="modal-btn modal-btn-secondary" id="account-login">Entrar con Google</button>
+          ${data.key_enabled ? `<button class="modal-btn ${data.google_enabled ? "modal-btn-secondary" : "modal-btn-primary"}" id="account-key-btn">Entrar con clave</button>` : ""}
+          ${data.google_enabled ? `<button class="modal-btn modal-btn-primary" id="account-login">Entrar o crear cuenta con Google</button>` : "<p class=\"auth-meta\">El acceso con Google aún no está configurado.</p>"}
         </div>
       </div>`;
     const keyInput = section.querySelector("#account-key");
@@ -132,8 +111,8 @@ async function keyLogin(key, errEl, section) {
   }
 }
 
-async function maybeGate() {
-  const data = await fetchStatus();
+async function maybeGate(status = null) {
+  const data = status || await fetchStatus();
   if (data.authenticated) {
     // El portón se quita del DOM: si queda un input type="password" en la
     // página, el navegador trata cualquier guardado como un login y ofrece
@@ -144,12 +123,34 @@ async function maybeGate() {
   const overlay = document.querySelector("#auth-gate");
   if (!overlay) return;
   overlay.classList.add("active");
-  const keyInput = overlay.querySelector("#auth-gate-key");
-  const errEl = overlay.querySelector("#auth-gate-error");
-  const submit = () => keyLogin(keyInput?.value, errEl, overlay);
-  overlay.querySelector("#auth-gate-key-btn")?.addEventListener("click", submit);
-  keyInput?.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); });
-  setTimeout(() => keyInput?.focus(), 250);
+  const actions = overlay.querySelector(".modal-actions");
+  if (data.key_enabled) {
+    const keyInput = document.createElement("input");
+    keyInput.type = "password";
+    keyInput.className = "auth-gate-input";
+    keyInput.id = "auth-gate-key";
+    keyInput.placeholder = "Clave de Brisa";
+    keyInput.autocomplete = "current-password";
+    keyInput.autocapitalize = "off";
+    keyInput.spellcheck = false;
+    overlay.querySelector(".auth-gate-text")?.after(keyInput);
+
+    const keyButton = document.createElement("button");
+    keyButton.type = "button";
+    keyButton.className = `modal-btn ${data.google_enabled ? "modal-btn-secondary" : "modal-btn-primary"}`;
+    keyButton.id = "auth-gate-key-btn";
+    keyButton.textContent = "Entrar con clave";
+    actions?.prepend(keyButton);
+    keyButton.addEventListener("click", () => keyLogin(keyInput.value, overlay.querySelector("#auth-gate-error"), overlay));
+    keyInput.addEventListener("keydown", e => {
+      if (e.key === "Enter") keyLogin(keyInput.value, overlay.querySelector("#auth-gate-error"), overlay);
+    });
+  }
+  if (!data.google_enabled) overlay.querySelector("#auth-gate-login")?.remove();
+  if (!data.google_enabled && !data.key_enabled) {
+    overlay.querySelector(".auth-gate-text").textContent = "El acceso todavía no está configurado en este servidor.";
+    actions?.remove();
+  }
   overlay.querySelector("#auth-gate-login")?.addEventListener("click", () => {
     window.location.href = `${API_BASE}/google/login`;
   }, { once: true });

@@ -7,8 +7,8 @@
 const KEY = "brisa.theme";
 
 export const PRESETS = {
-  normal: { blur: 28, alpha: 55, sat: 140, sheen: false, night: true },
-  full: { blur: 32, alpha: 62, sat: 180, sheen: true, night: true },
+  normal: { blur: 28, alpha: 55, sat: 140, night: true },
+  full: { blur: 32, alpha: 62, sat: 180, night: true },
 };
 
 export function loadTheme() {
@@ -44,10 +44,7 @@ export function applyTheme(theme, { full = false } = {}) {
   root.setProperty("--glass-sat", `${theme.sat}%`);
   root.setProperty("--glass-a1", a1.toFixed(2));
   root.setProperty("--glass-a2", a2.toFixed(2));
-  document.body.classList.toggle("sheen", !!theme.sheen);
   document.body.classList.toggle("full-glass", full);
   // Clear glass keeps the look but needs stronger text armor
   document.body.classList.toggle("clear-glass", theme.alpha < 35 || theme.blur < 16);
-  const btn = document.querySelector("#glass-toggle");
-  if (btn) btn.textContent = full ? "◑ Normal" : "◐ Vidrio";
 }

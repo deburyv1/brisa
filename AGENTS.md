@@ -36,11 +36,20 @@ brisa/
 - Frontend: módulos ES, un archivo por vista (`tasks.js` + `taskModal.js`), secciones `<section id="X-section">` toggladas por `data-nav`, estados vacío/error/reintentar en cada vista.
 - Modales: overlay `.modal-overlay` + `modalGuard.js` (snapshot al abrir, confirm si hay cambios).
 - Backend: `pool.query` con `$1`, errores como `{ error }`, PUT parcial con merge (nunca pisar con NULL).
+- Multiusuario: usar siempre `req.userId` en cada lectura y escritura de datos personales; cada alta incluye `user_id` explícito. No confiar en el `DEFAULT 1` para datos nuevos ni consultar/actualizar por `id` sin comprobar dueño.
+- Funciones opcionales: registrar módulos personales en `users.enabled_features`; ocultarlos en el cliente y proteger sus rutas con `requireFeature`. Un módulo oculto no es un permiso.
 - Postgres DATE llega como string `YYYY-MM-DD` (`pg.types.setTypeParser(1082)` en `db.js`) — no romper esto (zona UTC-4).
 - `window.*` para comunicación entre módulos (ej. `window.initTasks`, `window.openFocus`).
 - Commits chicos con `node --check` antes. Nunca commitear `server/.env` ni `*.xlsx`.
 
-## Base de datos (Postgres, user_id=1 monousuario)
+## Base de datos (Postgres, datos aislados por cuenta)
+
+Las tablas personales se filtran por `user_id = req.userId`. Si una tabla hija
+no incluye `user_id`, valida que su recurso padre pertenezca a `req.userId` antes
+de consultar o mutar. Los datos históricos de Leonardo se conservan en su
+cuenta; Google crea o recupera la cuenta propia de cada persona.
+`users.enabled_features` guarda módulos opcionales. Las cuentas nuevas parten
+con los módulos generalizables.
 
 - `tasks`: title, description, priority, scheduled_datetime, due_datetime, **estimated_minutes**, is_completed, first_step
 - `journal`: title, content, mood, **kind** (`nota` | `pensamiento`: mismo diario, sin tabla paralela)
@@ -57,7 +66,7 @@ brisa/
 
 ## API
 
-`GET/POST /api/{tasks,journal,people,accounts,entries,events,ideas,reminders}` · `GET/PUT/DELETE` + `/:id` · `PATCH /api/entries/:id` (status/target o `raw_text` para editar la captura), `/api/reminders/:id`, `/api/transactions/:id/category` · `POST /api/transactions/import?account_id=&force=` (XLSX Banco de Chile, filtra fecha ≤ saldo inicial, dedupe, hash 409) · `GET /api/transactions?account_id=&uncategorized=` · `GET/DELETE /api/imports` · `GET /api/weather?lat=&lon=` (proxy, key server-side) · `GET/PUT/DELETE /api/settings/avatar` · `GET /api/trash`, `GET /api/trash/last`, `POST /api/trash/restore`, `DELETE /api/trash[/:id]` · `GET /api/shopping/:id/photos` (busca foto: DuckDuckGo/Wikimedia/OpenFoodFacts → local y chica en `shopping-photos/`, sharp) · `GET /api/shopping/:id/places` (tiendas de Santiago: Overpass/OSM con respaldo de cadenas).
+`GET/POST /api/{tasks,journal,people,accounts,entries,events,ideas,reminders}` · `GET/PUT/DELETE` + `/:id` · `PATCH /api/entries/:id` (status/target o `raw_text` para editar la captura), `/api/reminders/:id`, `/api/transactions/:id/category` · `POST /api/transactions/import?account_id=&force=` (XLSX Banco de Chile, filtra fecha ≤ saldo inicial, dedupe, hash 409) · `GET /api/transactions?account_id=&uncategorized=` · `GET/DELETE /api/imports` · `GET /api/weather?lat=&lon=` (proxy, key server-side) · `GET/PUT/DELETE /api/settings/avatar` · `GET /api/trash`, `GET /api/trash/last`, `POST /api/trash/restore`, `DELETE /api/trash[/:id]` · `GET /api/shopping/:id/photos` (busca foto: Wikimedia Commons/Openverse/OpenFoodFacts → valida metadatos, sentido del título+categorías y descarga → local y chica en `shopping-photos/`, sharp; responde `{ pool, sources }`; si nada pasa filtros, sin foto) · `GET /api/shopping/:id/places` (tiendas de Santiago: Overpass/OSM con respaldo de cadenas).
 
 ## Flujos clave
 
@@ -78,6 +87,6 @@ docker logs brisa-app --tail 20
 ```
 Nunca: `down -v`, `volume rm`, `prune --volumes` (borran datos). Tablas: `docker exec brisa-postgres psql -U postgres -d brisa`.
 
-## Diferido (v2)
+## Diferido
 
-Calendario completo, hábitos, planificador de regalos, reportes por categoría (excluir Tarjeta/Préstamo/Ahorro), push con service worker, multi-usuario, foto vía backend ya lista en `settings`.
+Planificador de regalos y reportes por categoría (excluir Tarjeta/Préstamo/Ahorro).

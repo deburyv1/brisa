@@ -82,8 +82,6 @@
   .top-right { gap: 6px; }
 
   /* Dev / appearance controls step aside on mobile */
-  #timer-test,
-  #glass-toggle,
   #theme-open { display: none !important; }
 
   .head-clock { min-width: 92px; padding: 4px 9px 5px; }

@@ -1,0 +1,176 @@
+/* ============================================
+   BRISA - Shared interface system
+   A calm, legible Aero surface with predictable controls.
+   ============================================ */
+:root {
+  --ink: #173b50;
+  --blue: #087eaa;
+  --cyan: #12a9ce;
+  --glass-a1: .78;
+  --glass-a2: .64;
+  --glass-blur: 22px;
+  --glass-sat: 125%;
+  --edge: rgba(255, 255, 255, .86);
+  --shadow: 0 14px 34px rgba(17, 69, 100, .16);
+  --radius-panel: 20px;
+  --radius-card: 14px;
+  --text-glow: 0 1px 1px rgba(255, 255, 255, .42);
+  --surface-muted: rgba(238, 249, 253, .82);
+  --surface-control: rgba(250, 253, 255, .86);
+  --control-edge: rgba(79, 137, 165, .38);
+  --text-muted: #557b90;
+  --focus-ring: #087eaa;
+  --danger: #b4474b;
+  --success: #168551;
+}
+
+body {
+  color: var(--ink);
+  text-shadow: none;
+  line-height: 1.5;
+}
+
+body.clear-glass {
+  --text-glow: 0 1px 1px rgba(255, 255, 255, .42);
+}
+
+[hidden] {
+  display: none !important;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+button {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--focus-ring), white 24%);
+  outline-offset: 2px;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+select,
+textarea {
+  color: var(--ink);
+  border-color: var(--control-edge);
+  border-radius: 12px;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #64879a;
+  opacity: 1;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(18, 169, 206, .15);
+}
+
+.aero-panel,
+.aero-bar,
+.aero-inset,
+.glass {
+  border-color: var(--edge);
+  box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, .68);
+}
+
+.modal {
+  border-color: rgba(255, 255, 255, .92);
+  box-shadow: 0 24px 58px rgba(18, 56, 80, .24), inset 0 1px 0 rgba(255, 255, 255, .72);
+}
+
+.modal-title,
+.auth-title,
+.section-title,
+.next-title,
+.welcome h1 {
+  color: #173b50;
+  text-shadow: none;
+}
+
+.modal-btn,
+.tx-btn,
+.capture-btn,
+.capture-type,
+.capture-when-btn,
+.next-start,
+.next-done,
+.next-postpone,
+.next-schedule,
+.next-alt,
+.today-chip,
+.today-later,
+.event-detail-dialog button {
+  min-height: 42px;
+  border-radius: 12px;
+  font-family: inherit;
+  font-weight: 650;
+  transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+
+.modal-btn:disabled,
+.tx-btn:disabled,
+button:disabled {
+  opacity: .58;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.nav {
+  min-height: 43px;
+  padding: 9px 12px;
+  color: #23485d;
+  text-shadow: none;
+}
+
+.nav.active {
+  color: #fff;
+  text-shadow: none;
+  background: linear-gradient(145deg, #21b9dc, #087eaa);
+  box-shadow: 0 6px 16px rgba(8, 126, 170, .22), inset 0 1px 0 rgba(255, 255, 255, .52);
+}
+
+.nav:hover:not(.active) {
+  background: rgba(255, 255, 255, .58);
+  transform: none;
+}
+
+.nav-title,
+.clock-label,
+.crumb,
+.focus-note,
+.auth-meta {
+  color: var(--text-muted);
+  text-shadow: none;
+}
+
+.theme-check {
+  color: var(--ink);
+  text-shadow: none;
+}
+
+.theme-check input[type="checkbox"] {
+  accent-color: var(--blue);
+}
+
+.guidance-banner {
+  box-shadow: 0 10px 28px rgba(21, 61, 83, .2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}

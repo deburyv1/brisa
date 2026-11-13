@@ -35,6 +35,9 @@ Principios de interacción:
 - Los pasos de una acción se muestran dentro de su acción y no como compromisos
   independientes.
 
+El recorrido completo, las reglas de priorización y el orden de implementación
+están en [docs/flujo-de-usuario.md](docs/flujo-de-usuario.md).
+
 ## Requisitos
 
 - Docker + Docker Compose (desarrollo local recomendado), o
@@ -58,6 +61,11 @@ Las tablas se crean solas al arrancar (`server/setup-db.js`).
 Los cambios en `css/`, `js/` e `index.html` se reflejan recargando el navegador
 (volúmenes de desarrollo). Para cambios en el backend: `docker compose restart app`.
 
+## Pruebas automatizadas
+
+Con Node.js 22, ejecuta `npm test` desde la raíz. Usa el runner integrado de Node,
+sin instalar dependencias adicionales.
+
 Sin Docker:
 
 ```bash
@@ -71,9 +79,18 @@ cd server && npm install && npm run setup-db && npm start
 |---|---|
 | `DATABASE_URL` | Conexión Postgres |
 | `OPENWEATHER_API_KEY` | Clima (vía proxy `/api/weather`, la key nunca sale del servidor) |
-| `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` | Login Spotify (opcional, funcionalidad oculta) |
-| `SPOTIFY_REDIRECT_URI` | Callback OAuth |
+| `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` | Integración de Spotify (opcional) |
+| `SPOTIFY_REDIRECT_URI` | Callback OAuth de Spotify |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Acceso y creación de cuentas Brisa con Google |
+| `GOOGLE_REDIRECT_URI` | Callback OAuth de Google |
+| `BRISA_ACCESS_KEY` | Clave privada para que el dueño actual entre a su cuenta |
+| `BRISA_ALLOWED_ORIGINS` | Orígenes adicionales permitidos para peticiones de escritura |
 | `PORT` | Puerto del servidor (Render lo inyecta solo) |
+
+Google permite crear perfiles separados. Cada cuenta parte con los módulos
+generalizables; funciones personales como Clips RL se conceden por perfil y
+también se validan en el servidor. El acceso con `BRISA_ACCESS_KEY` sigue
+dirigiendo al dueño original de la instalación.
 
 ## Estructura
 

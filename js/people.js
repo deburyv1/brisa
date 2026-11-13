@@ -18,10 +18,20 @@ export async function fetchPeople() {
   }
 }
 
+function parseLocalDate(dateStr) {
+  // Postgres DATE llega como "YYYY-MM-DD". Parseamos como UTC para evitar
+  // el desplazamiento por zona horaria (UTC-4 en Chile).
+  const s = String(dateStr || "").slice(0, 10);
+  const [y, m, d] = s.split("-").map(Number);
+  if (!y || !m || !d) return null;
+  return { year: y, month: m, day: d };
+}
+
 function daysUntilBirthday(birthday) {
   const today = new Date();
-  const birth = new Date(birthday);
-  const next = new Date(today.getFullYear(), birth.getMonth(), birth.getDate());
+  const birth = parseLocalDate(birthday);
+  if (!birth) return 0;
+  const next = new Date(today.getFullYear(), birth.month - 1, birth.day);
   if (next < today) {
     next.setFullYear(today.getFullYear() + 1);
   }
@@ -29,8 +39,10 @@ function daysUntilBirthday(birthday) {
 }
 
 export function formatDate(dateStr) {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString("es-ES", { day: "numeric", month: "long" });
+  const birth = parseLocalDate(dateStr);
+  if (!birth) return "";
+  const d = new Date(Date.UTC(birth.year, birth.month - 1, birth.day));
+  return d.toLocaleDateString("es-ES", { day: "numeric", month: "long", timeZone: "UTC" });
 }
 
 export function getDisplayName(person) {
@@ -102,13 +114,20 @@ export async function initBirthdays() {
     return;
   }
 
-  // Solo los más cercanos, pero sin cortar un empate: si 3 caen el mismo
-  // día y el 4º es al día siguiente, se muestra también (para no perderlo).
-  const closest = daysUntilBirthday(sorted[0].birthday);
-  const upcoming = sorted.filter(p => daysUntilBirthday(p.birthday) <= closest + 2).slice(0, 5);
+  // Los próximos 3, pero sin cortar un empate: si el 3º y el 4º caen el
+  // mismo día, se muestra también el 4º (para no perderlo).
+  const upcoming = sorted.slice(0, 3);
+  const thirdDay = upcoming.length === 3 ? daysUntilBirthday(upcoming[2].birthday) : null;
+  if (thirdDay != null) {
+    for (let i = 3; i < sorted.length; i++) {
+      if (daysUntilBirthday(sorted[i].birthday) === thirdDay) upcoming.push(sorted[i]);
+      else break;
+    }
+  }
 
   const items = upcoming.map(p => {
     const days = daysUntilBirthday(p.birthday);
+    const label = days === 0 ? "hoy" : days === 1 ? "mañana" : `${days} días`;
     return `
       <div class="birthday-item">
         <div class="birthday-avatar">${getInitials(p.name)}</div>
@@ -116,7 +135,7 @@ export async function initBirthdays() {
           <div class="birthday-name">${getDisplayName(p)}</div>
           <div class="birthday-date">${formatDate(p.birthday)}</div>
         </div>
-        <div class="birthday-days">${days} días</div>
+        <div class="birthday-days">${label}</div>
       </div>
     `;
   }).join("");
