@@ -9,43 +9,44 @@ import { renderGuidanceBanner } from "./guidance.js";
 import { initBirthdays } from "./people.js";
 import { initModal } from "./modal.js";
 import { initRelationships } from "./relationships.js";
-import { initToday } from "./today.js";
-import { initTasks } from "./tasks.js";
-import { initTaskModal } from "./taskModal.js";
-import { initTaskDetail } from "./tasks.js";
-import { initCapture, loadEntryIntoCapture } from "./capture.js";
-import { initInbox } from "./inbox.js";
+import { initToday } from "./today.js?v=20261023cierre3";
+import { initTasks } from "./tasks.js?v=20261104due-limit2";
+import { initTaskModal } from "./taskModal.js?v=20261021pairs1";
+import { initTaskDetail } from "./tasks.js?v=20261104due-limit2";
+import { initCapture, loadEntryIntoCapture } from "./capture.js?v=20261104due-limit";
+import { initInbox } from "./inbox.js?v=20261021rtl9";
 // nextAction se carga dinámicamente con cache-bust para evitar módulos viejos.
-import { initNext, renderNext } from "./nextAction.js?v=20261019ab";
-import { initJournal } from "./journal.js";
-import { initJournalModal } from "./journalModal.js";
+import { initNext, renderNext } from "./nextAction.js?v=20261113delete2";
+import { initJournal } from "./journal.js?v=20261021rtl9";
+import { initJournalModal } from "./journalModal.js?v=20261021rtl9";
 import { initFinance } from "./finance.js";
 import { initTransactionModal } from "./transactionModal.js";
 import { initAccountModal } from "./accountModal.js";
 import { initPlayer } from "./player.js";
 import { initAvatar } from "./avatar.js";
-import { initFocus, openFocus } from "./focusMode.js";
-import { initUpcoming } from "./upcoming.js";
-import { initCalendar } from "./calendar.js";
+import { initFocus, openFocus } from "./focusMode.js?v=20261102sched-action";
+import { initUpcoming } from "./upcoming.js?v=20261019quiet-alerts";
+import { initCalendar } from "./calendar.js?v=20261023cierre1";
 import { initEventModal } from "./eventModal.js";
-import { initEventDetail } from "./eventDetail.js";
-import { initShopping, openShoppingPhoto } from "./shopping.js";
+import { initEventDetail } from "./eventDetail.js?v=20261103picker-clear";
+import { initEventClose } from "./eventClose.js?v=20261023cierre1";
+import { initShopping } from "./shopping.js?v=20261103no-photos";
 import { initReadiness } from "./readiness.js";
 import { initHabits } from "./habits.js";
 import { initIdeas } from "./ideas.js";
-import { initTimer } from "./timer.js";
-import { initWeek } from "./week.js?v=20261017z";
+import { initTimer } from "./timer.js?v=20261024timer-remodel";
+import { initWeek } from "./week.js?v=20261021ord6";
 import { initWallpaper } from "./wallpaper.js";
 import { initGlass } from "./glass.js";
 import { initPickerBridge } from "./pickers.js";
-import { initWorkmode, startWorkmode, initTaskNotes } from "./workmode.js";
+import { initWorkmode, startWorkmode, initTaskNotes } from "./workmode.js?v=20261104due-limit2";
 import { initAuth } from "./auth.js";
 import { initAccount } from "./account.js";
 import { initQuickCapture } from "./quickCapture.js";
 import { initPwa } from "./pwa.js";
 import { initStudio } from "./studio.js";
-import { initRlClips } from "./rlclips.js";
 import { initTrash, renderTrash } from "./trash.js";
+import { initDialogAccessibility } from "./modalGuard.js";
 
 window.initTasks = initTasks;
 window.initJournal = initJournal;
@@ -56,7 +57,6 @@ window.initInbox = initInbox;
 window.renderGuidanceBanner = renderGuidanceBanner;
 window.initCalendar = initCalendar;
 window.initShopping = initShopping;
-window.openShoppingPhoto = openShoppingPhoto;
 window.initReadiness = initReadiness;
 window.initHabits = initHabits;
 window.initIdeas = initIdeas;
@@ -68,7 +68,6 @@ window.renderNext = renderNext;
 window.openFocus = openFocus;
 window.initWorkmode = initWorkmode;
 window.startWorkmode = startWorkmode;
-window.initRlClips = initRlClips;
 window.initTrash = initTrash;
 window.renderTrash = renderTrash;
 
@@ -86,7 +85,6 @@ const NAV_LABELS = {
   studio: "Estudio",
   workmode: "Enfoque",
   account: "Cuenta",
-  rlclips: "Clips RL",
 };
 
 const NAV_SECTIONS = {
@@ -103,7 +101,6 @@ const NAV_SECTIONS = {
   studio: ["#studio-section"],
   workmode: ["#workmode-section"],
   account: ["#account-section"],
-  rlclips: ["#rlclips-section"],
   trash: ["#trash-section"],
 };
 
@@ -127,7 +124,6 @@ const ALL_SECTIONS = [
   "#account-section",
   "#week-section",
   "#trash-section",
-  "#rlclips-section",
 ];
 
 function initNavigation() {
@@ -210,6 +206,13 @@ function initNavDrawer() {
 }
 
 async function main() {
+  // Resolve the account before loading any per-user data or optional views.
+  const authStatus = await initAuth();
+  initDialogAccessibility();
+  window.initAccount = initAccount;
+  initAccount({ render: false, status: authStatus });
+  if (!authStatus.authenticated) return;
+
   initClock();
   initGreeting();
   initWallpaper();
@@ -229,11 +232,9 @@ async function main() {
   initCalendar();
   initEventModal();
   initEventDetail();
+  initEventClose();
   initTaskNotes();
-  initAuth();
   // Keep the credential field out of the DOM until the account view is opened.
-  initAccount({ render: false });
-  window.initAccount = initAccount;
   initShopping();
   initReadiness();
   initHabits();
@@ -245,7 +246,6 @@ async function main() {
   initPwa();
   initNavigation();
   initNavDrawer();
-  initRlClips();
   initTrash();
 
   // Load data first so Today markers, badges and guidance see fresh state
@@ -258,7 +258,6 @@ async function main() {
     initInbox(),
     initCalendar(),
     initShopping(),
-    initRlClips(),
     initReadiness(),
     initHabits(),
     initIdeas(),

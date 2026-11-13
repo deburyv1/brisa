@@ -27,7 +27,6 @@ import clipsRouter from './routes/clips.js';
 import authRouter, { requireAuth } from './routes/auth.js';
 import pushRouter from './routes/push.js';
 import trashRouter from './routes/trash.js';
-import rlClipsRouter from './routes/rlclips.js';
 import { startNotifier } from './notify.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -106,7 +105,6 @@ app.use('/api/clips', clipsRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/push', pushRouter);
 app.use('/api/trash', trashRouter);
-app.use('/api/rlclips', rlClipsRouter);
 
 // Serve static files (frontend)
 // Docker: server/public | Local dev: repo root

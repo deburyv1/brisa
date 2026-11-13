@@ -34,8 +34,6 @@ services:
       - ./brisa-icon.svg:/app/server/public/brisa-icon.svg
       - ./brisa-icon.png:/app/server/public/brisa-icon.png
       - ./apple-touch-icon.png:/app/server/public/apple-touch-icon.png
-      - "D:/debury/clips rocket league:/clips-rl:ro"
-      - ./clips-rl-out:/clips-rl-out
       - ./shopping-photos:/app/shopping-photos
       - ./server/routes:/app/server/routes
       - ./server/shopping-card.js:/app/server/shopping-card.js

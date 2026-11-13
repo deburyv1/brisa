@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>brisa — Aero Home</title>
+  <title>brisa — Tu espacio</title>
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#12a7e0">
   <meta name="mobile-web-app-capable" content="yes">
@@ -14,7 +14,7 @@
   <link rel="icon" href="brisa-icon.png">
   <link rel="icon" type="image/svg+xml" href="brisa-icon.svg">
   <link rel="stylesheet" href="vendor/flatpickr/flatpickr.min.css">
-  <link rel="stylesheet" href="css/app.css?v=20261019companion2">
+  <link rel="stylesheet" href="css/app.css?v=20261113delete2">
   <link rel="stylesheet" href="vendor/quill.snow.css">
 </head>
 <body>
@@ -39,13 +39,12 @@
     <nav>
       <button class="nav active" data-nav="home"><img src="brisa-icons/iexplore_32536.ico" class="nav-img" alt="Inicio"> Inicio</button>
       <button class="nav" data-nav="inbox"><img src="brisa-icons/vista_netcenter.ico" class="nav-img" alt="Inbox"> Inbox <i style="display:none">0</i></button>
-      <button class="nav" data-nav="tasks"><img src="brisa-icons/DxpTaskSync_50.ico" class="nav-img" alt="Acciones"> Acciones <i>4</i></button>
-      <button class="nav" data-nav="journal"><img src="brisa-icons/vista_sticky_notes.ico" class="nav-img" alt="Notas"> Notas <i>0</i></button>
+      <button class="nav" data-nav="tasks"><img src="brisa-icons/DxpTaskSync_50.ico" class="nav-img" alt="Acciones"> Acciones <i style="display:none">0</i></button>
+      <button class="nav" data-nav="journal"><img src="brisa-icons/vista_sticky_notes.ico" class="nav-img" alt="Notas"> Notas <i style="display:none">0</i></button>
       <button class="nav" data-nav="calendar"><img src="brisa-icons/vista_cal_1.ico" class="nav-img" alt="Calendario"> Calendario</button>
       <button class="nav" data-nav="finance"><img src="brisa-icons/budget.ico" class="nav-img" alt="Finanzas"> Finanzas</button>
       <button class="nav" data-nav="people"><img src="brisa-icons/vista_messenger.ico" class="nav-img" alt="Relaciones"> Relaciones</button>
       <button class="nav" data-nav="shopping"><img src="brisa-icons/vista_book_3.ico" class="nav-img" alt="Compras"> Compras</button>
-      <button class="nav" data-nav="rlclips" onclick="document.querySelectorAll('section').forEach(s=>s.style.display='none'); var s=document.querySelector('#rlclips-section'); if(s){s.style.display='';} var c=document.querySelector('#crumb-current'); if(c)c.textContent='Clips RL'; if(window.initRlClips) window.initRlClips();"><img src="brisa-icons/vista_book_3.ico" class="nav-img" alt="Clips"> Clips RL</button>
       <button class="nav" data-nav="habits"> Hábitos</button>
       <button class="nav" data-nav="ideas"> Ideas</button>
       <button class="nav" data-nav="studio"> Estudio</button>
@@ -66,8 +65,6 @@
     </div>
 
     <!-- Auth -->
-    <button id="auth-btn" class="nav auth-btn" title="Inicia sesión con tu cuenta Google">Entrar con Google</button>
-
     <button id="push-btn" class="push-btn" hidden>Avisar a mi teléfono</button>
     <button id="push-disable-btn" class="push-disable-btn" type="button" hidden>Desactivar avisos</button>
 
@@ -88,8 +85,7 @@
         <button class="nav-toggle" id="nav-toggle" title="Menú" aria-label="Abrir menú">☰</button>
         <div class="crumb">Mi espacio <b>/</b> <strong id="crumb-current">Inicio</strong></div>
         <div class="top-right">
-          <button class="appearance" id="timer-icon" title="Mostrar / guardar el temporizador">⏱</button>
-          <button class="appearance" id="timer-test" title="Prueba: timer a 2 segundos de terminar">🧪</button>
+          <button type="button" class="appearance" id="timer-icon" title="Abrir o minimizar el temporizador" aria-label="Abrir o minimizar el temporizador">⏱</button>
           <button class="timer-chip focus-chip" id="focus-chip" style="display:none" title="Volver al enfoque">
             <span class="focus-dot"></span><span id="focus-chip-title"></span><span id="focus-chip-time"></span>
           </button>
@@ -97,16 +93,15 @@
             <span>⏱</span><span id="timer-chip-time">10:00</span>
             <span class="timer-chip-toggle" id="timer-chip-toggle" title="Iniciar / pausar">▶</span>
           </button>
-          <button class="appearance" id="glass-toggle" title="Alternar vidrio completo">◐ Vidrio</button>
-          <button class="appearance" id="theme-open" title="Personalizar vidrio">⚙</button>
-          <button class="head-clock" id="head-clock" title="Tu día · clic para verlo">
+          <button type="button" class="appearance" id="theme-open" title="Apariencia" aria-label="Personalizar la apariencia">⚙</button>
+          <button type="button" class="head-clock" id="head-clock" title="Tu día · clic para verlo" aria-label="Ver tu día">
             <span class="head-clock-line">
               <span class="head-clock-time" id="hc-time">--:--</span>
               <span class="head-clock-date" id="date-pill">—</span>
             </span>
             <span class="head-clock-bar" aria-hidden="true"><span class="head-clock-now" id="hc-now"></span></span>
           </button>
-          <div class="profile">L</div>
+          <button type="button" class="profile" aria-label="Abrir cuenta" title="Cuenta">L</button>
         </div>
       </div>
       <!-- Captura siempre a la vista, en toda vista salvo la portada
@@ -178,7 +173,6 @@
 
     <!-- Shopping Section -->
     <section class="shopping" id="shopping-section" style="display:none;"></section>
-    <section class="rlclips" id="rlclips-section" style="display:none;"></section>
 
     <!-- Habits Section -->
     <section class="habits" id="habits-section" style="display:none;"></section>
@@ -208,19 +202,17 @@
       <img class="auth-logo" src="brisa-icon.png" alt="brisa">
       <div class="modal-title">Tu espacio personal</div>
     </div>
-    <p class="auth-gate-text">Entra para ver tus cosas.</p>
-    <input type="password" class="auth-gate-input" id="auth-gate-key" placeholder="Clave de Brisa" autocomplete="current-password" autocapitalize="off" spellcheck="false">
+    <p class="auth-gate-text">Tu espacio te espera. Entra o crea una cuenta para continuar.</p>
     <p class="auth-gate-error" id="auth-gate-error" hidden></p>
     <div class="modal-actions">
-      <button type="button" class="modal-btn modal-btn-primary" id="auth-gate-key-btn">Entrar</button>
-      <button type="button" class="modal-btn" id="auth-gate-login">Entrar con Google</button>
+      <button type="button" class="modal-btn modal-btn-primary" id="auth-gate-login">Entrar o crear cuenta con Google</button>
     </div>
   </div>
 </div>
 <script src="vendor/quill.min.js"></script>
 <script src="vendor/flatpickr/flatpickr.min.js"></script>
 <script src="vendor/flatpickr/es.js"></script>
-<script type="module" src="js/app.js?v=20261019companion2"></script>
+<script type="module" src="js/app.js?v=20261113delete2"></script>
 
 <!-- Floating timer: round, solid, draggable -->
 <div class="timer-pill" id="timer-pill" title="Temporizador (arrástrame)">
@@ -240,26 +232,39 @@
     <div class="timer-display" id="timer-big">10:00</div>
     <button class="timer-close" id="timer-close" title="Cerrar">✕</button>
   </div>
-  <div class="timer-presets">
-    <button class="focus-time-btn timer-preset" data-min="5">5</button>
-    <button class="focus-time-btn timer-preset selected" data-min="10">10</button>
-    <button class="focus-time-btn timer-preset" data-min="15">15</button>
-    <button class="focus-time-btn timer-preset" data-min="25">25</button>
+
+  <div class="timer-section">
+    <div class="timer-section-label">Duración</div>
+    <div class="timer-presets">
+      <button class="focus-time-btn timer-preset" data-min="5">5</button>
+      <button class="focus-time-btn timer-preset selected" data-min="10">10</button>
+      <button class="focus-time-btn timer-preset" data-min="15">15</button>
+      <button class="focus-time-btn timer-preset" data-min="25">25</button>
+    </div>
+    <div class="timer-custom">
+      <input type="number" id="timer-custom-min" placeholder="minutos" min="1" max="480" inputmode="numeric" aria-label="Duración en minutos">
+      <span class="timer-custom-unit" aria-hidden="true">min</span>
+      <button class="modal-btn modal-btn-secondary" id="timer-custom-set">OK</button>
+    </div>
   </div>
-  <div class="timer-custom">
-    <input type="number" id="timer-custom-min" placeholder="Minutos" min="1" max="480">
-    <button class="modal-btn modal-btn-secondary" id="timer-custom-set">OK</button>
-  </div>
+
   <div class="timer-row">
     <button class="modal-btn modal-btn-primary" id="timer-start-pause">Iniciar</button>
-    <button class="modal-btn modal-btn-secondary" id="timer-reset">Reset</button>
+    <button class="modal-btn modal-btn-secondary" id="timer-reset">Reiniciar</button>
   </div>
-  <div class="timer-size-row">
-    <span class="timer-size-label">Tamaño</span>
-    <input type="range" id="timer-size" min="72" max="1100" step="4" value="96" title="Tamaño del círculo">
+
+  <div class="timer-section">
+    <div class="timer-section-label">Tamaño del círculo</div>
+    <div class="timer-size-row">
+      <input type="range" id="timer-size" min="72" max="480" step="4" value="96" title="Tamaño del círculo">
+    </div>
+    <div class="timer-size-scale" aria-hidden="true"><span>Pequeño</span><span>Grande</span></div>
   </div>
-  <button class="timer-home" id="timer-minimize" title="Minimizar a la barra superior">— Minimizar</button>
-  <button class="timer-home" id="timer-center" title="Centrar el círculo en pantalla">⌖ Centrar</button>
+
+  <div class="timer-footer">
+    <button class="timer-home" id="timer-minimize" title="Minimizar a la barra superior">— Minimizar</button>
+    <button class="timer-home" id="timer-center" title="Centrar el círculo en pantalla">⌖ Centrar</button>
+  </div>
 </div>
 
 <!-- Modal: Confirmación de cierre del día -->
@@ -303,6 +308,9 @@
       <div class="form-group">
         <label>Primer paso físico<span class="optional">(opcional)</span></label>
         <input type="text" name="first_step" placeholder="Ej: saca una prenda y ponla en la cama">
+      </div>
+      <div class="form-group">
+        <div id="task-pairs-editor"></div>
       </div>
       <div class="form-row">
         <div class="form-group">
@@ -443,24 +451,6 @@
           <button type="button" class="modal-btn modal-btn-secondary" id="editor-cancel">Volver</button>
           <button type="button" class="modal-btn modal-btn-primary" id="editor-save">Guardar y seguir</button>
         </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Modal: Foto de la compra (elegir, buscar otras o quitar) -->
-<div class="modal-overlay" id="shopping-photo-modal">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">Foto del producto</div>
-      <button class="modal-close" title="Cerrar" id="shopping-photo-close">✕</button>
-    </div>
-    <div class="modal-form">
-      <div class="shopping-photo-big"><img id="shopping-photo-now" src="" alt="Foto del producto"></div>
-      <div class="shopping-photo-row" id="shopping-photo-pool"></div>
-      <div class="modal-actions">
-        <button type="button" class="modal-btn modal-btn-secondary" id="shopping-photo-search">No es: buscar otras</button>
-        <button type="button" class="modal-btn modal-btn-secondary" id="shopping-photo-clear">Quitar foto</button>
       </div>
     </div>
   </div>
@@ -619,6 +609,7 @@
     <p id="event-detail-travel" class="focus-note"></p>
     <p id="event-detail-location" class="focus-note"></p>
     <p id="event-detail-desc" class="focus-note"></p>
+    <p id="event-detail-conclusion" class="focus-note event-detail-conclusion" hidden></p>
     <div id="event-prep-list" class="prep-list"></div>
     <div class="focus-step-box event-prep-box">
       <div class="event-prep-heading">
@@ -646,7 +637,74 @@
       <button type="button" class="modal-btn modal-btn-secondary" id="event-detail-done">Marcar hecho</button>
       <button type="button" class="modal-btn modal-btn-primary" id="event-detail-ok">Cerrar</button>
     </div>
+    <button class="week-btn-text" id="event-detail-closepast" title="Registrar cómo salió, cancelarlo o moverlo de día">¿Cómo salió? Cerrar evento</button>
     <button class="week-btn-text" id="event-detail-cancel" title="Cancelar sin borrar: no avisará más">Cancelar evento</button>
+  </div>
+</div>
+
+<!-- Modal: Programar evento (opción rápida desde la lista de Inicio) -->
+<div class="modal-overlay" id="event-schedule-modal">
+  <div class="modal event-detail-dialog" role="dialog" aria-modal="true" aria-labelledby="event-schedule-title">
+    <div class="modal-header">
+      <div class="modal-title" id="event-schedule-title">Programar evento</div>
+      <button class="modal-close" id="event-schedule-close" title="Cerrar" aria-label="Cerrar programación">✕</button>
+    </div>
+    <div class="modal-form">
+      <div class="form-group">
+        <label for="event-schedule-date">Cuando empieza</label>
+        <div class="event-schedule-when">
+          <input type="date" id="event-schedule-date" required>
+          <input type="time" id="event-schedule-time" step="900">
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="event-schedule-end-date">Cuando termina (opcional)</label>
+        <div class="event-schedule-when">
+          <input type="date" id="event-schedule-end-date">
+          <input type="time" id="event-schedule-end-time" step="900">
+        </div>
+      </div>
+      <div id="event-schedule-feedback" class="event-detail-feedback" role="alert" hidden></div>
+      <div class="modal-actions">
+        <button type="button" class="modal-btn modal-btn-secondary" id="event-schedule-clear">Limpiar</button>
+        <button type="button" class="modal-btn modal-btn-primary" id="event-schedule-save">Programar</button>
+        <button type="button" class="modal-btn modal-btn-secondary" id="event-schedule-cancel">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Cerrar evento pasado (cómo salió / no pasó / seguimiento) -->
+<div class="modal-overlay" id="event-close-modal">
+  <div class="modal event-close-dialog" role="dialog" aria-modal="true" aria-labelledby="event-close-title">
+    <div class="modal-header">
+      <div class="modal-title" id="event-close-title">¿Cómo salió?</div>
+      <button class="modal-close" id="event-close-x" title="Cerrar" aria-label="Cerrar">✕</button>
+    </div>
+    <p id="event-close-when" class="focus-note"></p>
+    <div id="event-close-feedback" class="event-detail-feedback" role="alert" hidden></div>
+    <div class="event-close-choices">
+      <button type="button" class="event-close-choice" data-outcome="done" title="Marcar hecho: cierra el evento y sus pasos">Pasó como estaba</button>
+      <button type="button" class="event-close-choice" data-outcome="cancelled" title="Se canceló: no avisará más y se puede reabrir">No pasó</button>
+      <button type="button" class="event-close-choice" data-outcome="moved" title="Elegir otro día (conserva la hora)">Quedó pendiente…</button>
+    </div>
+    <div class="event-move-row" id="event-close-move-row" hidden>
+      <input type="date" id="event-close-move-date" class="capture-datetime" title="Nuevo día del evento (conserva la hora)" aria-label="Nuevo día del evento">
+      <button class="tx-btn tx-btn-edit" id="event-close-move-go">Mover día</button>
+    </div>
+    <label class="event-close-label" for="event-close-conclusion">¿Cómo salió? <span>opcional, una frase basta</span></label>
+    <textarea id="event-close-conclusion" class="event-close-conclusion" rows="3" maxlength="600" placeholder="Ej.: salió bien, pero partí tarde y faltó plata."></textarea>
+    <div class="event-close-followup">
+      <label class="event-close-label" for="event-close-followup-input">¿Quedó algo pendiente? <span>opcional</span></label>
+      <div class="event-close-followup-row">
+        <input type="text" id="event-close-followup-input" class="prep-input" maxlength="200" placeholder="Ej.: pedir hora para el control" aria-label="Acción de seguimiento">
+        <button type="button" class="tx-btn tx-btn-edit" id="event-close-followup-add" title="Crea una acción con esto y abre su ficha para poner fecha">Crear acción</button>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="modal-btn modal-btn-secondary" id="event-close-later" title="Solo guarda la conclusión si escribiste una; el evento queda abierto">Dejar abierto</button>
+      <button type="button" class="modal-btn modal-btn-primary" id="event-close-save">Guardar</button>
+    </div>
   </div>
 </div>
 
@@ -684,17 +742,17 @@
   </div>
 </div>
 
-<!-- Modal: Personalizar vidrio -->
+<!-- Modal: Apariencia -->
 <div class="modal-overlay clear" id="theme-modal">
   <div class="modal">
     <div class="modal-header">
-      <div class="modal-title">Personalizar vidrio</div>
+      <div class="modal-title">Apariencia</div>
       <button class="modal-close" title="Cerrar" id="theme-close">✕</button>
     </div>
     <div class="modal-form">
       <div class="theme-presets">
-        <button class="modal-btn modal-btn-secondary" id="theme-preset-normal">Normal</button>
-        <button class="modal-btn modal-btn-secondary" id="theme-preset-full">Full glass</button>
+        <button class="modal-btn modal-btn-secondary" id="theme-preset-normal">Más legible</button>
+        <button class="modal-btn modal-btn-secondary" id="theme-preset-full">Más transparente</button>
       </div>
       <div class="form-group">
         <label>Desenfoque · <span id="theme-blur-val">24px</span></label>
@@ -709,7 +767,6 @@
         <input type="range" id="theme-sat" min="100" max="200" step="5" value="140">
       </div>
       <div class="theme-checks">
-        <label class="theme-check"><input type="checkbox" id="theme-sheen"> Reflejo animado</label>
         <label class="theme-check"><input type="checkbox" id="theme-night" checked> Fondo nocturno automático</label>
       </div>
       <div class="form-group">
@@ -760,6 +817,7 @@
       <button class="modal-close" title="Cerrar" id="focus-close">✕</button>
     </div>
     <h3 id="focus-title" class="focus-title"></h3>
+    <div id="focus-pairs" class="focus-pairs" hidden></div>
     <div id="focus-body"></div>
   </div>
 </div>
