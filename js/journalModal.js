@@ -4,7 +4,7 @@
    ============================================ */
 const API_BASE = "/api";
 import { snapshotForm, isDirty, confirmDiscard, setFormFeedback, setFormBusy, setFormLoading, isFormSaving } from "./modalGuard.js";
-import { createEditor, editorHTML, htmlWithLightImages, isHTML, sanitizeHTML } from "./richtext.js";
+import { createEditor, editorHTML, htmlWithLightImages, isHTML, sanitizeHTML } from "./richtext.js?v=20261021rtl9";
 import { renderMarkdown } from "./markdown.js";
 
 export function initJournalModal() {

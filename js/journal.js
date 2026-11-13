@@ -5,7 +5,7 @@
    notas (lo que anotas) y pensamientos (lo que piensas).
    ============================================ */
 import { state } from "./state.js";
-import { renderRich } from "./richtext.js";
+import { renderRich } from "./richtext.js?v=20261021rtl9";
 
 const API_BASE = "/api";
 const KINDS = {

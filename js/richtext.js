@@ -4,6 +4,7 @@
    everywhere else. Old markdown still renders.
    ============================================ */
 import { renderMarkdown } from "./markdown.js";
+import { installBlockHandles } from "./blockHandles.js?v=20261021rtl9";
 
 const TOOLBAR = [
   [{ header: [1, 2, 3, false] }],
@@ -71,6 +72,8 @@ export function createEditor(container, { placeholder = "" } = {}) {
   } catch {
     // toolbar module missing: paste still works
   }
+  // Block handles: reacomodar bloques arrastrando (estilo Notion)
+  installBlockHandles(quill);
   container.dataset.quillReady = "1";
   container._quill = quill;
   return quill;

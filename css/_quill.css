@@ -29,6 +29,8 @@
 .ql-container.ql-snow .ql-editor {
   min-height: 180px;
   line-height: 1.6;
+  /* gutter izquierdo para el mango de reordenar */
+  padding: 10px 16px 12px 30px;
 }
 
 .ql-container.ql-snow .ql-editor img {
@@ -38,14 +40,103 @@
   border-radius: 8px;
 }
 
-/* Long sessions scroll inside the editor instead of the page.
-   Quill puts ql-container on the holder itself. */
-#workmode-quill.ql-container, #workmode-quill .ql-container.ql-snow,
+/* Sesiones largas: scrollea el editor, no la página. El panel de
+   workmode tiene su propio layout flex (un solo scroll interno),
+   por eso #workmode-quill no está en este grupo. */
 #task-note-quill.ql-container, #task-note-quill .ql-container.ql-snow,
 #journal-quill.ql-container, #journal-quill .ql-container.ql-snow,
 #editor-text.ql-container, #editor-text .ql-container.ql-snow {
   max-height: 55vh;
   overflow-y: auto;
+}
+
+/* Rueda contenida + barra fina: scrollear el editor no empuja la página */
+.ql-container.ql-snow,
+.ql-container.ql-snow .ql-editor {
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(22, 75, 105, 0.25) transparent;
+}
+
+.ql-container.ql-snow::-webkit-scrollbar,
+.ql-container.ql-snow .ql-editor::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.ql-container.ql-snow::-webkit-scrollbar-thumb,
+.ql-container.ql-snow .ql-editor::-webkit-scrollbar-thumb {
+  background: rgba(22, 75, 105, 0.25);
+  border-radius: 8px;
+}
+
+.ql-container.ql-snow::-webkit-scrollbar-thumb:hover,
+.ql-container.ql-snow .ql-editor::-webkit-scrollbar-thumb:hover {
+  background: rgba(22, 75, 105, 0.4);
+}
+
+.ql-container.ql-snow::-webkit-scrollbar-track,
+.ql-container.ql-snow .ql-editor::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ---- Mangos de bloque (estilo Notion) ---- */
+.ql-drag-handle {
+  position: fixed;
+  z-index: 90;
+  width: 20px;
+  height: 24px;
+  display: grid;
+  grid-template-columns: repeat(2, 4px);
+  grid-template-rows: repeat(3, 4px);
+  gap: 2px 3px;
+  place-content: center;
+  border-radius: 6px;
+  cursor: grab;
+  touch-action: none;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .15s ease, background .15s ease;
+}
+
+.ql-drag-handle.visible {
+  opacity: .5;
+  pointer-events: auto;
+}
+
+.ql-drag-handle:hover,
+.ql-drag-handle.dragging {
+  opacity: 1;
+  background: rgba(255, 255, 255, .95);
+  box-shadow: 0 2px 10px rgba(0, 58, 94, .18);
+}
+
+.ql-drag-handle.dragging {
+  cursor: grabbing;
+  pointer-events: none; /* que elementFromPoint no lo devuelva a él */
+}
+
+.ql-drag-handle i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(22, 75, 105, .85);
+}
+
+.ql-drop-line {
+  position: fixed;
+  z-index: 90;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #27c9eb, #087fb0);
+  box-shadow: 0 0 6px rgba(39, 201, 235, .6);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .12s ease, top .08s ease;
+}
+
+.ql-editor .ql-block-dragging {
+  opacity: .4;
 }
 
 .ql-container.ql-snow .ql-editor.ql-blank::before {
