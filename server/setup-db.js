@@ -177,6 +177,8 @@ try {
     position INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (day, kind, ref_id)
   )`);
+  // "Solo este día": ese orden no pasa a ser la base de los días siguientes.
+  await pool.query(`ALTER TABLE day_order ADD COLUMN IF NOT EXISTS oneoff BOOLEAN DEFAULT FALSE`);
 
   // Snapshot of what was done before the close: reopening restores
   // exactly that, so a mistaken close can be corrected and re-done.
@@ -272,7 +274,22 @@ try {
   await pool.query(`ALTER TABLE people ADD COLUMN IF NOT EXISTS phone VARCHAR(20)`);
   await pool.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS estimated_minutes INTEGER`);
   await pool.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP`);
+  await pool.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS started_at TIMESTAMP`);
   await pool.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS parent_task_id INTEGER REFERENCES tasks(id) ON DELETE SET NULL`);
+  await pool.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS position INTEGER NOT NULL DEFAULT 0`);
+  await pool.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS data_pairs JSONB DEFAULT '[]'::jsonb`);
+  await pool.query(`WITH ranked AS (
+    SELECT id, user_id, parent_task_id,
+      row_number() OVER (PARTITION BY user_id, parent_task_id ORDER BY created_at ASC, id ASC) - 1 AS next_position
+    FROM tasks WHERE parent_task_id IS NOT NULL
+  ), uninitialized AS (
+    SELECT user_id, parent_task_id FROM tasks
+    WHERE parent_task_id IS NOT NULL
+    GROUP BY user_id, parent_task_id HAVING MAX(position) = 0
+  )
+  UPDATE tasks t SET position = ranked.next_position
+  FROM ranked JOIN uninitialized USING (user_id, parent_task_id)
+  WHERE t.id = ranked.id`);
 
   await pool.query(`CREATE TABLE IF NOT EXISTS entries (
     id SERIAL PRIMARY KEY,
@@ -315,6 +332,8 @@ try {
   await pool.query(`ALTER TABLE ideas ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'open'`);
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'open'`);
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP`);
+  // Cierre de eventos pasados: cómo salió, en una frase.
+  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS conclusion TEXT`);
   await pool.query(`ALTER TABLE ideas ADD COLUMN IF NOT EXISTS task_id INTEGER REFERENCES tasks(id) ON DELETE SET NULL`);
 
   // Fase 3 Estudio: local library of exported clips (files live in the clips volume)
@@ -363,10 +382,29 @@ try {
     email VARCHAR(255) UNIQUE
   )`);
 
-  // Auth: Google identity on the local user row (single-user for now;
-  // multi-user stays v2 — same nullable pattern as ideas/reminders).
+  // Auth and per-account optional modules.
   await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS google_email VARCHAR(255) UNIQUE');
   await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS google_avatar TEXT');
+  await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS enabled_features JSONB NOT NULL DEFAULT '[]'::jsonb");
+
+  // Clips RL se eliminó: queda quitar la bandera de las cuentas que la
+  // tuvieran. Idempotente; un registro por migración.
+  await pool.query(`CREATE TABLE IF NOT EXISTS brisa_migrations (
+    id TEXT PRIMARY KEY,
+    applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
+  const rlFeatureMigration = await pool.query("SELECT 1 FROM brisa_migrations WHERE id = 'remove-rlclips-v1'");
+  if (rlFeatureMigration.rowCount === 0) {
+    await pool.query(
+      `UPDATE users SET enabled_features = (
+         SELECT COALESCE(jsonb_agg(to_jsonb(x)), '[]'::jsonb)
+         FROM jsonb_array_elements_text(enabled_features) AS x
+         WHERE x <> 'rlclips'
+       )
+       WHERE enabled_features ? 'rlclips'`
+    );
+    await pool.query("INSERT INTO brisa_migrations (id) VALUES ('remove-rlclips-v1') ON CONFLICT DO NOTHING");
+  }
 
   // Opaque sessions are stored by hash and expire in the database, not as a
   // read/modify/write JSON array in settings.
@@ -423,18 +461,21 @@ try {
   // Backfill: link pre-history movements to a synthetic import record.
   // Idempotent: only touches transactions with import_id IS NULL.
   const orphans = await pool.query(
-    `SELECT account_id, COUNT(*)::int AS count FROM transactions WHERE import_id IS NULL GROUP BY account_id`
+    `SELECT user_id, account_id, COUNT(*)::int AS count
+     FROM transactions WHERE import_id IS NULL GROUP BY user_id, account_id`
   );
   for (const row of orphans.rows) {
     const imp = await pool.query(
-      `INSERT INTO imports (user_id, account_id, filename, file_hash) VALUES (1, $1, 'carga anterior', 'backfill') RETURNING id`,
-      [row.account_id]
+      `INSERT INTO imports (user_id, account_id, filename, file_hash)
+       VALUES ($1, $2, 'movimientos anteriores', 'backfill') RETURNING id`,
+      [row.user_id, row.account_id]
     );
     await pool.query(
-      `UPDATE transactions SET import_id = $1 WHERE import_id IS NULL AND account_id IS NOT DISTINCT FROM $2`,
-      [imp.rows[0].id, row.account_id]
+      `UPDATE transactions SET import_id = $1
+       WHERE import_id IS NULL AND user_id IS NOT DISTINCT FROM $2 AND account_id IS NOT DISTINCT FROM $3`,
+      [imp.rows[0].id, row.user_id, row.account_id]
     );
-    await pool.query(`UPDATE imports SET imported = $1 WHERE id = $2`, [row.count, imp.rows[0].id]);
+    await pool.query(`UPDATE imports SET imported = $1 WHERE id = $2 AND user_id IS NOT DISTINCT FROM $3`, [row.count, imp.rows[0].id, row.user_id]);
   }
 
   // Borrar una cuenta se lleva sus movimientos. Con CASCADE es UNA sola
@@ -504,6 +545,18 @@ try {
     'accounts', 'transactions', 'entries', 'shopping_items', 'habits', 'clips']) {
     await pool.query(`DROP TRIGGER IF EXISTS brisa_trash ON ${t}`);
     await pool.query(`CREATE TRIGGER brisa_trash BEFORE DELETE ON ${t} FOR EACH ROW EXECUTE FUNCTION brisa_trash_row()`);
+  }
+
+  // Do not let omitted user_id values silently fall back to Leonardo's account.
+  // Every user-owned write goes through the authenticated request and supplies
+  // its account explicitly; old rows are assigned to the original owner first.
+  for (const t of ['people', 'tasks', 'journal', 'transactions', 'accounts', 'budgets',
+    'readiness_items', 'habits', 'day_closures', 'day_misses', 'day_order',
+    'day_close_snapshots', 'imports', 'event_checklist_templates', 'shopping_items',
+    'entries', 'events', 'ideas', 'clips', 'reminders', 'push_subscriptions', 'trash']) {
+    await pool.query(`UPDATE ${t} SET user_id = 1 WHERE user_id IS NULL`);
+    await pool.query(`ALTER TABLE ${t} ALTER COLUMN user_id DROP DEFAULT`);
+    await pool.query(`ALTER TABLE ${t} ALTER COLUMN user_id SET NOT NULL`);
   }
 
   console.log('All tables created successfully');

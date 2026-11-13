@@ -138,7 +138,7 @@ router.post('/', async (req, res) => {
 
 // PUT /api/events/:id — partial merge
 router.put('/:id', async (req, res) => {
-  const allowed = ['title', 'description', 'start', 'end', 'location', 'travel_minutes', 'status', 'completed_at', 'use_departure_checklist'];
+  const allowed = ['title', 'description', 'start', 'end', 'location', 'travel_minutes', 'status', 'completed_at', 'use_departure_checklist', 'conclusion'];
   const sets = [];
   const values = [];
   for (const key of allowed) {
@@ -147,6 +147,7 @@ router.put('/:id', async (req, res) => {
     if (value === '') value = null;
     if (key === 'title' && value) value = String(value).trim();
     if (key === 'travel_minutes' && value != null) value = Number(value) || null;
+    if (key === 'conclusion' && value != null) value = String(value).trim().slice(0, 600) || null;
     if (key === 'use_departure_checklist') value = Boolean(value);
     if (key === 'status' && !['open', 'done', 'cancelled'].includes(value)) {
       return res.status(400).json({ error: 'Invalid status' });

@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import crypto from 'crypto';
 import pool from '../db.js';
 
 const router = Router();
@@ -12,7 +13,7 @@ if (!CLIENT_ID || !CLIENT_SECRET) {
 }
 
 function generateState() {
-  return require('crypto').randomBytes(16).toString('hex');
+  return crypto.randomBytes(16).toString('hex');
 }
 
 router.get('/login', (req, res) => {

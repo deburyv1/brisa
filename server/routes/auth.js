@@ -119,6 +119,27 @@ export async function requireAuth(req, res, next) {
   }
 }
 
+function readEnabledFeatures(user) {
+  const value = user?.enabled_features;
+  if (Array.isArray(value)) return value.filter(x => typeof x === 'string');
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed.filter(x => typeof x === 'string') : [];
+    } catch { return []; }
+  }
+  return [];
+}
+
+export function requireFeature(feature) {
+  return (req, res, next) => {
+    if (!readEnabledFeatures(req.user).includes(feature)) {
+      return res.status(404).json({ error: 'Función no disponible' });
+    }
+    next();
+  };
+}
+
 /* La clave es la llave maestra del dueño: entra siempre al primer
    usuario creado (el que tiene los datos), no a un usuario nuevo. */
 async function ownerUserId() {
@@ -178,7 +199,7 @@ router.get('/google/login', (req, res) => {
   res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`);
 });
 
-// GET /api/auth/google/callback → verify, upsert user, set session
+// GET /api/auth/google/callback → verify, create or load this user, set session
 router.get('/google/callback', async (req, res) => {
   const { code, state } = req.query;
   if (!code) return res.status(400).json({ error: 'No code provided' });
@@ -210,13 +231,6 @@ router.get('/google/callback', async (req, res) => {
     const idToken = tokenData.id_token;
     const payload = await loadGoogleIdentity(idToken);
 
-    // Brisa's data model is still single-owner (user_id=1). Do not let Google
-    // login silently create additional accounts that only some routes isolate.
-    const owner = await pool.query('SELECT google_email FROM users ORDER BY id ASC LIMIT 1');
-    if (owner.rows.length && owner.rows[0].google_email !== payload.email) {
-      return res.status(403).json({ error: 'Esta instancia de Brisa es de uso personal' });
-    }
-
     const user = await upsertUser({
       googleEmail: payload.email,
       name: payload.name,
@@ -243,7 +257,15 @@ router.get('/status', async (req, res) => {
   const { user, expires } = await getSessionUser(req);
   res.json({
     authenticated: !!user,
-    user: user ? { id: user.id, name: user.name || user.google_email, avatar: user.google_avatar, email: user.google_email } : null,
+    key_enabled: Boolean(ACCESS_KEY),
+    google_enabled: Boolean(CLIENT_ID && CLIENT_SECRET),
+    user: user ? {
+      id: user.id,
+      name: user.name || user.google_email,
+      avatar: user.google_avatar,
+      email: user.google_email,
+      features: readEnabledFeatures(user),
+    } : null,
     expires: expires || null,
   });
 });

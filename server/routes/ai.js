@@ -168,6 +168,38 @@ router.post('/approach', async (req, res) => {
   }
 });
 
+// POST /api/ai/check-in { title, update, parentTitle?, plan? }
+// Turn a short end-of-focus update into a safe, reviewable next move.
+router.post('/check-in', async (req, res) => {
+  const { title, update, parentTitle, plan } = req.body || {};
+  if (!title || typeof title !== 'string' || !title.trim()) return res.status(400).json({ error: 'Title is required' });
+  if (!update || typeof update !== 'string' || !update.trim() || update.length > 1200) {
+    return res.status(400).json({ error: 'Describe el avance en hasta 1200 caracteres' });
+  }
+  if (parentTitle != null && (typeof parentTitle !== 'string' || parentTitle.length > 500)) return res.status(400).json({ error: 'parentTitle inválido' });
+  const safePlan = Array.isArray(plan) ? plan.filter(x => typeof x === 'string').slice(0, 12).map(x => x.slice(0, 240)) : [];
+  const prompt = `Eres Brisa, un acompañante práctico para personas con disfunción ejecutiva. Interpreta el reporte sin juzgar ni asumir que la tarea está terminada.
+Acción o paso actual: "${title.trim().slice(0, 500)}"
+${parentTitle ? `Acción mayor: "${parentTitle}"` : ''}
+${safePlan.length ? `Plan conocido: ${safePlan.join(' | ')}` : 'No hay checklist guardado.'}
+Lo que la persona cuenta que pasó: "${update.trim()}"
+
+Clasifica como done solo si el reporte dice claramente que se completó este paso/acción. Usa progress si hubo avance parcial. Usa blocked si apareció una traba o no pudo empezar. No inventes hechos. Propón como máximo un siguiente paso concreto y pequeño, o deja next_step vacío si conviene continuar el plan ya existente. Si falta información necesaria, escribe una sola pregunta corta. Responde en español, cálido y conciso. Devuelve SOLO este JSON válido:
+{"status":"progress","summary":"resumen breve","next_step":"siguiente paso concreto o vacío","question":"pregunta breve o vacío"}`;
+  try {
+    const raw = await callGemini(prompt, 2, 300);
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('Invalid check-in JSON');
+    const result = JSON.parse(match[0]);
+    const status = ['done', 'progress', 'blocked'].includes(result.status) ? result.status : 'progress';
+    const clean = (value, max) => String(value || '').trim().slice(0, max);
+    res.json({ status, summary: clean(result.summary, 240), next_step: clean(result.next_step, 240), question: clean(result.question, 240) });
+  } catch (err) {
+    console.error('Gemini check-in error:', err);
+    res.status(502).json({ error: 'No pude interpretar el avance ahora. El texto puede guardarse igual.' });
+  }
+});
+
 function buildUnblockPrompt(taskTitle, block, parentTitle = '', eventTitle = '') {
   return `Eres un asistente que ayuda a personas con dificultades ejecutivas a destrabarse.
 Tu trabajo: separar lo que se puede VERIFICAR de lo que requiere un primer intento (borrador).

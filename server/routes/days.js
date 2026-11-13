@@ -11,7 +11,7 @@ router.get('/', async (req, res) => {
     const [misses, closed, order] = await Promise.all([
       pool.query(`SELECT kind, ref_id FROM day_misses WHERE day = $1 AND user_id = ${req.userId}`, [day]),
       pool.query(`SELECT day FROM day_closures WHERE day = $1 AND user_id = ${req.userId}`, [day]),
-      pool.query(`SELECT kind, ref_id FROM day_order WHERE day = $1 AND user_id = ${req.userId} ORDER BY position ASC`, [day]),
+      pool.query(`SELECT kind, ref_id, oneoff FROM day_order WHERE day = $1 AND user_id = ${req.userId} ORDER BY position ASC`, [day]),
     ]);
     res.json({ misses: misses.rows, closed: closed.rows.length > 0, order: order.rows });
   } catch (err) {
@@ -111,7 +111,40 @@ router.post('/close', async (req, res) => {
   }
 });
 
-// POST /api/days/order { day, items: [{ kind, ref_id }] } — replace manual order
+// GET /api/days/order/previous?date=YYYY-MM-DD → la base heredable: para
+// cada ítem, su posición más reciente NO marcada como "solo hoy". Un
+// desvío puntual de un día no cambia el lugar habitual del hábito.
+router.get('/order/previous', async (req, res) => {
+  const date = req.query.date;
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return res.status(400).json({ error: 'date is required' });
+  }
+  try {
+    const rows = await pool.query(
+      `SELECT DISTINCT ON (kind, ref_id) kind, ref_id, position
+       FROM day_order
+       WHERE day < $1 AND user_id = ${req.userId}
+       ORDER BY kind, ref_id, oneoff ASC, day DESC, position ASC`,
+      [date]
+    );
+    const items = rows.rows
+      .sort((a, b) => a.position - b.position)
+      .map(r => ({ kind: r.kind, ref_id: r.ref_id }));
+    if (items.length === 0) return res.json({ day: null, items: [] });
+    const prev = await pool.query(
+      `SELECT MAX(day) AS day FROM day_order WHERE day < $1 AND user_id = ${req.userId}`,
+      [date]
+    );
+    res.json({ day: prev.rows[0].day, items });
+  } catch (err) {
+    console.error('Error fetching previous day order:', err);
+    res.status(500).json({ error: 'Database error' });
+  }
+});
+
+// POST /api/days/order { day, items: [{ kind, ref_id, oneoff }] } — replace manual order.
+// oneoff por ítem: esa posición vale solo para ese día (hábitos que
+// reacomodaste puntualmente no contaminan el orden habitual).
 router.post('/order', async (req, res) => {
   const { day, items } = req.body;
   if (!day || !Array.isArray(items)) {
@@ -119,15 +152,16 @@ router.post('/order', async (req, res) => {
   }
   const clean = items
     .filter(x => x && ['task', 'habit', 'event'].includes(x.kind) && Number(x.ref_id))
-    .slice(0, 200);
+    .slice(0, 200)
+    .map(x => ({ kind: x.kind, ref_id: Number(x.ref_id), oneoff: !!x.oneoff }));
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
     await client.query(`DELETE FROM day_order WHERE day = $1 AND user_id = ${req.userId}`, [day]);
     for (let i = 0; i < clean.length; i++) {
       await client.query(
-        `INSERT INTO day_order (user_id, day, kind, ref_id, position) VALUES (${req.userId}, $1, $2, $3, $4)`,
-        [day, clean[i].kind, Number(clean[i].ref_id), i]
+        `INSERT INTO day_order (user_id, day, kind, ref_id, position, oneoff) VALUES (${req.userId}, $1, $2, $3, $4, $5)`,
+        [day, clean[i].kind, clean[i].ref_id, i, clean[i].oneoff]
       );
     }
     await client.query('COMMIT');
