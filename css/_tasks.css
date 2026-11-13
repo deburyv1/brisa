@@ -108,6 +108,49 @@
   border-left: 2px solid rgba(93, 242, 255, 0.5);
 }
 
+/* Pasos de una acción: se pliegan bajo la fila del padre */
+.task-children {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.task-children[data-collapsed="1"] {
+  display: none;
+}
+
+.task-collapse {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: rgba(8, 127, 176, .08);
+  color: rgba(8, 127, 176, .85);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  transition: var(--transition-speed);
+}
+
+.task-collapse:hover {
+  background: rgba(8, 127, 176, .18);
+  color: #087fb0;
+}
+
+.task-steps {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: rgba(22, 75, 105, .08);
+  border: 1px dashed rgba(22, 75, 105, .35);
+  color: rgba(22, 75, 105, .7);
+  margin-right: 4px;
+}
+
 .task-ai-slot {
   flex-basis: 100%;
   min-width: 0;

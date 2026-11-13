@@ -3,8 +3,9 @@
    Fast inbox capture with reversible suggestion
    ============================================ */
 import { suggestType, TYPE_LABELS } from "./suggest.js";
-import { createEditor, editorHTML, htmlWithLightImages, plainText, renderRich } from "./richtext.js";
+import { createEditor, editorHTML, htmlWithLightImages, plainText, renderRich } from "./richtext.js?v=20261021rtl9";
 import { renderMarkdown } from "./markdown.js";
+import { pairsEditorHTML, wirePairsEditor, collectPairs } from "./dataPairs.js?v=20261021pairs1";
 
 const API_BASE = "/api";
 const TYPES = ["action", "event", "note", "pensamiento", "idea", "reminder", "purchase"];
@@ -16,6 +17,11 @@ let pendingEntry = null;
 let selectedType = null;
 // Rich HTML waiting to be captured (quick input shows its plain version)
 let pendingHTML = null;
+// Datos útiles escritos en la sugerencia: sobreviven a un re-render
+// del mismo formulario (p. ej. al corregir el texto) y se pierden al
+// cambiar de entrada. El DOM es la fuente de verdad al re-renderizar.
+let pendingPairs = [];
+let pairsEntryId = null;
 
 function needsDate(type) {
   return type === "action" || type === "event" || type === "reminder";
@@ -51,6 +57,8 @@ export async function loadEntryIntoCapture(entryId) {
 function renderIdle(section) {
   pendingEntry = null;
   selectedType = null;
+  pendingPairs = [];
+  pairsEntryId = null;
   section.innerHTML = `
     <div class="capture-row">
       <span class="capture-icon">💭</span>
@@ -277,6 +285,14 @@ async function findSimilar(text, excludeId = null) {
 }
 
 function renderSuggestion(section, entry) {
+  // Conserva las filas ya escritas si el formulario se re-renderiza
+  // para la MISMA entrada; al cambiar de entrada, se empieza de cero.
+  if (pairsEntryId !== null && String(pairsEntryId) === String(entry.id)) {
+    pendingPairs = collectPairs(section.querySelector(".task-pairs-edit"));
+  } else {
+    pendingPairs = [];
+    pairsEntryId = entry.id;
+  }
   section.innerHTML = `
     <div class="capture-suggest">
       <div class="capture-suggest-text" id="capture-suggest-text" role="button" tabindex="0"
@@ -300,6 +316,9 @@ function renderSuggestion(section, entry) {
           <input type="checkbox" id="capture-extreme"> Extrema
         </label>
       </div>
+      <div class="capture-pairs" ${selectedType === "action" ? "" : 'style="display:none"'}>
+        ${pairsEditorHTML(pendingPairs)}
+      </div>
       <div class="capture-actions">
         <button class="modal-btn modal-btn-secondary" id="capture-discard">Descartar</button>
         <button class="modal-btn modal-btn-secondary" id="capture-later">Después</button>
@@ -309,6 +328,8 @@ function renderSuggestion(section, entry) {
     </div>
   `;
 
+  wirePairsEditor(section.querySelector(".task-pairs-edit"));
+
   section.querySelectorAll(".capture-type").forEach(btn => {
     btn.addEventListener("click", () => {
       selectedType = btn.dataset.type;
@@ -316,6 +337,8 @@ function renderSuggestion(section, entry) {
         b.classList.toggle("active", b === btn));
       const when = section.querySelector(".capture-when");
       if (when) when.style.display = needsDate(selectedType) ? "" : "none";
+      const pairsRow = section.querySelector(".capture-pairs");
+      if (pairsRow) pairsRow.style.display = selectedType === "action" ? "" : "none";
       const extremeRow = section.querySelector("#capture-extreme-row");
       if (extremeRow) extremeRow.style.display = selectedType === "reminder" ? "" : "none";
       const doneBtn = section.querySelector("#capture-done");
@@ -383,23 +406,22 @@ function renderSuggestion(section, entry) {
 
 function dateFor(when, dateValue, timeValue) {
   const now = new Date();
-  if (when === "today") {
-    now.setHours(23, 59, 0, 0);
-    return now;
-  }
+  let at = null;
   if (dateValue) {
-    // Date without time → end of that day, so "just the day" still notifies
     const [y, m, d] = dateValue.split("-").map(Number);
-    const at = new Date(y, (m || 1) - 1, d || 1);
-    if (timeValue) {
-      const [hh, mm] = timeValue.split(":").map(Number);
-      at.setHours(hh || 0, mm || 0, 0, 0);
-    } else {
-      at.setHours(23, 59, 0, 0);
-    }
-    return at;
+    at = new Date(y, (m || 1) - 1, d || 1);
+  } else if (when === "today") {
+    at = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   }
-  return null;
+  if (!at) return null;
+  if (timeValue) {
+    const [hh, mm] = timeValue.split(":").map(Number);
+    at.setHours(hh || 0, mm || 0, 0, 0);
+  } else {
+    // Solo día: 23:59 es el límite del día, no una hora programada.
+    at.setHours(23, 59, 0, 0);
+  }
+  return at;
 }
 
 async function confirmEntry(section, entry) {
@@ -410,6 +432,9 @@ async function confirmEntry(section, entry) {
   const extreme = section.querySelector("#capture-extreme")?.checked || false;
   const at = dateFor(when, dateValue, timeValue);
   const iso = at ? at.toISOString() : null;
+  // Sin hora elegida, el 23:59 es el límite del día: se guarda como fecha
+  // límite, no como hora programada (así no aparece "programada 23:59").
+  const dayOnly = Boolean(iso) && !timeValue;
   // Titles are always plain text (one line, no tags); the full
   // rich content only survives into notes.
   const rich = entry.raw_text;
@@ -422,7 +447,12 @@ async function confirmEntry(section, entry) {
     let targetId = null;
 
     if (selectedType === "action") {
-      const task = await postJson("/api/tasks", { title: text, scheduled_datetime: iso });
+      const data_pairs = collectPairs(section.querySelector(".task-pairs-edit"));
+      const task = await postJson("/api/tasks", {
+        title: text,
+        ...(iso ? (dayOnly ? { due_datetime: iso } : { scheduled_datetime: iso }) : {}),
+        ...(data_pairs.length ? { data_pairs } : {}),
+      });
       targetId = task.id;
     } else if (selectedType === "event") {
       if (!iso) {
@@ -494,7 +524,11 @@ async function confirmDone(section, entry) {
     let targetType = selectedType;
     let targetId = null;
     if (selectedType === "action") {
-      const t = await postJson("/api/tasks", { title: text });
+      const data_pairs = collectPairs(section.querySelector(".task-pairs-edit"));
+      const t = await postJson("/api/tasks", {
+        title: text,
+        ...(data_pairs.length ? { data_pairs } : {}),
+      });
       await fetch(`${API_BASE}/tasks/${t.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },

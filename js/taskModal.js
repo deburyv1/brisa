@@ -4,6 +4,7 @@
    ============================================ */
 const API_BASE = "/api";
 import { snapshotForm, isDirty, confirmDiscard, toISODateTime, setFormFeedback, setFormBusy, setFormLoading, isFormSaving } from "./modalGuard.js";
+import { pairsEditorHTML, wirePairsEditor, collectPairs } from "./dataPairs.js?v=20261021pairs1";
 
 function toLocalDate(dt) {
   if (!dt) return "";
@@ -36,6 +37,15 @@ export function initTaskModal() {
   let editingId = null;
   let cleanSnapshot = null;
   let loadGeneration = 0;
+
+  // Se re-renderiza en cada apertura (el div #task-pairs-editor
+  // persiste, pero su interior y sus listeners no).
+  function renderPairsEditor(pairs) {
+    const box = form.querySelector("#task-pairs-editor");
+    if (!box) return;
+    box.innerHTML = pairsEditorHTML(pairs);
+    wirePairsEditor(box.querySelector(".task-pairs-edit"));
+  }
 
   async function fillReadinessOptions(selectedItemId) {
     const sel = form.querySelector("#task-readiness-select");
@@ -112,6 +122,7 @@ export function initTaskModal() {
           window.setPickerValue(form.due_time, toLocalTime(task.due_datetime));
           form.priority.value = task.priority || "medium";
           form.estimated_minutes.value = task.estimated_minutes ?? "";
+          renderPairsEditor(task.data_pairs);
           const linked = await linkedReadinessItem(taskId);
           await fillReadinessOptions(linked?.id || "");
           if (generation !== loadGeneration) return;
@@ -128,6 +139,7 @@ export function initTaskModal() {
     } else {
       titleEl.textContent = "Nueva tarea";
       setFormBusy(form, false);
+      renderPairsEditor([]);
       const pristineSnapshot = snapshotForm(form);
       cleanSnapshot = pristineSnapshot;
       fillReadinessOptions("").then(() => {
@@ -185,8 +197,13 @@ export function initTaskModal() {
     delete payload.scheduled_time;
     delete payload.due_date;
     delete payload.due_time;
+    // Inputs del editor de datos útiles: solo interesan ya colectados.
+    for (const key of Object.keys(payload)) {
+      if (key.startsWith("pair_label_") || key.startsWith("pair_value_")) delete payload[key];
+    }
     payload.scheduled_datetime = combineDateTime(data.scheduled_date, data.scheduled_time);
     payload.due_datetime = combineDateTime(data.due_date, data.due_time);
+    payload.data_pairs = collectPairs(form.querySelector("#task-pairs-editor .task-pairs-edit"));
 
     try {
       let savedId = editingId;

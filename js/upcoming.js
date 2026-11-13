@@ -14,7 +14,6 @@ const DISMISSED_KEY = "brisa.upcomingDismissed";
 const SNOOZE_KEY = "brisa.upcomingSnooze";
 
 let titleFlashId = null;
-let alarmTimers = [];
 let baseTitle = document.title;
 
 function readSet(key) {
@@ -110,16 +109,11 @@ function stopTitleFlash() {
   document.title = baseTitle;
 }
 
-function stopTakeoverSound() {
-  alarmTimers.forEach(clearInterval);
-  alarmTimers = [];
-}
-
 function showTakeover(item, kind, lateLeave, started = false) {
-  stopTakeoverSound();
   document.querySelector("#upcoming-takeover")?.remove();
+  // Play one brief chime. The visual takeover stays until the user responds,
+  // without repeating sound every few seconds.
   chime(4);
-  alarmTimers.push(setInterval(() => chime(4), 8000));
 
   const isEvent = kind === "event";
   const isReminder = kind === "reminder";
@@ -253,7 +247,6 @@ function showTakeover(item, kind, lateLeave, started = false) {
 }
 
 function stopTakeover() {
-  stopTakeoverSound();
   stopTitleFlash();
   document.querySelector("#upcoming-takeover")?.remove();
 }

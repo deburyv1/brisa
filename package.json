@@ -1,0 +1,8 @@
+{
+  "name": "brisa",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  }
+}

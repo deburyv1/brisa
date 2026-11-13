@@ -133,6 +133,29 @@
 .next-agenda-task:focus-visible { outline: 2px solid rgba(8, 127, 176, .5); outline-offset: 2px; }
 .next-agenda-title { min-width: 0; overflow-wrap: anywhere; }
 .next-agenda-meta { flex: 0 0 auto; color: rgba(22, 75, 105, .66); font-size: 10px; }
+.next-agenda-row { display: flex; align-items: stretch; gap: 6px; margin-top: 4px; }
+.next-agenda-row .next-agenda-task { margin-top: 0; flex: 1 1 auto; }
+.next-agenda-actions { display: flex; align-items: center; gap: 4px; flex: 0 0 auto; }
+.next-agenda-act {
+  padding: 6px 9px;
+  border: 1px solid rgba(22, 75, 105, .16);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .35);
+  color: rgba(22, 75, 105, .85);
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.next-agenda-act:hover { background: rgba(255, 255, 255, .7); border-color: rgba(8, 127, 176, .35); }
+.next-agenda-act:focus-visible { outline: 2px solid rgba(8, 127, 176, .5); outline-offset: 2px; }
+/* Borrar: presente pero sin gritar rojo — todo va a la Papelera. */
+.next-agenda-del { color: rgba(176, 48, 48, .85); border-color: rgba(176, 48, 48, .35); }
+.next-agenda-del:hover { background: rgba(176, 48, 48, .1); color: #b03030; }
+@media (max-width: 640px) {
+  .next-agenda-row { flex-wrap: wrap; }
+  .next-agenda-actions { width: 100%; justify-content: flex-end; }
+}
 .next-reassurance { margin-top: 12px; padding-top: 10px; border-top: 1px dashed rgba(22, 75, 105, .2); color: rgba(22, 75, 105, .72); font-size: 10px; }
 
 .next-label-hint {
@@ -149,18 +172,6 @@
   font-weight: 600;
   color: rgba(8, 127, 176, 0.85);
   margin-bottom: 2px;
-}
-
-  border-radius: 12px;
-  padding: 10px 22px;
-  font-size: 11px;
-  font-weight: 700;
-  color: #fff;
-  background: linear-gradient(145deg, #27c9eb, #087fb0);
-  cursor: pointer;
-  white-space: nowrap;
-  transition: var(--transition-speed);
-  flex-shrink: 0;
 }
 
 .next-actions {
@@ -190,6 +201,8 @@
 .next-start:focus-visible,
 .next-done:focus-visible,
 .next-postpone:focus-visible,
+.next-schedule:focus-visible,
+.next-delete:focus-visible,
 .next-alt:focus-visible { outline: 3px solid rgba(8, 127, 176, .45); outline-offset: 2px; }
 .next-start:disabled { opacity: .65; cursor: wait; transform: none; }
 
@@ -237,6 +250,110 @@
 
 .next-postpone:hover { background: rgba(255, 255, 255, .7); }
 .next-postpone:disabled { opacity: .6; }
+
+/* Reprogramar libremente sin abrir Enfoque */
+.next-schedule {
+  border: 1px solid rgba(22, 75, 105, 0.3);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(22, 75, 105, 0.85);
+  background: rgba(255, 255, 255, .45);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: var(--transition-speed);
+  flex-shrink: 0;
+}
+
+.next-schedule:hover { background: rgba(255, 255, 255, .7); }
+.next-schedule:disabled { opacity: .6; }
+
+/* Borrar: misma forma que los otros botones, tinte suave (va a la Papelera). */
+.next-delete {
+  border: 1px solid rgba(176, 48, 48, .35);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(176, 48, 48, .85);
+  background: rgba(255, 255, 255, .45);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: var(--transition-speed);
+  flex-shrink: 0;
+}
+.next-delete:hover { background: rgba(176, 48, 48, .1); color: #b03030; }
+.next-delete:disabled { opacity: .6; }
+
+.next-scheduler {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, .7);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .38);
+}
+
+.next-scheduler-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(22, 75, 105, .7);
+}
+
+.next-scheduler-input {
+  font: inherit;
+  font-size: 12px;
+  color: var(--ink);
+  border: 1px solid rgba(79, 137, 165, .45);
+  border-radius: 10px;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, .65);
+}
+
+.next-scheduler-quick { display: flex; gap: 6px; }
+
+.next-scheduler-quick button {
+  border: 1px solid rgba(22, 75, 105, .3);
+  border-radius: 99px;
+  padding: 5px 12px;
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(22, 75, 105, .85);
+  background: rgba(255, 255, 255, .5);
+  cursor: pointer;
+}
+
+.next-scheduler-quick button:hover { background: rgba(255, 255, 255, .8); }
+
+.next-scheduler-actions { display: flex; gap: 6px; margin-left: auto; }
+
+.next-scheduler-save {
+  border: 1px solid rgba(8, 127, 176, .65);
+  border-radius: 10px;
+  padding: 7px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(145deg, #27c9eb, #087fb0);
+  cursor: pointer;
+}
+
+.next-scheduler-save:disabled { opacity: .6; cursor: wait; }
+
+.next-scheduler-cancel {
+  border: 1px solid rgba(22, 75, 105, .3);
+  border-radius: 10px;
+  padding: 7px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(22, 75, 105, .8);
+  background: rgba(255, 255, 255, .45);
+  cursor: pointer;
+}
 
 .next-alt-group {
   display: flex;
@@ -357,6 +474,78 @@
 .next-event-row span {
   flex: 1;
   min-width: 0;
+}
+
+/* El título abre el detalle del evento (misma vía que "Ver preparación"):
+   es la forma evidente de llegar a toda la info sin adivinar. */
+.next-event-title {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: rgba(8, 127, 176, 0.35);
+  text-underline-offset: 3px;
+}
+
+.next-event-title:hover {
+  color: #087fb0;
+  text-decoration-color: #087fb0;
+}
+
+.next-event-title:focus-visible {
+  outline: 3px solid rgba(8, 127, 176, .45);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.next-event-label-overdue {
+  color: rgba(160, 110, 30, 0.9);
+}
+
+.next-event-overdue {
+  border-top-color: rgba(160, 110, 30, 0.3);
+}
+
+.next-alt-close {
+  flex-direction: row;
+  background: rgba(160, 110, 30, 0.85);
+  border-color: rgba(160, 110, 30, 0.85);
+  color: #fff;
+}
+
+.next-alt-close:hover {
+  background: rgba(160, 110, 30, 1);
+  color: #fff;
+}
+
+.next-alt-take {
+  flex-direction: row;
+  background: rgba(8, 127, 176, 0.9);
+  border-color: rgba(8, 127, 176, 0.9);
+  color: #fff;
+}
+
+.next-alt-take:hover {
+  background: rgba(8, 127, 176, 1);
+  color: #fff;
+}
+
+/* Borrar: presente pero sin gritar rojo — todo va a la Papelera y
+   se puede recuperar, así que no es una acción irreversible. */
+.next-alt-del {
+  color: rgba(176, 48, 48, 0.85);
+  border-color: rgba(176, 48, 48, 0.35);
+}
+
+.next-alt-del:hover {
+  background: rgba(176, 48, 48, 0.1);
+  color: #b03030;
 }
 
 .next-ideas {

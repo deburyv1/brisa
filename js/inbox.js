@@ -4,7 +4,7 @@
    ============================================ */
 import { TYPE_LABELS } from "./suggest.js";
 import { state } from "./state.js";
-import { renderRich } from "./richtext.js";
+import { renderRich } from "./richtext.js?v=20261021rtl9";
 
 const API_BASE = "/api";
 

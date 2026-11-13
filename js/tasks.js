@@ -3,10 +3,33 @@
    CRUD for tasks via /api/tasks
    ============================================ */
 import { state } from "./state.js";
+import { pairsHTML } from "./dataPairs.js?v=20261021pairs1";
 
 const API_BASE = "/api";
 
 let taskFilter = "pending";
+
+// Pasos de una acción: se pueden plegar para ver la lista de un vistazo.
+// El estado se recuerda entre sesiones y sobrevive a los re-renders.
+const COLLAPSED_KEY = "brisa.tasksCollapsed";
+let collapsedGroups = (() => {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(COLLAPSED_KEY) || "[]"));
+  } catch {
+    return new Set();
+  }
+})();
+
+function toggleGroup(id) {
+  const key = String(id);
+  if (collapsedGroups.has(key)) collapsedGroups.delete(key);
+  else collapsedGroups.add(key);
+  try {
+    localStorage.setItem(COLLAPSED_KEY, JSON.stringify([...collapsedGroups]));
+  } catch {
+    // modo privado: al menos vive durante la sesión
+  }
+}
 
 function showTasksFeedback(section, message = "") {
   const el = section.querySelector("#tasks-feedback");
@@ -49,10 +72,10 @@ async function deleteTask(id) {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
 }
 
-/* Cuando eliges "solo el día" (sin hora), Brisa rellena la hora que falta:
-   23:59 al capturar o posponer, 00:00 desde la ficha de la tarea. Mostrar
-   "23:59" o "00:00" hace pensar que tú pusiste esa hora, así que en ese
-   caso se muestra solo el día: hoy, mañana, ayer. */
+/* Cuando eliges "solo el día" (sin hora), Brisa guarda 23:59 como límite
+   del día (o 00:00 desde la ficha de la tarea). Mostrar "23:59" o "00:00"
+   hace pensar que tú pusiste esa hora, así que en ese caso se muestra solo
+   el día: hoy, mañana, ayer. */
 function isDayOnly(d) {
   const h = d.getHours(), m = d.getMinutes();
   return (h === 0 && m === 0) || (h === 23 && m === 59);
@@ -189,15 +212,21 @@ function parentTitle(tasks, task) {
   return p ? p.title : "";
 }
 
-function taskRowHtml(t, tasks, isChild) {
+function taskRowHtml(t, tasks, isChild, group = null) {
   const fromParent = t.parent_task_id ? parentTitle(tasks, t) : "";
   const evTitle = t.event_id ? eventTitleSync(t.event_id) : "";
+  const hiddenSteps = group && group.collapsed
+    ? `<span class="task-steps">${group.count} paso${group.count === 1 ? "" : "s"} oculto${group.count === 1 ? "" : "s"}</span>`
+    : "";
   return `
     <div class="task-item ${t.is_completed ? "done" : ""}${!t.is_completed && t.priority === "high" ? " urgent" : ""}${isChild ? " child" : ""}" data-task-id="${t.id}">
       <div class="task-checkbox ${t.is_completed ? "done" : ""}" data-action="toggle" role="checkbox" aria-checked="${!!t.is_completed}" aria-label="${t.is_completed ? "Marcar pendiente" : "Marcar completada"}: ${escapeHtml(t.title)}" tabindex="0" title="${t.is_completed ? "Marcar pendiente" : "Marcar completada"}"></div>
+      ${group ? `<button class="task-collapse" data-action="collapse" aria-expanded="${group.collapsed ? "false" : "true"}"
+          title="${group.collapsed ? "Mostrar" : "Ocultar"} los ${group.count} pasos">${group.collapsed ? "▸" : "▾"}</button>` : ""}
       <div class="task-info">
         <div class="task-name">${isChild ? "↳ " : ""}${escapeHtml(t.title)}</div>
         <div class="task-meta">
+          ${hiddenSteps}
           ${fromParent ? `<span class="task-parent">de: ${escapeHtml(fromParent)}</span>` : ""}
           ${evTitle ? `<span class="task-event">🎪 Para: ${escapeHtml(evTitle)}</span>` : ""}
           ${t.scheduled_datetime ? `📅 ${formatDateTime(t.scheduled_datetime)}` : ""}
@@ -254,10 +283,14 @@ function renderTasks(section, tasks) {
         <div class="tasks-empty">
           <div class="tasks-empty-text">${taskFilter === "done" ? "Nada completado todavía." : taskFilter === "all" ? "Sin tareas." : "Nada pendiente. 🌱"}</div>
         </div>
-      ` : roots.map(t => `
-        ${taskRowHtml(t, tasks, false)}
-        ${childrenOf(t.id).map(c => taskRowHtml(c, tasks, true)).join("")}
-      `).join("")}
+      ` : roots.map(t => {
+        const kids = childrenOf(t.id);
+        const collapsedNow = kids.length > 0 && collapsedGroups.has(String(t.id));
+        return taskRowHtml(t, tasks, false, kids.length ? { count: kids.length, collapsed: collapsedNow } : null)
+          + (kids.length ? `<div class="task-children" data-children-of="${t.id}"${collapsedNow ? ' data-collapsed="1"' : ""}>${
+              kids.map(c => taskRowHtml(c, tasks, true)).join("")
+            }</div>` : "");
+      }).join("")}
     </div>
   `;
 
@@ -307,6 +340,11 @@ function renderTasks(section, tasks) {
       }
     });
 
+    item.querySelector('[data-action="collapse"]')?.addEventListener("click", () => {
+      toggleGroup(id);
+      renderTasks(section, state.tasks || []);
+    });
+
     item.querySelector('[data-action="ai"]')?.addEventListener("click", async () => {
       const task = state.tasks.find(t => t.id == id);
       if (!task) return;
@@ -341,21 +379,27 @@ function renderTasks(section, tasks) {
       const btn = item.querySelector('[data-action="postpone"]');
       if (btn) { btn.disabled = true; btn.textContent = "…"; }
       try {
-        let at;
+        let payload;
         if (task.scheduled_datetime) {
           const d = new Date(task.scheduled_datetime);
           d.setDate(d.getDate() + 1);
-          at = d.toISOString();
+          payload = { scheduled_datetime: d.toISOString() };
+        } else if (task.due_datetime) {
+          const due = new Date(task.due_datetime);
+          const d = new Date();
+          d.setDate(d.getDate() + 1);
+          d.setHours(due.getHours(), due.getMinutes(), 0, 0);
+          payload = { due_datetime: d.toISOString() };
         } else {
           const d = new Date();
           d.setDate(d.getDate() + 1);
           d.setHours(9, 0, 0, 0);
-          at = d.toISOString();
+          payload = { scheduled_datetime: d.toISOString() };
         }
         const res = await fetch(`${API_BASE}/tasks/${id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ scheduled_datetime: at }),
+          body: JSON.stringify(payload),
         });
         if (!res.ok) throw new Error();
         if (window.initTasks) await window.initTasks();
@@ -442,6 +486,7 @@ async function showTaskDetail(id) {
       ${task.first_step ? `<div class="task-detail-step">Primer paso: ${escapeHtml(task.first_step)}</div>` : ""}
     </div>
     ${task.description ? `<div class="task-detail-desc">${escapeHtml(task.description)}</div>` : ""}
+    ${pairsHTML(parent ? parent.data_pairs : task.data_pairs)}
     <div class="task-detail-ai" id="task-detail-ai"></div>
     <div class="modal-actions">
       <button class="modal-btn modal-btn-secondary" id="task-detail-edit">Editar</button>
@@ -462,21 +507,27 @@ async function showTaskDetail(id) {
       postponeBtn.disabled = true;
       postponeBtn.textContent = "Pateando…";
       try {
-        let at;
+        let payload;
         if (task.scheduled_datetime) {
           const d = new Date(task.scheduled_datetime);
           d.setDate(d.getDate() + 1);
-          at = d.toISOString();
+          payload = { scheduled_datetime: d.toISOString() };
+        } else if (task.due_datetime) {
+          const due = new Date(task.due_datetime);
+          const d = new Date();
+          d.setDate(d.getDate() + 1);
+          d.setHours(due.getHours(), due.getMinutes(), 0, 0);
+          payload = { due_datetime: d.toISOString() };
         } else {
           const d = new Date();
           d.setDate(d.getDate() + 1);
           d.setHours(9, 0, 0, 0);
-          at = d.toISOString();
+          payload = { scheduled_datetime: d.toISOString() };
         }
         await fetch(`${API_BASE}/tasks/${task.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ scheduled_datetime: at }),
+          body: JSON.stringify(payload),
         });
         overlay.classList.remove("active");
         if (window.initTasks) await window.initTasks();

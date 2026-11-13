@@ -108,7 +108,24 @@ export function pickNextAction(tasks, now = new Date()) {
   later.sort((a, b) => taskTime(a) - taskTime(b) || priorityAndSize(a, b));
   unscheduled.sort((a, b) => priorityAndSize(a, b));
 
-  const current = overdue[0] || today[0] || null;
+  const timer = typeof window !== "undefined" ? window.brisaTimer : null;
+  const linkedTaskId = timer?.hasSession() ? timer.linkedTask?.() : null;
+  const timerTask = linkedTaskId != null
+    ? source.find(t => String(t.id) === String(linkedTaskId)) : null;
+  // Una acción empezada pero programada para otro día no debe ocupar la
+  // tarjeta de hoy: al patearla vuelve mañana como EN CURSO. El timer en
+  // marcha siempre manda (sin fechas = sigue vigente).
+  const bindsToday = (task) => {
+    const dates = [task.scheduled_datetime, task.due_datetime].filter(Boolean);
+    return !dates.length || dates.some((d) => dayOffset(d, now) <= 0);
+  };
+  const activeTask = timerTask || source
+    .filter(t => t.started_at && bindsToday(t))
+    .sort((a, b) => new Date(b.started_at) - new Date(a.started_at))[0] || null;
+  const activeParent = activeTask?.parent_task_id != null
+    ? source.find(t => String(t.id) === String(activeTask.parent_task_id) && bindsToday(t)) : null;
+  const activeAction = activeParent || activeTask;
+  const current = activeAction || overdue[0] || today[0] || null;
   const shortest = (items) => [...items].filter(t => Number(t.estimated_minutes) > 0 && Number(t.estimated_minutes) <= 15)
     .sort((a, b) => a.estimated_minutes - b.estimated_minutes || priorityAndSize(a, b))[0] || null;
   const quickPickOptions = [
@@ -120,8 +137,13 @@ export function pickNextAction(tasks, now = new Date()) {
   ];
   const [quickPick, quickPickType] = current ? [null, null]
     : quickPickOptions.find(([task]) => task) || [null, null];
-  const reason = overdue[0]
-    ? isPastDue(overdue[0].due_datetime, now) ? "Su fecha límite ya pasó." : "Su hora programada ya pasó."
+  const overdueTask = overdue[0];
+  const reason = activeAction ? "Ya empezaste esta acción. Sigamos desde el paso que dejaste abierto."
+    : overdueTask
+    ? isPastDue(overdueTask.due_datetime, now) ? "Su fecha límite ya pasó."
+      : overdueTask.scheduled_datetime && isDayOnly(new Date(overdueTask.scheduled_datetime))
+        ? "Quedó para un día que ya pasó."
+        : "Su hora programada ya pasó."
     : today[0]?.due_datetime && isToday(today[0].due_datetime) && !today[0].scheduled_datetime
       ? "Tiene fecha límite hoy."
       : today[0] ? "Es lo siguiente en tu agenda de hoy."
@@ -133,7 +155,7 @@ export function pickNextAction(tasks, now = new Date()) {
           : "No tienes tareas pendientes para hoy.";
   const alternatives = [...overdue, ...today, ...upcoming, ...later, ...unscheduled]
     .filter(t => String(t.id) !== String(current?.id)).slice(0, 6);
-  return { current, quickPick, quickPickType, reason, overdue, today, upcoming, later, unscheduled, alternatives };
+  return { current, activeAction: activeAction ? current : null, activeTask: activeAction ? activeTask : null, quickPick, quickPickType, reason, overdue, today, upcoming, later, unscheduled, alternatives };
 }
 
 export function initNext() {
@@ -164,7 +186,7 @@ export async function renderNext() {
   // unrelated standalone actions in the daily recommendation.
   const eventTaskIds = new Set((state.tasks || []).filter(t => t.event_id).map(t => String(t.id)));
   const plan = pickNextAction((state.tasks || []).filter(t => !t.event_id && !eventTaskIds.has(String(t.parent_task_id))));
-  const { current, quickPick, quickPickType, reason, overdue, today, upcoming, later, unscheduled } = plan;
+  const { current, activeAction, activeTask, quickPick, quickPickType, reason, overdue, today, upcoming, later, unscheduled } = plan;
 
   // Eventos: para mostrar a qué evento sirve cada tarea (las de preparación)
   // y cuándo es, incluyendo el tiempo de viaje.
@@ -186,10 +208,17 @@ export async function renderNext() {
     const children = (state.tasks || []).filter(child => String(child.parent_task_id) === String(t.id));
     const childProgress = children.length
       ? ` · ${children.filter(child => child.is_completed).length}/${children.length} pasos` : "";
-    return `<button class="next-agenda-task" data-start="${t.id}">
-      <span class="next-agenda-title">${escapeHtml(t.title)}</span>
-      <span class="next-agenda-meta">${escapeHtml(when + estimate + childProgress)}</span>
-    </button>`;
+    return `<div class="next-agenda-row">
+      <button class="next-agenda-task" data-start="${t.id}" title="Abrir en Enfoque">
+        <span class="next-agenda-title">${escapeHtml(t.title)}</span>
+        <span class="next-agenda-meta">${escapeHtml(when + estimate + childProgress)}</span>
+      </button>
+      <div class="next-agenda-actions">
+        <button class="next-agenda-act" data-done="${t.id}" title="Marcar como hecha">Listo</button>
+        <button class="next-agenda-act" data-schedule="${t.id}" title="Ponerle día y hora sin abrir Enfoque">Programar</button>
+        <button class="next-agenda-act next-agenda-del" data-delete="${t.id}" title="Eliminar la tarea (queda en la Papelera por si la recuperas)">Eliminar</button>
+      </div>
+    </div>`;
   }).join("");
   const agendaGroups = [
     ["Atrasadas", overdue, "overdue"],
@@ -218,7 +247,10 @@ export async function renderNext() {
 
   let main;
   if (current) {
-    const detail = current.first_step || current.description || "Sin detalles todavía.";
+    const inProgress = !!activeAction && String(activeAction.id) === String(current.id);
+    const detail = inProgress && activeTask && String(activeTask.id) !== String(current.id)
+      ? `Ahora mismo: ${activeTask.title}`
+      : detailSnippet(current.first_step || current.description) || "Sin detalles todavía.";
     const parent = current.parent_task_id
       ? (state.tasks || []).find(t => String(t.id) === String(current.parent_task_id)) : null;
     const linkedEvent = current.event_id ? eventById(current.event_id) : null;
@@ -239,7 +271,7 @@ export async function renderNext() {
           .toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }) : "";
     const canPostpone = !current.due_datetime || !isToday(current.due_datetime);
     main = `
-      <div class="next-label">Ahora <span class="next-label-hint">· siguiente según tus fechas</span></div>
+      <div class="next-label">${inProgress ? "EN CURSO" : "AHORA"} <span class="next-label-hint">· ${inProgress ? "ya avanzaste; retomemos juntos" : "siguiente según tus fechas"}</span></div>
       <div class="next-main">
         <div class="next-info">
           ${parent ? `<div class="next-parent">↳ Parte de: ${escapeHtml(parent.title)}${parentWhen ? ` · ${escapeHtml(parentWhen)}` : ""}</div>` : ""}
@@ -250,9 +282,11 @@ export async function renderNext() {
           <div class="next-reason">${escapeHtml(reason)}</div>
         </div>
         <div class="next-actions">
-          <button class="next-start" data-start="${current.id}">Empezar</button>
+          <button class="next-start" data-start="${inProgress ? activeTask?.id || current.id : current.id}" ${inProgress ? 'data-resume="true"' : ""}>${inProgress ? "Continuar" : "Empezar"}</button>
           <button class="next-done" data-done="${current.id}" title="Marcar como hecha y pasar a la siguiente">Hecho</button>
-          ${canPostpone ? `<button class="next-postpone" data-postpone="${current.id}" title="Mover a mañana a las 9:00 (no tiene fecha límite hoy)">Pasar a mañana</button>` : ""}
+          ${canPostpone ? `<button class="next-postpone" data-postpone="${current.id}" title="Sale de la vista de hoy y queda programada para mañana">Pasar a mañana</button>` : ""}
+          <button class="next-schedule" data-schedule="${current.id}" title="Ponerle día y hora sin abrir Enfoque">Programar</button>
+          <button class="next-delete" data-delete="${current.id}" title="Eliminar la tarea (queda en la Papelera por si la recuperas)">Eliminar</button>
         </div>
       </div>`;
   } else if (quickPick) {
@@ -265,17 +299,33 @@ export async function renderNext() {
       <div class="next-main">
         <div class="next-info">
           <div class="next-title">${escapeHtml(quickPick.title)}</div>
-          <div class="next-detail">${escapeHtml(quickPick.first_step || quickPick.description || "Sin detalles todavía.")}</div>
+          <div class="next-detail">${escapeHtml(detailSnippet(quickPick.first_step || quickPick.description) || "Sin detalles todavía.")}</div>
           <div class="next-meta">${escapeHtml(quickWhen + est)}</div>
           <div class="next-reason">${escapeHtml(reason)}</div>
         </div>
-        <div class="next-actions"><button class="next-start" data-start="${quickPick.id}">Empezar</button></div>
+        <div class="next-actions">
+          <button class="next-start" data-start="${quickPick.id}">Empezar</button>
+          <button class="next-schedule" data-schedule="${quickPick.id}" title="Ponerle día y hora sin abrir Enfoque">Programar</button>
+        </div>
       </div>`;
   } else {
     main = `<div class="next-empty"><div class="next-empty-icon">🌱</div><div class="next-empty-text"><strong>Hoy está despejado.</strong><br>Revisé tus tareas vencidas y no hay pendientes para hoy.</div></div>`;
   }
 
-  section.innerHTML = `${main}${agenda}
+  section.innerHTML = `${main}
+    <div class="next-scheduler" id="next-scheduler" style="display:none">
+      <label class="next-scheduler-label" for="next-scheduler-input">Día y hora</label>
+      <input type="datetime-local" id="next-scheduler-input" class="next-scheduler-input">
+      <div class="next-scheduler-quick">
+        <button type="button" data-sched-quick="now" title="Programarla para este mismo momento">Ahora</button>
+        <button type="button" data-sched-quick="today" title="Hoy a su hora, o la media hora siguiente">Hoy</button>
+      </div>
+      <div class="next-scheduler-actions">
+        <button type="button" class="next-scheduler-save">Guardar</button>
+        <button type="button" class="next-scheduler-cancel">Cancelar</button>
+      </div>
+    </div>
+    ${agenda}
     <div class="next-event" id="next-event" style="display:none"></div>
     <div class="next-ideas" id="next-ideas" style="display:none"></div>`;
   if (agendaWasOpen) {
@@ -285,7 +335,16 @@ export async function renderNext() {
 
   section.querySelectorAll("[data-start]").forEach(btn => {
     btn.addEventListener("click", () => {
-      if (window.openFocus) window.openFocus(btn.dataset.start);
+      if (btn.dataset.resume === "true") {
+        const task = (state.tasks || []).find(t => String(t.id) === String(btn.dataset.start));
+        const hasChildren = (state.tasks || []).some(t => String(t.parent_task_id) === String(btn.dataset.start) && !t.is_completed);
+        if (task?.parent_task_id != null || (!hasChildren && task?.first_step?.trim())) {
+          if (window.resumeFocusTask) window.resumeFocusTask(btn.dataset.start);
+          else if (window.openFocus) window.openFocus(btn.dataset.start);
+        } else if (window.openFocus) {
+          window.openFocus(btn.dataset.start);
+        }
+      } else if (window.openFocus) window.openFocus(btn.dataset.start);
     });
   });
 
@@ -296,18 +355,14 @@ export async function renderNext() {
     btn.disabled = true;
       btn.textContent = "Moviendo…";
     try {
-      let at;
-      if (task?.scheduled_datetime) {
-        const d = new Date(task.scheduled_datetime);
-        d.setDate(d.getDate() + 1);
-        at = d.toISOString();
-      } else {
-        // Sin fecha: se agenda para mañana a las 9, sale de "ahora" hoy.
-        const d = new Date();
-        d.setDate(d.getDate() + 1);
-        d.setHours(9, 0, 0, 0);
-        at = d.toISOString();
-      }
+      // Mañana real = hoy + 1. Antes sumaba 1 día a la fecha de la tarea,
+      // así que una tarea programada a futuro quedaba aún más lejos.
+      const d = new Date();
+      d.setDate(d.getDate() + 1);
+      const orig = task?.scheduled_datetime ? new Date(task.scheduled_datetime) : null;
+      const hasOrig = orig && !Number.isNaN(orig.getTime());
+      d.setHours(hasOrig ? orig.getHours() : 9, hasOrig ? orig.getMinutes() : 0, 0, 0);
+      const at = d.toISOString();
       const res = await fetch(`${API_BASE}/tasks/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -325,26 +380,135 @@ export async function renderNext() {
     }
   });
 
-  section.querySelector("[data-done]")?.addEventListener("click", async (e) => {
-    const btn = e.currentTarget;
-    btn.disabled = true;
+  // Programar sin abrir Enfoque: elegir día y hora libremente.
+  const schedBox = section.querySelector("#next-scheduler");
+  const schedInput = section.querySelector("#next-scheduler-input");
+  const localValue = (d) => {
+    const p = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+  };
+  const nextHalfHour = (now) => {
+    const d = new Date(now);
+    d.setSeconds(0, 0);
+    if (d.getMinutes() < 30) d.setMinutes(30);
+    else { d.setMinutes(0); d.setHours(d.getHours() + 1); }
+    return d;
+  };
+  const schedTask = () => (state.tasks || []).find(t => String(t.id) === String(schedBox?.dataset.task));
+  // Defecto al abrir: su hora si aún viene, hoy a su hora si aún queda, si no la media hora siguiente.
+  // Si la tarea quedó "solo con día", el 23:59/00:00 es un relleno interno: no se
+  // muestra como si lo hubieras elegido, se conserva el día y se usa una hora neutra.
+  const defaultScheduleValue = (task) => {
+    const now = new Date();
+    const orig = task?.scheduled_datetime ? new Date(task.scheduled_datetime) : null;
+    const fallback = nextHalfHour(now);
+    if (orig && !Number.isNaN(orig.getTime())) {
+      if (isDayOnly(orig)) {
+        const dayAt = new Date(orig);
+        dayAt.setHours(fallback.getHours(), fallback.getMinutes(), 0, 0);
+        return localValue(dayAt.getTime() > now.getTime() ? dayAt : fallback);
+      }
+      if (orig.getTime() > now.getTime()) return localValue(orig);
+      const todayAt = new Date(now);
+      todayAt.setHours(orig.getHours(), orig.getMinutes(), 0, 0);
+      if (todayAt.getTime() > now.getTime()) return localValue(todayAt);
+    }
+    return localValue(fallback);
+  };
+  const todayScheduleValue = (task) => {
+    const now = new Date();
+    const orig = task?.scheduled_datetime ? new Date(task.scheduled_datetime) : null;
+    if (orig && !Number.isNaN(orig.getTime()) && !isDayOnly(orig)) {
+      const todayAt = new Date(now);
+      todayAt.setHours(orig.getHours(), orig.getMinutes(), 0, 0);
+      if (todayAt.getTime() > now.getTime()) return localValue(todayAt);
+    }
+    return localValue(nextHalfHour(now));
+  };
+  section.querySelectorAll("[data-schedule]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      if (!schedBox || !schedInput) return;
+      const alreadyOpen = schedBox.style.display !== "none" && schedBox.dataset.task === btn.dataset.schedule;
+      if (alreadyOpen) { schedBox.style.display = "none"; return; }
+      schedBox.dataset.task = btn.dataset.schedule;
+      schedInput.value = defaultScheduleValue(schedTask());
+      schedBox.style.display = "";
+      schedInput.focus();
+    });
+  });
+  schedBox?.querySelectorAll("[data-sched-quick]").forEach(chip => {
+    chip.addEventListener("click", () => {
+      const task = schedTask();
+      schedInput.value = chip.dataset.schedQuick === "now" ? localValue(new Date()) : todayScheduleValue(task);
+    });
+  });
+  schedBox?.querySelector(".next-scheduler-cancel")?.addEventListener("click", () => { schedBox.style.display = "none"; });
+  schedBox?.querySelector(".next-scheduler-save")?.addEventListener("click", async () => {
+    if (!schedInput?.value) return;
+    const saveBtn = schedBox.querySelector(".next-scheduler-save");
+    saveBtn.disabled = true;
     try {
-      const res = await fetch(`${API_BASE}/tasks/${btn.dataset.done}`, {
+      const res = await fetch(`${API_BASE}/tasks/${schedBox.dataset.task}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ is_completed: true, completed_at: new Date().toISOString() }),
+        body: JSON.stringify({ scheduled_datetime: new Date(schedInput.value).toISOString() }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      schedBox.style.display = "none";
+      if (window.initTasks) await window.initTasks();
+      if (window.renderNext) window.renderNext();
+      if (window.initToday) await window.initToday();
+      if (window.initWeek) window.initWeek();
     } catch (err) {
-      console.error("No se pudo marcar como hecha:", err);
-      btn.disabled = false;
-      return;
+      console.error("No se pudo programar:", err);
+      saveBtn.disabled = false;
     }
-    if (window.initTasks) await window.initTasks();
-    if (window.renderNext) window.renderNext();
-    if (window.initToday) window.initToday();
-    if (window.initWeek) window.initWeek();
-    if (window.initReadiness) window.initReadiness();
+  });
+
+  section.querySelectorAll("[data-done]").forEach(btn => {
+    btn.addEventListener("click", async (e) => {
+      const button = e.currentTarget;
+      button.disabled = true;
+      try {
+        const res = await fetch(`${API_BASE}/tasks/${button.dataset.done}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ is_completed: true, completed_at: new Date().toISOString() }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      } catch (err) {
+        console.error("No se pudo marcar como hecha:", err);
+        button.disabled = false;
+        return;
+      }
+      if (window.initTasks) await window.initTasks();
+      if (window.renderNext) window.renderNext();
+      if (window.initToday) window.initToday();
+      if (window.initWeek) window.initWeek();
+      if (window.initReadiness) window.initReadiness();
+    });
+  });
+
+  // Borrar desde la tarjeta o desde la agenda: con confirmación, igual que
+  // el detalle. El trigger de papelera guarda la fila: es reversible.
+  section.querySelectorAll("[data-delete]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.delete;
+      if (!confirm("¿Eliminar esta tarea? Queda en la Papelera por si la recuperas.")) return;
+      btn.disabled = true;
+      try {
+        const res = await fetch(`${API_BASE}/tasks/${id}`, { method: "DELETE" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      } catch (err) {
+        console.error("No se pudo eliminar la tarea:", err);
+        btn.disabled = false;
+        return;
+      }
+      if (window.initTasks) await window.initTasks();
+      if (window.renderNext) window.renderNext();
+      if (window.initToday) window.initToday();
+      if (window.initWeek) window.initWeek();
+    });
   });
 
   fillNextEvent(section);
@@ -420,12 +584,25 @@ async function fillNextEvent(section) {
       })
       .sort((a, b) => new Date(a.start) - new Date(b.start));
     const upcoming = allUpcoming.slice(0, 3);
-    if (upcoming.length === 0) return;
+    // Vencidos (pasados sin cerrar ni cancelar): en casa también se ven,
+    // con acciones de cierre — no escondidos hasta que alguien abra el día.
+    // Lo más reciente primero (lo de hoy es lo accionable) y tope de 3:
+    // una muralla de atrasos viejos no ayuda a nadie.
+    const overdue = allEvents
+      .filter(e => {
+        if (!e.start || e.status === "done" || e.status === "cancelled") return false;
+        const start = new Date(e.start);
+        return start.getTime() <= now && !(isDayOnly(start) && isToday(e.start));
+      })
+      .sort((a, b) => new Date(b.start) - new Date(a.start));
+    if (upcoming.length === 0 && overdue.length === 0) return;
     if (!section.isConnected || section.querySelector("#next-event") !== box) return;
-    const fmtWhen = (s) => new Date(s).toLocaleDateString("es-ES", {
-      weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
-    });
-    const eventRow = (e) => {
+    const fmtWhen = (s) => {
+      const date = new Date(s);
+      const day = date.toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" });
+      return isDayOnly(date) ? day : `${day} · ${date.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`;
+    };
+    const eventRow = (e, isOverdue = false) => {
       const linked = tasks.filter(t => String(t.event_id) === String(e.id));
       const done = linked.filter(t => t.is_completed).length;
       const prep = linked.filter(t => !t.is_completed && (t.event_phase || "prep") === "prep").length;
@@ -433,25 +610,109 @@ async function fillNextEvent(section) {
       const during = linked.filter(t => !t.is_completed && t.event_phase === "during").length;
       const status = !linked.length ? "Sin preparación registrada"
         : `${done}/${linked.length} listos${prep ? ` · ${prep} para preparar` : ""}${leave ? ` · ${leave} antes de salir` : ""}${during ? ` · ${during} ese día` : ""}`;
-      return `<div class="next-event-row">
-        <span><strong>${escapeHtml(e.title)}</strong> · ${escapeHtml(fmtWhen(e.start))}<small class="next-event-prep-status">${status}</small></span>
+      // "Tomar ahora" solo si el evento es de hoy: para lo viejo, cerrar o mover.
+      const sameDay = new Date(e.start).toDateString() === new Date().toDateString();
+      return `<div class="next-event-row${isOverdue ? " next-event-overdue" : ""}">
+        <span><button type="button" class="next-event-title" data-info="${e.id}" title="Ver toda la información del evento: detalle, edición y borrado">${escapeHtml(e.title)}</button> · ${escapeHtml(fmtWhen(e.start))}<small class="next-event-prep-status">${status}${e.conclusion ? ` · ✎ ${escapeHtml(e.conclusion)}` : ""}</small></span>
+        ${isOverdue ? `<button class="next-alt next-alt-close" data-closeev="${e.id}" title="Registrar cómo salió, cancelarlo o moverlo de día">Cerrar</button>` : ""}
+        ${isOverdue && sameDay ? `<button class="next-alt" data-takenow="${e.id}" title="Reprogramar para ahora: empieza en este momento">Tomar ahora</button>` : ""}
+        <button class="next-alt" data-sched="${e.id}" title="${isOverdue ? "Reprogramar el momento" : "Programar el momento"}">${isOverdue ? "Reprogramar" : "Programar"}</button>
         <button class="next-alt" data-prep="${e.id}" title="Ver el evento y sus pasos de preparación">Ver preparación</button>
+        <button class="next-alt next-alt-del" data-deleteev="${e.id}" title="Eliminar el evento (queda en la Papelera por si lo recuperas)">Eliminar</button>
       </div>`;
     };
     box.style.display = "";
     box.innerHTML = `
+      ${overdue.length ? `<div class="next-event-label next-event-label-overdue">Pasados · ${overdue.length}</div>${overdue.slice(0, 3).map(e => eventRow(e, true)).join("")}${overdue.length > 3 ? `<details class="next-event-all"><summary>Ver los otros ${overdue.length - 3} pasados</summary>${overdue.slice(3).map(e => eventRow(e, true)).join("")}</details>` : ""}` : ""}
       <div class="next-event-label">Próximos eventos · ${upcoming.length} de ${allUpcoming.length}</div>
-      ${upcoming.map(eventRow).join("")}
-      ${allUpcoming.length > 3 ? `<details class="next-event-all"><summary>Ver los otros ${allUpcoming.length - 3} eventos próximos</summary>${allUpcoming.slice(3).map(eventRow).join("")}</details>` : ""}
+      ${upcoming.map(e => eventRow(e)).join("")}
+      ${allUpcoming.length > 3 ? `<details class="next-event-all"><summary>Ver los otros ${allUpcoming.length - 3} eventos próximos</summary>${allUpcoming.slice(3).map(e => eventRow(e)).join("")}</details>` : ""}
     `;
+    box.querySelectorAll("[data-closeev]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = Number(btn.dataset.closeev);
+        if (window.openEventClose) window.openEventClose(id);
+        else if (window.openEventDetail) window.openEventDetail(id);
+      });
+    });
+    box.querySelectorAll("[data-takenow]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const id = btn.dataset.takenow;
+        btn.disabled = true;
+        try {
+          const cur = await fetch(`${API_BASE}/events/${id}`).then(r => r.json());
+          if (!cur?.start) throw new Error("Sin inicio");
+          const s = new Date(cur.start);
+          const dur = cur.end ? new Date(cur.end).getTime() - s.getTime() : 0;
+          s.setTime(Date.now());
+          const body = { start: s.toISOString() };
+          if (cur.end) body.end = new Date(s.getTime() + dur).toISOString();
+          await fetch(`${API_BASE}/events/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          if (window.initToday) window.initToday();
+          if (window.initWeek) window.initWeek();
+          fillNextEvent(section);
+        } catch {
+          btn.disabled = false;
+        }
+      });
+    });
     box.querySelectorAll("[data-prep]").forEach(btn => {
       btn.addEventListener("click", () => {
         if (window.openEventDetail) window.openEventDetail(Number(btn.dataset.prep));
       });
     });
+    // El título también abre el detalle: es la vía evidente a "ver más info".
+    box.querySelectorAll("[data-info]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        if (window.openEventDetail) window.openEventDetail(Number(btn.dataset.info));
+      });
+    });
+    // Opción rápida: programar o reprogramar el evento desde la lista.
+    box.querySelectorAll("[data-sched]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        if (window.openEventSchedule) window.openEventSchedule(Number(btn.dataset.sched));
+      });
+    });
+    // Borrar desde la lista, con la misma confirmación del detalle.
+    // El trigger de papelera guarda la fila: es reversible.
+    box.querySelectorAll("[data-deleteev]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const id = Number(btn.dataset.deleteev);
+        if (!confirm("¿Eliminar este evento? Queda en la Papelera por si lo recuperas.")) return;
+        btn.disabled = true;
+        try {
+          const res = await fetch(`${API_BASE}/events/${id}`, { method: "DELETE" });
+          if (!res.ok) throw new Error("No se pudo eliminar el evento.");
+          if (window.initCalendar) window.initCalendar();
+          if (window.initWeek) window.initWeek();
+          if (window.initToday) window.initToday();
+          fillNextEvent(section);
+        } catch {
+          btn.disabled = false;
+        }
+      });
+    });
   } catch {
     // ignore: the nudge is optional
   }
+}
+
+function plainText(value) {
+  let source = String(value ?? "");
+  for (let i = 0; i < 2; i++) {
+    const withBreaks = source
+      .replace(/<br\s*\/?\s*>/gi, "\n")
+      .replace(/<\/(?:p|div|li|h[1-6])\s*>/gi, "\n");
+    const doc = new DOMParser().parseFromString(withBreaks, "text/html");
+    const text = doc.body.textContent || "";
+    if (text === source) break;
+    source = text;
+  }
+  return source.replace(/\u00a0/g, " ").replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
 function escapeHtml(str) {
@@ -460,4 +721,16 @@ function escapeHtml(str) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+// The bloc accumulates "Avance · fecha" check-ins; the AHORA card only
+// wants the original note (or first step), never the whole history.
+function detailSnippet(value) {
+  const text = plainText(value);
+  if (!text) return "";
+  const cut = text.indexOf("Avance · ");
+  const head = cut >= 0 ? text.slice(0, cut) : text;
+  const first = head.split(/\n{2,}/).map(s => s.trim()).filter(Boolean)[0] || "";
+  const clean = first.replace(/\s+/g, " ");
+  return clean.length > 150 ? `${clean.slice(0, 150).trimEnd()}…` : clean;
 }

@@ -95,12 +95,15 @@ export async function initToday() {
       const d = new Date(ev.start);
       const evDone = ev.status === "done";
       const evOverdue = isToday && !evDone && d.getTime() < Date.now() && !missAcked(ev.id);
+      const travel = Number(ev.travel_minutes) > 0
+        ? ` · salida ${formatTime(new Date(d.getTime() - Number(ev.travel_minutes) * 60000))}`
+        : "";
       return {
         pct: ((d.getHours() + d.getMinutes() / 60) / 24) * 100,
         cls: `today-event${evDone ? " done" : ""}${evOverdue ? " overdue" : ""}`,
         drag: isToday && !evDone,
         extra: `data-event-id="${ev.id}"`,
-        title: `${ev.title || "Evento"}${evDone ? " (hecho)" : " · arrástrame para cambiar la hora"}`,
+        title: `${ev.title || "Evento"}${travel}${evDone ? " (hecho)" : " · arrástrame para cambiar la hora"}`,
       };
     }),
   ];
@@ -125,6 +128,24 @@ export async function initToday() {
     return `<div class="${m.cls}" style="left: calc(${m.pct}% + ${leftPc}%);${topPx ? `top: calc(50% + ${topPx}px);` : ""}" draggable="${m.drag ? "true" : "false"}" ${m.extra} title="${escapeHtml(m.title)}"></div>`;
   });
 
+  // Ventana de viaje: el evento con travel_minutes pinta una franja rayada
+  // desde la hora de salida hasta su inicio, para ver cuándo hay que salir.
+  const travelHtml = events
+    .filter(ev => ev.status !== "cancelled" && ev.start && Number(ev.travel_minutes) > 0)
+    .map(ev => {
+      const start = new Date(ev.start);
+      // A medianoche el evento es de día completo: no hay hora de salida real.
+      if (start.getHours() === 0 && start.getMinutes() === 0) return "";
+      const mins = Math.max(1, Math.round(Number(ev.travel_minutes)));
+      const from = new Date(start.getTime() - mins * 60000);
+      const startPct = markerPercent(start);
+      const crosses = from.toDateString() !== start.toDateString();
+      const left = crosses ? 0 : markerPercent(from);
+      const width = Math.max(0.6, startPct - left);
+      const label = mins >= 45 ? `${mins} min` : "";
+      return `<div class="today-travel${ev.status === "done" ? " done" : ""}" style="left:${left}%;width:${width}%" data-event-id="${ev.id}" title="Salida ${formatTime(from)} · ${mins} min de viaje · ${escapeHtml(ev.title || "Evento")}">${label ? `<span class="today-travel-label">${label}</span>` : ""}</div>`;
+    }).join("");
+
   const doneByDay = {};
   for (const t of tasks) {
     if (t.is_completed && t.completed_at) {
@@ -133,18 +154,26 @@ export async function initToday() {
     }
   }
   const doneTarget = (doneByDay[key] || []).length;
-  const pending = tasks.filter(t => !t.is_completed).length;
-  const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
-  const metricText = isToday
-    ? `Hoy: ${plural(doneTarget, "cerrada", "cerradas")} · ${plural(pending, "pendiente", "pendientes")}`
-    : `${dayLabel(target)}: ${plural(doneTarget, "cerrada", "cerradas")}`;
   // Unscheduled pool: open, no hour hooked yet. Steps are excluded:
   // child steps live in their parent's checklist, event prep in the
   // event detail — here they only add noise. Drag onto the line
   // to schedule today; →mañana pushes it out of today explicitly.
-  const poolTasks = isToday ? tasks.filter(t =>
+  const poolAll = isToday ? tasks.filter(t =>
     !t.is_completed && !t.scheduled_datetime && !t.parent_task_id && !t.event_id &&
-    (!t.due_datetime || dateKey(t.due_datetime) <= key)).slice(0, 30) : [];
+    (!t.due_datetime || dateKey(t.due_datetime) <= key)) : [];
+  const poolTasks = poolAll.slice(0, 30);
+  // "Pendientes" cuenta exactamente lo que esta vista pone sobre la
+  // mesa: marcadores abiertos de hoy (programadas sin cerrar) + el
+  // pool de abajo. Lo que se cayó en días pasados vive en Inicio,
+  // bajo "Atrasadas", con sus acciones — contarlo acá mostraría un
+  // número que esta vista no renderiza.
+  const pending = isToday
+    ? dayTasks.filter(t => !t.is_completed).length + poolAll.length
+    : 0;
+  const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+  const metricText = isToday
+    ? `Hoy: ${plural(doneTarget, "cerrada", "cerradas")} · ${plural(pending, "pendiente", "pendientes")}`
+    : `${dayLabel(target)}: ${plural(doneTarget, "cerrada", "cerradas")}`;
 
   let summaryHtml = "";
   if (isPast) {
@@ -164,6 +193,7 @@ export async function initToday() {
     <button class="today-metric" id="today-metric" title="Ver qué se completó cada día">${escapeHtml(metricText)}</button>
     <div class="today-timeline ${isPast ? "past" : ""}">
       ${isToday ? `<div class="today-now" style="left: ${getCurrentTimePercent()}%"></div>` : ""}
+      ${travelHtml}
       <div class="today-drop-time" id="today-drop-time" style="display:none"></div>
       ${markerHtml}
       <div class="today-pop" id="today-pop" style="display:none"></div>
@@ -188,6 +218,7 @@ export async function initToday() {
       <div class="today-legend-item"><span class="today-legend-dot medium"></span> Media</div>
       <div class="today-legend-item"><span class="today-legend-dot low"></span> Baja</div>
       <div class="today-legend-item"><span class="today-legend-dot event"></span> Evento</div>
+      ${travelHtml ? `<div class="today-legend-item"><span class="today-legend-dot travel"></span> Viaje</div>` : ""}
     </div>
     ${summaryHtml}
   `;
@@ -444,10 +475,12 @@ function wireMarkers(section, dayTasks, events, isToday, key) {
         <div class="today-pop-title">${escapeHtml(ev.title || "Evento")}</div>
         <div class="today-pop-time">⏰ ${overdueText(ev.start)} · ¿lo hiciste o se reprograma?</div>
         <div class="today-pop-actions">
+          <button class="modal-btn modal-btn-primary" data-act="take-now" title="Empezar ahora: mueve el inicio a este momento">▶ Tomar ahora</button>
           <button class="modal-btn modal-btn-primary" data-act="done">✓ Hecho</button>
           <button class="modal-btn modal-btn-secondary" data-act="plus1">+1 h</button>
           <button class="modal-btn modal-btn-secondary" data-act="tomorrow">Mañana</button>
           <button class="modal-btn modal-btn-secondary" data-act="otherday" title="Elegir otro día (conserva la hora)">Otro día…</button>
+          <button class="modal-btn modal-btn-primary" data-act="closeev" title="Registrar cómo salió, cancelarlo o moverlo de día">✎ Cómo salió</button>
           <button class="modal-btn modal-btn-secondary" data-act="leave" title="Solo cierra este aviso">Dejar así</button>
           <button class="modal-btn modal-btn-secondary" data-act="cancel" title="Se puede reabrir desde el detalle">Cancelar</button>
         </div>`);
@@ -470,6 +503,8 @@ function wireMarkers(section, dayTasks, events, isToday, key) {
           console.error("Error reprogramando evento:", err);
         }
       };
+      pop.querySelector('[data-act="take-now"]')?.addEventListener("click", () =>
+        shift(s => s.setTime(Date.now())));
       pop.querySelector('[data-act="plus1"]')?.addEventListener("click", () =>
         shift(s => s.setTime(s.getTime() + 60 * 60000)));
       pop.querySelector('[data-act="tomorrow"]')?.addEventListener("click", () =>
@@ -494,6 +529,11 @@ function wireMarkers(section, dayTasks, events, isToday, key) {
         });
       });
       pop.querySelector('[data-act="leave"]')?.addEventListener("click", closePop);
+      pop.querySelector('[data-act="closeev"]')?.addEventListener("click", () => {
+        closePop();
+        if (window.openEventClose) window.openEventClose(ev.id);
+        else if (window.openEventDetail) window.openEventDetail(ev.id);
+      });
       pop.querySelector('[data-act="done"]')?.addEventListener("click", async () => {
         closePop();
         if (window.applyEventStatus) await window.applyEventStatus(ev.id, "done");
@@ -502,6 +542,13 @@ function wireMarkers(section, dayTasks, events, isToday, key) {
         closePop();
         if (window.applyEventStatus) await window.applyEventStatus(ev.id, "cancelled");
       });
+    });
+  });
+
+  section.querySelectorAll(".today-travel").forEach(el => {
+    el.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (window.openEventDetail) window.openEventDetail(el.dataset.eventId);
     });
   });
 
@@ -786,7 +833,7 @@ async function openDoneDetail() {
       <span class="done-check">${done ? "✓" : "○"}</span>
       <span class="done-title${sub ? " is-step" : ""}">${escapeHtml(t.title)}${sub ? ` <em class="done-stepof${sub.originDone ? " origin-done" : ""}">· ${escapeHtml(sub.origin)}</em>` : ""}</span>
       ${right ? `<small>${escapeHtml(right)}</small>` : ""}
-      ${backdate ? `<button class="done-backdate" data-backdate="${t.id}" title="Fue ayer: contarla ayer">←ayer</button>` : ""}
+      ${backdate ? `<button class="done-backdate" data-backdate="${t.id}" title="Si lo hiciste ayer: mueve el cierre a ayer">¿fue ayer?</button>` : ""}
     </div>`;
   const timeOf = (iso) => new Date(iso).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
 

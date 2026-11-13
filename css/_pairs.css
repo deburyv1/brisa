@@ -1,0 +1,165 @@
+/* ============================================
+   BRISA - Datos útiles (pares campo/valor)
+   Vista: label + valor (link o copiar al clic)
+   Editor: filas campo/valor + agregar/quitar
+   ============================================ */
+
+/* ---- Vista (solo lectura) ---- */
+
+.task-pairs {
+  margin: 8px 0;
+}
+
+.task-pairs-head {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: rgba(22, 75, 105, .6);
+  margin-bottom: 5px;
+}
+
+.task-pair {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px dashed rgba(22, 75, 105, .14);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.task-pair:last-child { border-bottom: 0; }
+
+.task-pair-label {
+  flex: 0 0 132px;
+  max-width: 45%;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: rgba(22, 75, 105, .65);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-pair-val {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 12px;
+  color: var(--ink);
+  text-align: left;
+  word-break: break-word;
+  min-width: 0;
+}
+
+button.task-pair-copy {
+  cursor: pointer;
+  border-radius: 6px;
+  transition: var(--transition-speed);
+}
+
+button.task-pair-copy:hover {
+  color: #087fb0;
+}
+
+.task-pair-link {
+  color: #087fb0;
+  text-decoration: none;
+}
+
+.task-pair-link:hover { text-decoration: underline; }
+
+/* Enfoque: el bloque queda bajo el título, sin competir con el paso */
+.focus-pairs { margin: -2px 0 10px; }
+
+/* ---- Editor (filas campo/valor) ---- */
+
+.task-pairs-edit { width: 100%; }
+
+.task-pairs-edit-head {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+
+.task-pairs-edit-head span {
+  font-weight: 400;
+  font-size: 10px;
+  color: rgba(22, 75, 105, .6);
+}
+
+.task-pair-row {
+  display: grid;
+  grid-template-columns: minmax(110px, 1fr) minmax(150px, 2fr) 26px;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.task-pair-row input {
+  border: 1px solid rgba(22, 75, 105, .3);
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-family: inherit;
+  font-size: 11px;
+  color: var(--ink);
+  background: rgba(255, 255, 255, .5);
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition: var(--transition-speed);
+  color-scheme: light;
+}
+
+.task-pair-row input::placeholder {
+  color: rgba(22, 75, 105, .5);
+}
+
+.task-pair-row input:focus {
+  border-color: rgba(8, 127, 176, .6);
+  background: rgba(255, 255, 255, .65);
+  box-shadow: 0 0 0 3px rgba(8, 127, 176, .15);
+}
+
+.task-pair-del {
+  border: 0;
+  background: none;
+  color: rgba(22, 75, 105, .45);
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 7px;
+  padding: 4px 0;
+  transition: var(--transition-speed);
+}
+
+.task-pair-del:hover {
+  background: rgba(22, 75, 105, .1);
+  color: #c0392b;
+}
+
+.task-pairs-add {
+  border: 1px dashed rgba(22, 75, 105, .35);
+  background: none;
+  border-radius: 10px;
+  padding: 5px 12px;
+  font-family: inherit;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: rgba(22, 75, 105, .75);
+  cursor: pointer;
+  transition: var(--transition-speed);
+}
+
+.task-pairs-add:hover {
+  background: rgba(255, 255, 255, .5);
+  color: var(--ink);
+}
+
+/* Contexto captura: mismo aire que los inputs del formulario */
+.capture-pairs .task-pair-row input { font-size: 10.5px; padding: 5px 10px; }
+.capture-pairs .task-pairs-edit-head { font-size: 10px; }

@@ -632,6 +632,71 @@ button.week-item:hover .week-item-title {
   color: rgba(22, 75, 105, 0.62);
   margin: 10px 0 6px;
 }
+/* "¿solo hoy?": surg del movimiento de una tarjeta de hábito y se va sola */
+.planner-solo-ephemeral {
+  flex: 0 0 auto;
+  border: 1px solid rgba(8, 127, 176, 0.5);
+  border-radius: 99px;
+  padding: 2px 8px;
+  font-size: 8px;
+  font-weight: 700;
+  font-family: inherit;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: #087fb0;
+  background: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  white-space: nowrap;
+  animation: solo-pop .18s ease;
+  transition: var(--transition-speed);
+}
+.planner-solo-ephemeral:hover {
+  background: #fff;
+}
+@keyframes solo-pop {
+  from { opacity: 0; transform: scale(.85); }
+}
+/* Marcador discreto: solo en los hábitos cuya posición es "solo hoy" */
+.day-card.solo-flag .week-item-time::after {
+  content: " · solo hoy";
+  font-weight: 700;
+  color: rgba(8, 127, 176, 0.9);
+}
+/* Menú de la tarjeta (clic derecho) */
+.solo-menu {
+  position: fixed;
+  z-index: 1300;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(22, 75, 105, 0.25);
+  box-shadow: 0 8px 24px rgba(0, 58, 94, 0.18);
+}
+.solo-menu button {
+  border: 0;
+  border-radius: 7px;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  text-align: left;
+  color: rgba(22, 75, 105, 0.85);
+  background: transparent;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.solo-menu button:hover {
+  background: rgba(8, 127, 176, 0.12);
+}
+.solo-menu button.on {
+  color: #fff;
+  background: linear-gradient(145deg, #27c9eb, #087fb0);
+}
 .planner-habits {
   display: flex;
   flex-direction: column;

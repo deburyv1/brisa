@@ -8,6 +8,7 @@ let weekOffset = 0;
 let plannerTab = "hoy";
 let plannerDayOffset = 0;
 let lastDragEnd = 0;
+let dayHadOrder = false; // el día ya tenía orden propio (no es el primer armado)
 
 export function shiftDay(delta) {
   plannerDayOffset += delta;
@@ -244,7 +245,7 @@ function dayCard(item, readonly = false, dayKey = "") {
     : "";
   const hint = readonly
     ? (kind === "habit" ? "Día pasado: círculo para corregir" : "Día pasado: solo lectura")
-    : kind === "habit" ? "Arrastra para mover · se marca en Hábitos" : "Arrastra para mover · clic para abrir";
+    : kind === "habit" ? "Arrastra para mover · marca con ✓ · clic derecho: posición solo hoy" : "Arrastra para mover · clic para abrir";
   const travel = kind === "event" ? (Number(data.travel_minutes) || 0) : 0;
   const leaveTime = travel ? fmtTime(new Date(new Date(data.start).getTime() - travel * 60000)) : "";
   return `
@@ -497,6 +498,26 @@ async function renderOrderList(board, dayKey, dayTasks, dayEvents, dueHabits, re
   } catch {
     saved = [];
   }
+  // Estado "solo hoy" por hábito: el marcador discreto solo aparece en
+  // los marcados, y la pregunta NO es un elemento fijo — surge al
+  // mover la tarjeta (pastilla efímera) o del clic derecho.
+  const ownHadOrder = saved.length > 0;
+  const soloToday = new Set(
+    saved.filter(r => r.oneoff && r.kind === "habit").map(r => Number(r.ref_id))
+  );
+  dayHadOrder = ownHadOrder;
+  // Día sin orden propio: hereda la última secuencia guardada, para que
+  // el orden que definiste (sobre todo el de los hábitos) no se pierda
+  // cada mañana. Lo ítems nuevos del día quedan al final hasta que los
+  // ubiques (y al moverlos se guarda el orden de este día).
+  if (saved.length === 0) {
+    try {
+      const res = await fetch(`/api/days/order/previous?date=${dayKey}`);
+      if (res.ok) saved = (await res.json()).items || [];
+    } catch {
+      saved = [];
+    }
+  }
   const key = (it) => `${it.kind}:${it.data.id}`;
   const byKey = new Map(items.map(it => [key(it), it]));
   const ordered = [];
@@ -521,6 +542,18 @@ async function renderOrderList(board, dayKey, dayTasks, dayEvents, dueHabits, re
       <button class="day-scroll" id="day-scroll-down" title="Bajar" style="display:none">▼</button>
     </div>
   `;
+  // Hábitos: estado "solo hoy" por tarjeta (marcador + menú de clic derecho)
+  if (!readonly) {
+    board.querySelectorAll("#day-order .day-card[data-kind='habit']").forEach(el => {
+      const on = soloToday.has(Number(el.dataset.id));
+      el.dataset.oneoff = on ? "1" : "0";
+      if (on) el.classList.add("solo-flag");
+      el.addEventListener("contextmenu", (e) => {
+        e.preventDefault();
+        openSoloMenu(board, dayKey, el, e.clientX, e.clientY);
+      });
+    });
+  }
   wireDayCards(board);
   if (!readonly) wireOrderDrop(board, dayKey);
   wireOrderScroll(board);
@@ -546,6 +579,7 @@ async function saveDayOrder(board, dayKey) {
   const items = [...board.querySelectorAll("#day-order .day-card")].map(el => ({
     kind: el.dataset.kind,
     ref_id: Number(el.dataset.id),
+    oneoff: el.dataset.oneoff === "1",
   }));
   try {
     await fetch("/api/days/order", {
@@ -553,9 +587,75 @@ async function saveDayOrder(board, dayKey) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ day: dayKey, items }),
     });
+    dayHadOrder = true; // ya hay orden propio: mover de nuevo puede preguntar
   } catch (e) {
     console.error("Error guardando orden:", e);
   }
+}
+
+// La pregunta "¿solo hoy?" surge del movimiento: al arrastrar (o
+// Alt+↑↓) aparece unos segundos en la tarjeta que moviste. Si no la
+// tocas, el movimiento queda como tu orden habitual. El clic derecho
+// de la tarjeta permite ver o cambiar el estado cuando se quiera.
+let soloPillTimer = null;
+
+function offerSoloToday(card, board, dayKey, hadOrder = dayHadOrder) {
+  if (!card || card.dataset.kind !== "habit") return;
+  if (card.dataset.oneoff === "1") return; // ya es excepción: el menú lo cambia
+  if (!hadOrder) return; // el primer armado del día es tu orden, no un desvío
+  board.querySelectorAll(".planner-solo-ephemeral").forEach(x => x.remove());
+  const pill = document.createElement("button");
+  pill.type = "button";
+  pill.className = "planner-solo-ephemeral";
+  pill.textContent = "¿solo hoy?";
+  pill.title = "Este movimiento vale solo por hoy: mañana el hábito vuelve a su lugar habitual. Si no haces nada, pasa a ser tu orden habitual.";
+  pill.addEventListener("click", (e) => {
+    e.stopPropagation();
+    card.dataset.oneoff = "1";
+    card.classList.add("solo-flag");
+    pill.remove();
+    saveDayOrder(board, dayKey);
+  });
+  card.querySelector(".day-check")?.before(pill);
+  clearTimeout(soloPillTimer);
+  soloPillTimer = setTimeout(() => { if (pill.isConnected) pill.remove(); }, 6000);
+}
+
+function closeSoloMenu() {
+  document.querySelector("#solo-menu")?.remove();
+  document.removeEventListener("keydown", escCloseSoloMenu);
+}
+function escCloseSoloMenu(e) {
+  if (e.key === "Escape") closeSoloMenu();
+}
+
+function openSoloMenu(board, dayKey, card, x, y) {
+  if (card.dataset.oneoff === undefined) return; // solo tarjetas con estado (hábitos)
+  closeSoloMenu();
+  const setTo = (oneoff) => {
+    card.dataset.oneoff = oneoff ? "1" : "0";
+    card.classList.toggle("solo-flag", oneoff);
+    saveDayOrder(board, dayKey);
+    closeSoloMenu();
+  };
+  const on = card.dataset.oneoff === "1";
+  const menu = document.createElement("div");
+  menu.className = "solo-menu";
+  menu.id = "solo-menu";
+  menu.innerHTML = `
+    <button type="button" data-v="0" class="${on ? "" : "on"}">Posición habitual</button>
+    <button type="button" data-v="1" class="${on ? "on" : ""}">Solo para hoy</button>
+  `;
+  menu.querySelectorAll("button").forEach(b =>
+    b.addEventListener("click", () => setTo(b.dataset.v === "1")));
+  document.body.appendChild(menu);
+  const r = menu.getBoundingClientRect();
+  menu.style.left = `${Math.max(6, Math.min(x, window.innerWidth - r.width - 8))}px`;
+  menu.style.top = `${Math.max(6, Math.min(y, window.innerHeight - r.height - 8))}px`;
+  setTimeout(() => {
+    document.addEventListener("click", closeSoloMenu, { once: true });
+    document.addEventListener("keydown", escCloseSoloMenu);
+  }, 0);
 }
 
 function wireOrderDrop(board, dayKey) {
@@ -572,6 +672,7 @@ function wireOrderDrop(board, dayKey) {
       if (!sib || !sib.classList.contains("day-card")) return;
       list.insertBefore(el, e.key === "ArrowUp" ? sib : sib.nextSibling);
       el.focus();
+      offerSoloToday(el, board, dayKey); // dayHadOrder aún no cambió (se guarda en segundo plano)
       saveDayOrder(board, dayKey);
     });
     el.addEventListener("dragstart", () => {
@@ -598,9 +699,12 @@ function wireOrderDrop(board, dayKey) {
       const after = el.classList.contains("drop-after");
       el.classList.remove("drop-before", "drop-after");
       if (!dragged || dragged === el) return;
-      list.insertBefore(dragged, after ? el.nextSibling : el);
+      const moved = dragged;
+      list.insertBefore(moved, after ? el.nextSibling : el);
       dragged = null;
+      const hadOrder = dayHadOrder; // orden del día ANTES de este guardado
       await saveDayOrder(board, dayKey);
+      offerSoloToday(moved, board, dayKey, hadOrder);
     });
   });
   // Gaps and empty space: dropping appends at the end (never blocked)
@@ -612,9 +716,12 @@ function wireOrderDrop(board, dayKey) {
     if (e.target.closest(".day-card")) return; // handled by the card
     e.preventDefault();
     if (!dragged) return;
-    list.appendChild(dragged);
+    const moved = dragged;
+    list.appendChild(moved);
     dragged = null;
+    const hadOrder = dayHadOrder; // orden del día ANTES de este guardado
     await saveDayOrder(board, dayKey);
+    offerSoloToday(moved, board, dayKey, hadOrder);
   });
 }
 
@@ -735,7 +842,8 @@ function wireDayCards(board) {
       if (Date.now() - lastDragEnd < 400) return;
       if (el.dataset.kind === "task" && window.openFocus) window.openFocus(el.dataset.id);
       else if (el.dataset.kind === "event" && window.openEventDetail) window.openEventDetail(el.dataset.id);
-      else if (el.dataset.kind === "habit") document.querySelector('.nav[data-nav="habits"]')?.click();
+      // Hábitos: el clic no hace nada. Se marca con ✓ en la misma tarjeta
+      // y se edita en Hábitos; saltar de sección al tocarla era incómodo.
     };
     el.addEventListener("click", open);
     el.addEventListener("keydown", (e) => {
