@@ -244,6 +244,14 @@ export function initEventDetail() {
 
   overlay.querySelector("#event-detail-close")?.addEventListener("click", close);
   overlay.querySelector("#event-detail-ok")?.addEventListener("click", close);
+  const scheduleOverlay = document.querySelector("#event-schedule-modal");
+  if (scheduleOverlay) {
+    scheduleOverlay.querySelector("#event-schedule-close")?.addEventListener("click", () => scheduleOverlay.classList.remove("active"));
+    scheduleOverlay.querySelector("#event-schedule-cancel")?.addEventListener("click", () => scheduleOverlay.classList.remove("active"));
+    scheduleOverlay.querySelector("#event-schedule-save")?.addEventListener("click", async () => {
+      await saveEventSchedule();
+    });
+  }
   overlay.querySelector("#event-detail-edit")?.addEventListener("click", () => {
     const id = currentEventId;
     close();
@@ -259,6 +267,10 @@ export function initEventDetail() {
       showError(e.message || "No se pudo actualizar el evento. Intenta de nuevo.");
     }
   }
+  overlay.querySelector("#event-detail-closepast")?.addEventListener("click", () => {
+    const id = currentEventId;
+    if (id && window.openEventClose) window.openEventClose(id);
+  });
   overlay.querySelector("#event-detail-cancel")?.addEventListener("click", async () => {
     if (!currentEventId) return;
     if (!confirm("¿Cancelar este evento? No avisará más, pero se puede reabrir.")) return;
@@ -269,6 +281,7 @@ export function initEventDetail() {
   });
   overlay.querySelector("#event-detail-delete")?.addEventListener("click", async () => {
     if (!currentEventId) return;
+    if (!confirm("¿Eliminar este evento? Queda en la Papelera por si lo recuperas.")) return;
     try {
       const res = await fetch(`${API_BASE}/events/${currentEventId}`, { method: "DELETE" });
       await requireOk(res, "No se pudo eliminar el evento.");
@@ -403,7 +416,102 @@ export function initEventDetail() {
     overlay.classList.remove("active");
   }
 
-  window.openEventDetail = async (eventId) => {
+  const pad2 = (n) => String(n).padStart(2, "0");
+function toLocalDate(d) {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+function toLocalTime(d) {
+  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+
+async function openEventSchedule(eventId) {
+  let ev = null;
+  try {
+    const res = await fetch(`${API_BASE}/events`);
+    if (res.ok) {
+      const all = await res.json();
+      ev = all.find(x => String(x.id) === String(eventId));
+    }
+  } catch (e) {
+    console.error("Error cargando evento para programar:", e);
+  }
+  if (!ev) return;
+  currentEventId = ev.id;
+  const start = ev.start ? new Date(ev.start) : new Date();
+  const end = new Date(ev.end ? new Date(ev.end).getTime() : start.getTime() + 30 * 60000);
+  const setVal = (sel, val) => {
+    const el = document.querySelector(sel);
+    if (!el) return;
+    if (window.setPickerValue) window.setPickerValue(el, val);
+    else el.value = val;
+  };
+  setVal("#event-schedule-date", toLocalDate(start));
+  setVal("#event-schedule-time", toLocalTime(start));
+  setVal("#event-schedule-end-date", toLocalDate(end));
+  setVal("#event-schedule-end-time", toLocalTime(end));
+  const titleEl = document.querySelector("#event-schedule-title");
+  if (titleEl) titleEl.textContent = ev.title || "Evento";
+  const fb = document.querySelector("#event-schedule-feedback");
+  if (fb) { fb.textContent = ""; fb.hidden = true; }
+  const clearBtn = document.querySelector("#event-schedule-clear");
+  if (clearBtn) clearBtn.onclick = clearEventSchedule;
+  const modalEl = document.querySelector("#event-schedule-modal");
+  if (modalEl) modalEl.classList.add("active");
+}
+
+async function saveEventSchedule() {
+  const modalEl = document.querySelector("#event-schedule-modal");
+  const fb = document.querySelector("#event-schedule-feedback");
+  const date = document.querySelector("#event-schedule-date")?.value;
+  const time = document.querySelector("#event-schedule-time")?.value || "00:00";
+  const endDate = document.querySelector("#event-schedule-end-date")?.value;
+  const endTime = document.querySelector("#event-schedule-end-time")?.value;
+  if (!date) {
+    if (fb) { fb.textContent = "Pon el día en que empieza."; fb.hidden = false; }
+    return;
+  }
+  const start = new Date(`${date}T${time}:00`);
+  const end = endDate
+    ? new Date(`${endDate}T${endTime || time}:00`)
+    : new Date(start.getTime() + 30 * 60000);
+  if (end.getTime() < start.getTime()) {
+    if (fb) { fb.textContent = "El término no puede ser antes del inicio."; fb.hidden = false; }
+    return;
+  }
+  try {
+    const res = await fetch(`${API_BASE}/events/${currentEventId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ start: start.toISOString(), end: end.toISOString() }),
+    });
+    if (!res.ok) throw new Error("No se pudo programar.");
+  } catch (e) {
+    if (fb) { fb.textContent = e.message || "No se pudo programar. Intenta de nuevo."; fb.hidden = false; }
+    return;
+  }
+  if (modalEl) modalEl.classList.remove("active");
+  if (window.initCalendar) window.initCalendar();
+  if (window.initWeek) window.initWeek();
+  if (window.initToday) window.initToday();
+  if (window.initTasks) window.initTasks();
+  if (window.renderNext) window.renderNext();
+}
+
+function clearEventSchedule() {
+  ["#event-schedule-date", "#event-schedule-time", "#event-schedule-end-date", "#event-schedule-end-time"].forEach(sel => {
+    const el = document.querySelector(sel);
+    if (!el) return;
+    if (window.setPickerValue) window.setPickerValue(el, null);
+    else el.value = "";
+  });
+  const fb = document.querySelector("#event-schedule-feedback");
+  if (fb) { fb.textContent = ""; fb.hidden = true; }
+  document.querySelector("#event-schedule-date")?.focus();
+}
+
+window.openEventSchedule = async (eventId) => { await openEventSchedule(eventId); };
+
+window.openEventDetail = async (eventId) => {
     let ev = null;
     try {
       const res = await fetch(`${API_BASE}/events`);
@@ -428,6 +536,18 @@ export function initEventDetail() {
     if (cancelledBox) cancelledBox.style.display = ev.status === "cancelled" ? "" : "none";
     const cancelBtn = overlay.querySelector("#event-detail-cancel");
     if (cancelBtn) cancelBtn.style.display = ev.status === "cancelled" ? "none" : "";
+    // Evento pasado y aún abierto: ofrecer cerrarlo (cómo salió / no pasó).
+    const closePastBtn = overlay.querySelector("#event-detail-closepast");
+    if (closePastBtn) {
+      const isPast = ev.start && new Date(ev.start).getTime() < Date.now();
+      closePastBtn.style.display = (isPast && ev.status === "open" && window.openEventClose) ? "" : "none";
+    }
+    // Conclusión registrada al cerrar: siempre visible si existe.
+    const conclusionEl = overlay.querySelector("#event-detail-conclusion");
+    if (conclusionEl) {
+      conclusionEl.textContent = ev.conclusion ? `✎ Cómo salió: ${ev.conclusion}` : "";
+      conclusionEl.hidden = !ev.conclusion;
+    }
     if (doneBtn) doneBtn.style.display = ev.status === "cancelled" ? "none" : "";
     const moveRow = overlay.querySelector("#event-move-row");
     if (moveRow) moveRow.style.display = ev.status === "cancelled" ? "none" : "";
