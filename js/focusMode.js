@@ -5,6 +5,7 @@
    verify bounded (10 min) -> enough confidence -> act.
    ============================================ */
 import { state } from "./state.js";
+import { pairsHTML } from "./dataPairs.js?v=20261021pairs1";
 
 const API_BASE = "/api";
 const LINKS_KEY = "brisa.focusLinks";
@@ -63,6 +64,14 @@ async function resolveTask(id) {
   return null;
 }
 
+function paintFocusPairs(overlay, task) {
+  const box = overlay.querySelector("#focus-pairs");
+  if (!box) return;
+  const html = pairsHTML(task?.data_pairs);
+  box.innerHTML = html;
+  box.hidden = !html;
+}
+
 export async function openFocus(taskId, opts = {}) {
   const task = await resolveTask(taskId);
   if (!task) return;
@@ -71,13 +80,20 @@ export async function openFocus(taskId, opts = {}) {
   const overlay = document.querySelector("#focus-modal");
   if (!overlay) return;
   // Child steps show the parent action as title; the step itself
-  // lives in the hero box, so nothing reads twice.
+  // lives in the hero box, so nothing reads twice. Los datos útiles
+  // son de la acción: si abriste Enfoque en un paso, se pintan los
+  // del padre y quedan mientras navegas dentro del mismo contexto.
   let title = task.title;
+  let pairsTask = task;
   if (task.parent_task_id != null) {
     const parent = findTask(task.parent_task_id) || await resolveTask(task.parent_task_id).catch(() => null);
-    if (parent) title = parent.title;
+    if (parent) {
+      title = parent.title;
+      pairsTask = parent;
+    }
   }
   overlay.querySelector("#focus-title").textContent = title;
+  paintFocusPairs(overlay, pairsTask);
   overlay.classList.add("active");
 
   if (opts.skipFriction) {
@@ -536,7 +552,7 @@ function renderChecklist(task, children, note = null) {
     </div>
     <div class="modal-actions">
       ${next
-        ? `<button type="button" class="modal-btn modal-btn-primary focus-primary-block" id="focus-next-step" title="Abrir este paso en Enfoque">Empezar: ${escapeHtml(next.title.slice(0, 38))}${next.title.length > 38 ? "…" : ""}</button>`
+        ? `<button type="button" class="modal-btn modal-btn-primary focus-primary-block" id="focus-next-step" title="Ir directamente a trabajar en este paso">Empezar este paso: ${escapeHtml(next.title.slice(0, 34))}${next.title.length > 34 ? "…" : ""}</button>`
         : total > 0
           ? `<button type="button" class="modal-btn modal-btn-primary focus-primary-block" id="focus-done" title="Todos los pasos están listos: marcar la acción como hecha">Marcar acción hecha ✓</button>`
           : `<button type="button" class="modal-btn modal-btn-primary focus-primary-block" id="focus-add-first-step">Escribir primer paso</button>`}
@@ -598,7 +614,12 @@ function renderChecklist(task, children, note = null) {
   body().querySelector("#focus-add-first-step")?.addEventListener("click", () => addInput?.focus());
   const nextBtn = body().querySelector("#focus-next-step");
   if (nextBtn && next) {
-    nextBtn.addEventListener("click", () => openFocus(next.id));
+    nextBtn.addEventListener("click", async () => {
+      // Checklist is already the user's chosen route. Move straight into
+      // the selected step's work session instead of reopening the mode picker.
+      currentTask = next;
+      await handoffToTimer(10);
+    });
   }
   body().querySelector("#focus-later")?.addEventListener("click", closeFocus);
   body().querySelector("#focus-stuck")?.addEventListener("click", () => {
@@ -710,10 +731,9 @@ function renderUnblockAsk(task, initialBlock = "") {
   });
 }
 
-// Event mode: turn this action into a dated event with an extreme
-// alarm. Saves the event, links it to the task, and creates an
-// extreme reminder at the same time — that reminder is what
-// guarantees fullscreen + sound until dismissed (upcoming.js).
+// Modo fecha: dos caminos explícitos.
+// 1) "Programar la acción" → solo scheduled_datetime (sigue siendo acción).
+// 2) "Crear evento" → evento de calendario + alarma extrema (pantalla completa + sonido).
 function renderEventMode(task) {
   const preset = task.scheduled_datetime ? new Date(task.scheduled_datetime) : null;
   const pad = (n) => String(n).padStart(2, "0");
@@ -722,41 +742,121 @@ function renderEventMode(task) {
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   body().innerHTML = `
-    <p class="focus-question">¿Cuándo tiene que pasar?</p>
+    <p class="focus-question">¿Cuándo la quieres hacer?</p>
     ${modeBar("event")}
-    <div class="form-group">
-      <input type="text" id="focus-event-title" value="${escapeHtml(task.title)}" title="Título del evento">
-    </div>
-    <div class="form-group" style="display:flex;gap:8px">
+    <div class="form-group" style="gap:8px">
       <input type="date" id="focus-event-date" value="${preset ? fmtDate(preset) : fmtDate(tomorrow)}" title="Día">
-      <input type="time" id="focus-event-time" value="${preset ? fmtTime(preset) : ""}" title="Hora">
+      <div class="focus-time-row">
+        <input type="time" id="focus-event-time" value="${preset ? fmtTime(preset) : ""}" title="Hora (opcional)">
+        <button type="button" class="focus-time-clear" id="focus-time-clear" title="Quitar la hora">Sin hora</button>
+      </div>
     </div>
-    <p class="focus-staging">Al guardar se usa alarma extrema: pantalla completa + sonido hasta que lo veas.</p>
+    <p id="focus-when-note" class="focus-staging"></p>
     <p id="focus-event-msg" class="focus-message"></p>
     <div class="modal-actions">
       <button type="button" class="modal-btn modal-btn-secondary" id="focus-back">Volver</button>
-      <button type="button" class="modal-btn modal-btn-primary" id="focus-event-save">Guardar evento</button>
+      <button type="button" class="modal-btn modal-btn-secondary" id="focus-event-create">Crear evento</button>
+      <button type="button" class="modal-btn modal-btn-primary" id="focus-event-save">Programar la acción</button>
     </div>
+    <p class="focus-staging">“Programar la acción” solo le pone día y hora en tu lista. “Crear evento” la suma al calendario y, si tiene hora, activa la alarma extrema.</p>
   `;
   wireModeBar(task);
+
+  // La hora es opcional. El input nativo de hora no se puede borrar con
+  // teclado una vez con valor, así que "Sin hora" la limpia de una vez:
+  // el evento se guarda como todo el día y sin alarma extrema.
+  const timeInput = body().querySelector("#focus-event-time");
+  const clearTime = body().querySelector("#focus-time-clear");
+  const whenNote = body().querySelector("#focus-when-note");
+  const syncWhen = () => {
+    const time = timeInput.value;
+    clearTime.hidden = !time;
+    whenNote.textContent = time
+      ? "Con hora: la acción queda a esa hora y el evento (si lo creas) activa la alarma extrema."
+      : "Sin hora: la acción queda a las 09:00. El evento, si lo creas, queda de todo el día y sin alarma.";
+  };
+  timeInput.addEventListener("input", syncWhen);
+  timeInput.addEventListener("change", syncWhen);
+  body().querySelector("#focus-event-date")?.addEventListener("input", syncWhen);
+  clearTime.addEventListener("click", () => {
+    timeInput.value = "";
+    syncWhen();
+  });
+  syncWhen();
+
   body().querySelector("#focus-back")?.addEventListener("click", () => renderFriction(task));
+  const showDone = (title, whenText, isEvent, withAlarm) => {
+    body().innerHTML = `
+      ${modeBar("event")}
+      <p class="focus-question">${isEvent ? "Evento creado ✓" : "Acción programada ✓"}</p>
+      <p class="focus-note"><strong>${escapeHtml(title)}</strong><br>${escapeHtml(whenText)}</p>
+      ${isEvent
+        ? (withAlarm
+          ? `<p class="focus-staging">Alarma extrema activada: a la hora verás pantalla completa + sonido hasta que lo marques hecho o lo pospongas. No necesitas la app abierta en esa vista, pero sí la pestaña activa.</p>`
+          : `<p class="focus-staging">Quedó en tu calendario como todo el día, sin alarma.</p>`)
+        : `<p class="focus-staging">Quedó en tu lista de acciones con día y hora. No se creó ningún evento.</p>`}
+      <div class="modal-actions">
+        <button type="button" class="modal-btn modal-btn-primary" id="focus-event-ok">Entendido</button>
+      </div>
+    `;
+    wireModeBar(task);
+    body().querySelector("#focus-event-ok")?.addEventListener("click", closeFocus);
+  };
+
+  const readDate = () => body().querySelector("#focus-event-date")?.value || "";
+
+  // Camino 1: la acción sigue siendo acción; solo se le pone día y hora.
   body().querySelector("#focus-event-save")?.addEventListener("click", async () => {
     const msg = body().querySelector("#focus-event-msg");
-    const title = body().querySelector("#focus-event-title")?.value.trim() || task.title;
-    const date = body().querySelector("#focus-event-date")?.value;
-    const time = body().querySelector("#focus-event-time")?.value;
-    if (!date || !time) {
-      if (msg) msg.textContent = "Pon día y hora para crear el evento.";
+    const date = readDate();
+    if (!date) {
+      if (msg) msg.textContent = "Pon el día para programarla.";
       return;
     }
-    const iso = new Date(`${date}T${time}:00`).toISOString();
+    const time = timeInput.value;
+    const iso = new Date(`${date}T${time || "09:00"}:00`).toISOString();
     const btn = body().querySelector("#focus-event-save");
+    btn.disabled = true;
+    try {
+      const res = await fetch(`${API_BASE}/tasks/${task.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scheduled_datetime: iso }),
+      });
+      if (!res.ok) throw new Error("task");
+      if (window.initTasks) await window.initTasks();
+      if (window.renderNext) window.renderNext();
+      if (window.initToday) window.initToday();
+      if (window.initWeek) window.initWeek();
+      const when = new Date(iso).toLocaleString("es-ES", {
+        weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit",
+      });
+      showDone(task.title, when, false, false);
+    } catch (e) {
+      console.error("Error programando la acción:", e);
+      btn.disabled = false;
+      if (msg) msg.textContent = "No se pudo programar. Intenta de nuevo.";
+    }
+  });
+
+  // Camino 2: crear un evento de calendario (con alarma extrema si tiene hora).
+  body().querySelector("#focus-event-create")?.addEventListener("click", async () => {
+    const msg = body().querySelector("#focus-event-msg");
+    const date = readDate();
+    const time = timeInput.value;
+    if (!date) {
+      if (msg) msg.textContent = "Pon el día para crear el evento.";
+      return;
+    }
+    const iso = new Date(`${date}T${time || "00:00"}:00`).toISOString();
+    const withAlarm = Boolean(time);
+    const btn = body().querySelector("#focus-event-create");
     btn.disabled = true;
     try {
       const evRes = await fetch(`${API_BASE}/events`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, start: iso, description: `Desde acción: ${task.title}` }),
+        body: JSON.stringify({ title: task.title, start: iso, description: `Desde acción: ${task.title}` }),
       });
       if (!evRes.ok) throw new Error("event");
       const ev = await evRes.json();
@@ -766,30 +866,25 @@ function renderEventMode(task) {
         body: JSON.stringify({ event_id: ev.id }),
       }).catch(() => {});
       // Extreme companion: the guarantee of fullscreen + sound.
-      await fetch(`${API_BASE}/reminders`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, remind_at: iso, extreme: true }),
-      });
+      // Sin hora no hay alarma: el evento queda como todo el día.
+      if (withAlarm) {
+        await fetch(`${API_BASE}/reminders`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: task.title, remind_at: iso, extreme: true }),
+        });
+      }
       if (window.initTasks) await window.initTasks();
       if (window.renderNext) window.renderNext();
       if (window.initToday) window.initToday();
       if (window.initWeek) window.initWeek();
       if (window.initCalendar) window.initCalendar();
-      const when = new Date(iso).toLocaleString("es-ES", {
-        weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit",
-      });
-      body().innerHTML = `
-        ${modeBar("event")}
-        <p class="focus-question">Evento creado ✓</p>
-        <p class="focus-note"><strong>${escapeHtml(title)}</strong><br>${escapeHtml(when)}</p>
-        <p class="focus-staging">Alarma extrema activada: a la hora verás pantalla completa + sonido hasta que lo marques hecho o lo pospongas. No necesitas la app abierta en esa vista, pero sí la pestaña activa.</p>
-        <div class="modal-actions">
-          <button type="button" class="modal-btn modal-btn-primary" id="focus-event-ok">Entendido</button>
-        </div>
-      `;
-      wireModeBar(task);
-      body().querySelector("#focus-event-ok")?.addEventListener("click", closeFocus);
+      const when = withAlarm
+        ? new Date(iso).toLocaleString("es-ES", {
+            weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit",
+          })
+        : `${new Date(iso).toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" })} · Todo el día`;
+      showDone(task.title, when, true, withAlarm);
     } catch (e) {
       console.error("Error creando evento:", e);
       btn.disabled = false;
@@ -993,6 +1088,22 @@ function renderNewStep(parent) {
 // and we land in Enfoque ready to work.
 async function handoffToTimer(minutes) {
   const taskId = currentTask ? currentTask.id : null;
+  if (currentTask && !currentTask.started_at) {
+    const startedAt = new Date().toISOString();
+    try {
+      const res = await fetch(`${API_BASE}/tasks/${taskId}`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ started_at: startedAt }),
+      });
+      if (res.ok) {
+        currentTask.started_at = startedAt;
+        const local = findTask(taskId);
+        if (local) local.started_at = startedAt;
+      }
+    } catch (e) {
+      console.warn("No se pudo guardar el inicio de la acción:", e);
+    }
+  }
   if (window.brisaTimer) {
     // Resume paused session as-is; only a fresh timer takes new minutes
     if (!window.brisaTimer.hasSession()) {
@@ -1009,7 +1120,8 @@ async function handoffToTimer(minutes) {
     setTimeout(() => pill.classList.remove("timer-handoff"), 1300);
   });
   if (window.brisaTimer) window.brisaTimer.start();
-  if (taskId && window.brisaTimer && window.brisaTimer.setTask) window.brisaTimer.setTask(taskId);
+  const timerActionId = currentTask?.parent_task_id || taskId;
+  if (timerActionId && window.brisaTimer && window.brisaTimer.setTask) window.brisaTimer.setTask(timerActionId);
   if (taskId && window.startWorkmode) {
     try {
       await window.startWorkmode(taskId);
@@ -1019,11 +1131,19 @@ async function handoffToTimer(minutes) {
   }
 }
 
+async function resumeFocusTask(taskId) {
+  const task = await resolveTask(taskId);
+  if (!task) return;
+  currentTask = task;
+  await handoffToTimer(10);
+}
+
 // ---- Shell ----
 
 export function initFocus() {
   const overlay = document.querySelector("#focus-modal");
   if (!overlay) return;
+  window.resumeFocusTask = resumeFocusTask;
   overlay.querySelector("#focus-close")?.addEventListener("click", closeFocus);
   overlay.addEventListener("click", (e) => {
     if (e.target === overlay) closeFocus();

@@ -61,6 +61,12 @@ function setMinutes(min) {
   paint();
   document.querySelectorAll(".timer-preset").forEach(b =>
     b.classList.toggle("selected", Number(b.dataset.min) === min));
+  // Keep the custom field showing the active duration (don't fight the
+  // user while they're typing into it).
+  const customInput = document.querySelector("#timer-custom-min");
+  if (customInput && document.activeElement !== customInput) {
+    customInput.value = String(Math.round(totalSec / 60));
+  }
 }
 
 function stopTick() {
@@ -148,18 +154,22 @@ function esc(s) {
 function startAlarm(finishedTaskId = null) {
   stopAlarm();
   stopTick();
-  // Any key proves presence and stops the alarm.
+  // Escape is an explicit keyboard dismissal; typing the check-in must not close it.
   window.addEventListener("keydown", stopAlarmOnKey);
-  // Sound loop
+  // One short sound is enough; keep the visual prompt available without
+  // repeating audio while the user decides what to do.
   beep(4);
-  alarmTimers.push(setInterval(() => beep(4), 5000));
   // Is this timer tied to a task we can mark as done?
   // finishedTaskId se captura antes de clearRun() (que borra el vínculo).
-  const linkedId = finishedTaskId || ((window.brisaTimer && window.brisaTimer.linkedTask) ? window.brisaTimer.linkedTask() : null);
+  const rawLinkedId = finishedTaskId || ((window.brisaTimer && window.brisaTimer.linkedTask) ? window.brisaTimer.linkedTask() : null);
   const tasks = (state && state.tasks) || [];
-  const linkedTask = linkedId
-    ? tasks.find(t => String(t.id) === String(linkedId) && !t.is_completed)
+  const selectedTask = rawLinkedId
+    ? tasks.find(t => String(t.id) === String(rawLinkedId) && !t.is_completed)
     : null;
+  const linkedTask = selectedTask?.parent_task_id != null
+    ? tasks.find(t => String(t.id) === String(selectedTask.parent_task_id) && !t.is_completed) || selectedTask
+    : selectedTask;
+  const linkedId = linkedTask?.id || rawLinkedId;
   // Flashing overlay
   const overlay = document.createElement("div");
   overlay.className = "timer-alarm";
@@ -167,12 +177,16 @@ function startAlarm(finishedTaskId = null) {
   if (linkedTask) {
     overlay.innerHTML = `
       <div class="timer-alarm-card">
-        <h2>⏰ ¡Tiempo!</h2>
-        <p>¿Hiciste <strong>${esc(linkedTask.title)}</strong>, o seguimos con el plan?</p>
-        <div class="modal-actions" style="justify-content:center;gap:8px;margin-top:12px">
-          <button class="modal-btn modal-btn-primary" id="timer-alarm-done">✓ Lo hice</button>
-          <button class="modal-btn modal-btn-secondary" id="timer-alarm-continue">Seguir con el plan</button>
+        <h2>⏰ Terminó este bloque</h2>
+        <p>¿Qué pasó con <strong>${esc(linkedTask.title)}</strong>? Una frase basta; Brisa te ayuda a decidir qué sigue.</p>
+        <label class="timer-checkin-label" for="timer-checkin-input">Tu avance, lo que falta o lo que te frenó</label>
+        <textarea id="timer-checkin-input" maxlength="1200" placeholder="Ej.: revisé dos ramas; me falta confirmar cuál usar…"></textarea>
+        <div class="timer-checkin-actions">
+          <button class="modal-btn modal-btn-primary" id="timer-checkin-send">Guardar y ver qué sigue</button>
+          <button class="modal-btn modal-btn-secondary" id="timer-alarm-done">Terminé la acción</button>
+          <button class="modal-btn modal-btn-secondary" id="timer-alarm-continue">Seguir trabajando</button>
         </div>
+        <div id="timer-checkin-result" role="status" aria-live="polite"></div>
       </div>
     `;
   } else {
@@ -185,15 +199,114 @@ function startAlarm(finishedTaskId = null) {
     `;
   }
   if (linkedTask) {
+    overlay.querySelector("#timer-checkin-send")?.addEventListener("click", async (event) => {
+      const button = event.currentTarget;
+      const input = overlay.querySelector("#timer-checkin-input");
+      const result = overlay.querySelector("#timer-checkin-result");
+      const update = input?.value.trim();
+      if (!update) { input?.focus(); return; }
+      button.disabled = true;
+      button.textContent = "Guardando avance…";
+      const parent = linkedTask.parent_task_id
+        ? tasks.find(t => String(t.id) === String(linkedTask.parent_task_id)) : null;
+      const actionId = parent?.id || linkedTask.id;
+      const children = tasks.filter(t => String(t.parent_task_id) === String(actionId));
+      if (window.flushWorkmodeNotes && !(await window.flushWorkmodeNotes())) {
+        result.textContent = "No pude guardar el bloc de esta tarea. Espera un momento e inténtalo otra vez.";
+        button.disabled = false;
+        button.textContent = "Guardar y ver qué sigue";
+        return;
+      }
+      const oldDescription = String(linkedTask.description || "");
+      const safeOld = /<\/?(?:p|div|ul|ol|h[1-6])\b/i.test(oldDescription)
+        ? oldDescription : `<p>${esc(oldDescription).replace(/\n/g, "<br>")}</p>`;
+      const entry = `<p><strong>Avance · ${esc(new Date().toLocaleString("es-CL", { dateStyle: "short", timeStyle: "short" }))}</strong><br>${esc(update).replace(/\n/g, "<br>")}</p>`;
+      let checkInSaved = false;
+      try {
+        const saved = await fetch(`${API_BASE}/tasks/${linkedId}`, {
+          method: "PUT", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ description: `${safeOld}${entry}` }),
+        });
+        if (!saved.ok) throw new Error("No se pudo guardar el avance.");
+        checkInSaved = true;
+        linkedTask.description = `${safeOld}${entry}`;
+        const response = await fetch(`${API_BASE}/ai/check-in`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: linkedTask.title, update, parentTitle: parent?.title || "",
+            plan: children.map(t => `${t.is_completed ? "Listo" : "Pendiente"}: ${t.title}`),
+          }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || "No pude interpretarlo ahora.");
+        result.innerHTML = `<div class="timer-checkin-response"><strong>${esc(data.summary || "Avance guardado.")}</strong>${data.question ? `<p>${esc(data.question)}</p>` : ""}${data.next_step ? `<p class="timer-checkin-next"><span>Siguiente movimiento sugerido</span>${esc(data.next_step)}</p>` : ""}</div>`;
+        if (data.status === "done") {
+          result.querySelector(".timer-checkin-response").insertAdjacentHTML("beforeend", '<button class="modal-btn modal-btn-primary" id="timer-checkin-done">Marcar la acción lista</button>');
+          result.querySelector("#timer-checkin-done").addEventListener("click", async () => {
+            const done = await fetch(`${API_BASE}/tasks/${linkedId}`, {
+              method: "PUT", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ is_completed: true, completed_at: new Date().toISOString() }),
+            });
+            if (!done.ok) return;
+            stopAlarm();
+            if (window.initTasks) await window.initTasks();
+            if (window.startWorkmode) await window.startWorkmode(parent?.id || linkedId);
+          });
+        }
+        if (data.next_step) {
+          result.querySelector(".timer-checkin-response").insertAdjacentHTML("beforeend", '<button class="modal-btn modal-btn-primary" id="timer-checkin-add">Agregar sugerencia al plan</button>');
+          result.querySelector("#timer-checkin-add").addEventListener("click", async (e) => {
+            e.currentTarget.disabled = true;
+            const added = await fetch(`${API_BASE}/tasks`, {
+              method: "POST", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ title: data.next_step, parent_task_id: actionId, event_id: linkedTask.event_id || parent?.event_id || null }),
+            });
+            if (!added.ok) { e.currentTarget.disabled = false; return; }
+            const next = await added.json();
+            stopAlarm();
+            if (window.initTasks) await window.initTasks();
+            if (window.startWorkmode) await window.startWorkmode(next.id);
+          });
+        }
+        result.querySelector(".timer-checkin-response").insertAdjacentHTML("beforeend", '<button class="modal-btn modal-btn-secondary" id="timer-checkin-return">Volver a Enfoque</button>');
+        result.querySelector("#timer-checkin-return").addEventListener("click", async () => {
+          stopAlarm();
+          if (window.initTasks) await window.initTasks();
+          if (window.startWorkmode) await window.startWorkmode(linkedId);
+        });
+        overlay.querySelector("#timer-alarm-done")?.remove();
+        overlay.querySelector("#timer-alarm-continue")?.remove();
+        button.remove();
+        input.disabled = true;
+      } catch (err) {
+        result.innerHTML = `<p>${esc(err.message)} ${checkInSaved ? "Tu avance quedó guardado." : ""} Puedes volver a Enfoque y decidir qué sigue.</p>`;
+        if (checkInSaved) {
+          button.remove();
+          input.disabled = true;
+          result.insertAdjacentHTML("beforeend", '<button class="modal-btn modal-btn-primary" id="timer-checkin-return">Volver a Enfoque</button>');
+          result.querySelector("#timer-checkin-return").addEventListener("click", async () => {
+            stopAlarm();
+            if (window.initTasks) await window.initTasks();
+            if (window.startWorkmode) await window.startWorkmode(linkedId);
+          });
+        } else {
+          button.disabled = false;
+          button.textContent = "Guardar y ver qué sigue";
+        }
+      }
+    });
     overlay.querySelector("#timer-alarm-done")?.addEventListener("click", async (e) => {
       e.stopPropagation();
       stopAlarm();
+      const parentTask = linkedTask.parent_task_id
+        ? tasks.find(t => String(t.id) === String(linkedTask.parent_task_id)) : null;
       try {
-        await fetch(`${API_BASE}/tasks/${linkedId}`, {
+        const completed = await fetch(`${API_BASE}/tasks/${linkedId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ is_completed: true, completed_at: new Date().toISOString() }),
         });
+        if (!completed.ok) throw new Error("No se pudo marcar como terminado.");
       } catch (err) {
         console.error("Error completando tarea:", err);
       }
@@ -206,6 +319,7 @@ function startAlarm(finishedTaskId = null) {
       if (document.querySelector("#focus-modal")?.classList.contains("active")) {
         if (window.closeFocus) window.closeFocus();
       }
+      if (window.startWorkmode) await window.startWorkmode(parentTask?.id || linkedId);
     });
     overlay.querySelector("#timer-alarm-continue")?.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -220,7 +334,7 @@ function startAlarm(finishedTaskId = null) {
   });
   document.body.appendChild(overlay);
   // Focus the primary action: Enter/Space accept natively from anywhere
-  const focusBtn = overlay.querySelector("#timer-alarm-done") || overlay.querySelector("#timer-alarm-stop");
+  const focusBtn = overlay.querySelector("#timer-checkin-input") || overlay.querySelector("#timer-alarm-done") || overlay.querySelector("#timer-alarm-stop");
   focusBtn?.focus({ preventScroll: true });
   // Flashing tab title
   let on = false;
@@ -239,8 +353,7 @@ function startAlarm(finishedTaskId = null) {
 }
 
 function stopAlarmOnKey(e) {
-  if (e.key === " " || e.key === "Spacebar") e.preventDefault();
-  stopAlarm();
+  if (e.key === "Escape") stopAlarm();
 }
 
 function stopAlarm() {
@@ -541,9 +654,6 @@ export function initTimer() {
     if (getMode() === "mini") restoreTimer();
     else minimizeTimer();
   });
-  document.querySelector("#timer-test")?.addEventListener("click", () => {
-    debugFinishSoon();
-  });
   document.querySelector("#timer-chip")?.addEventListener("click", (e) => {
     if (e.target.closest("#timer-chip-toggle")) return;
     restoreTimer();
@@ -561,9 +671,19 @@ export function initTimer() {
   document.querySelectorAll(".timer-preset").forEach(b =>
     b.addEventListener("click", () => setMinutes(Number(b.dataset.min))));
 
-  document.querySelector("#timer-custom-set")?.addEventListener("click", () => {
-    const v = Number(document.querySelector("#timer-custom-min")?.value);
-    if (v > 0 && v <= 480) setMinutes(v);
+  // Duración a medida: el botón OK y la tecla Enter hacen lo mismo.
+  // El input se mantiene en sync con la duración activa (setMinutes).
+  const customInput = document.querySelector("#timer-custom-min");
+  const applyCustom = () => {
+    const v = Number(customInput?.value);
+    if (Number.isFinite(v) && v > 0 && v <= 480) setMinutes(v);
+  };
+  document.querySelector("#timer-custom-set")?.addEventListener("click", applyCustom);
+  customInput?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      applyCustom();
+    }
   });
 
   document.querySelector("#timer-start-pause")?.addEventListener("click", () => toggle());
@@ -598,6 +718,8 @@ export function initTimer() {
       pauseTimer();
       return;
     }
+    const workmodeVisible = !!document.querySelector("#workmode-section")?.offsetParent;
+    if (workmodeVisible && window.currentWorkActionId) setTask(window.currentWorkActionId);
     startTimer();
   }
 
@@ -607,7 +729,7 @@ export function initTimer() {
   });
   resumeRun();
 
-  window.brisaTimer = { setMinutes, start: startTimer, stop: pauseTimer, isRunning: () => !!timerId, hasSession: () => !!timerId || remainingSec < totalSec, debugFinishSoon, timeLeft: () => ({ remainingSec, totalSec, running: !!timerId }), setTask, clearTask: () => setTask(null), linkedTask: () => linkedTaskId };
+  window.brisaTimer = { setMinutes, start: startTimer, stop: pauseTimer, isRunning: () => !!timerId, hasSession: () => !!timerId || remainingSec < totalSec, timeLeft: () => ({ remainingSec, totalSec, running: !!timerId }), setTask, clearTask: () => setTask(null), linkedTask: () => linkedTaskId };
 }
 
 function startTimer() {
@@ -631,15 +753,6 @@ function pauseTimer() {
   saveRun();
   syncButtons(false);
   paint();
-}
-
-// Test helper: jump to 2 seconds before finishing (navbar 🧪 button)
-function debugFinishSoon() {
-  stopTick();
-  if (totalSec <= 0) totalSec = 10 * 60;
-  remainingSec = 2;
-  paint();
-  startTimer();
 }
 
 function resumeRun() {

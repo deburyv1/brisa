@@ -11,6 +11,10 @@
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
   border: 1px solid rgba(255, 255, 255, 0.3);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 10px 30px rgba(0, 58, 94, .08);
+  height: calc(100vh - 120px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .workmode-header {
@@ -18,7 +22,14 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
+  flex-shrink: 0;
+}
+
+.workmode-heading-hint {
+  margin-top: 4px;
+  color: rgba(22, 75, 105, .68);
+  font-size: 11px;
 }
 
 .workmode-title {
@@ -33,23 +44,6 @@
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.workmode-select {
-  border: 1px solid rgba(22, 75, 105, 0.3);
-  border-radius: 10px;
-  padding: 7px 10px;
-  font-size: 11px;
-  font-family: inherit;
-  color: var(--ink);
-  background: rgba(255, 255, 255, .5);
-  outline: none;
-  max-width: 280px;
-}
-
-.workmode-select option {
-  background: #fff;
-  color: var(--ink);
 }
 
 .workmode-zen-btn {
@@ -73,6 +67,9 @@
   grid-template-columns: minmax(280px, 380px) 1fr;
   gap: 12px;
   align-items: start;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .workmode-task,
@@ -84,6 +81,250 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  overflow: hidden;
+  min-height: 0;
+  height: 100%;
+}
+
+.workmode-task-kicker,
+.workmode-context-kicker {
+  color: rgba(22, 75, 105, .68);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .09em;
+}
+
+.workmode-action-context {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid rgba(22, 75, 105, .16);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .34);
+}
+
+.workmode-context-title {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.4;
+}
+
+.workmode-context-first,
+.workmode-context-event,
+.workmode-action-estimate {
+  margin: 0;
+  color: rgba(22, 75, 105, .78);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.workmode-context-event {
+  padding-top: 7px;
+  border-top: 1px solid rgba(22, 75, 105, .12);
+}
+
+.workmode-plan {
+  min-width: 0;
+}
+
+.workmode-plan > summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  color: rgba(22, 75, 105, .9);
+  font-size: 11px;
+  font-weight: 750;
+  cursor: pointer;
+  list-style-position: inside;
+}
+
+.workmode-plan > summary span:last-child {
+  color: rgba(22, 75, 105, .82);
+  font-size: 10px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.workmode-plan-progress {
+  height: 6px;
+  margin-top: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(22, 75, 105, .13);
+}
+
+.workmode-plan-progress > span {
+  display: block;
+  height: 100%;
+  min-width: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #36bd82, #139e72);
+  transition: width .35s ease;
+}
+
+.workmode-plan ol {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin: 8px 0 0;
+  padding: 0 3px 0 0;
+  list-style: none;
+}
+
+.workmode-plan li {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 6px 8px;
+  border: 1px solid rgba(22, 75, 105, .12);
+  border-radius: 9px;
+  color: rgba(22, 75, 105, .8);
+  font-size: 11px;
+  line-height: 1.35;
+  cursor: grab;
+  transition: transform .12s ease, border-color .12s ease, background .12s ease;
+}
+
+.workmode-plan li:active { cursor: grabbing; }
+.workmode-plan li.dragging { opacity: .45; }
+.workmode-plan li.drop-before { border-top: 2px solid var(--accent); }
+.workmode-plan li.drop-after { border-bottom: 2px solid var(--accent); }
+
+@media (max-width: 520px) {
+  .workmode-plan li {
+    grid-template-columns: 22px minmax(0, 1fr) auto;
+  }
+  .workmode-plan-tools { grid-column: 2 / -1; justify-self: end; }
+}
+
+.workmode-plan li.current {
+  border-color: rgba(0, 157, 205, .42);
+  background: rgba(42, 191, 224, .14);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.workmode-plan li.next {
+  border-color: rgba(22, 75, 105, .23);
+  background: rgba(255, 255, 255, .25);
+}
+
+.workmode-plan li.done {
+  border-color: rgba(29, 140, 87, .35);
+  background: linear-gradient(105deg, rgba(97, 213, 150, .2), rgba(232, 255, 239, .62));
+  color: #225c46;
+}
+
+.workmode-plan li.done .workmode-plan-name {
+  color: #225c46;
+  font-weight: 650;
+}
+
+.workmode-plan-status.is-done {
+  padding: 2px 6px;
+  border: 1px solid rgba(29, 140, 87, .24);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .55);
+  color: #167047;
+  font-weight: 750;
+}
+
+.workmode-plan-marker {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border: 1px solid rgba(22, 75, 105, .28);
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.workmode-plan li.done .workmode-plan-marker {
+  border-color: #198450;
+  background: #198450;
+  color: #fff;
+  box-shadow: 0 0 0 3px rgba(25, 132, 80, .12);
+}
+
+.workmode-plan-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.workmode-plan-tools button,
+.workmode-step-edit button,
+.workmode-remove-confirm button {
+  min-width: 26px;
+  min-height: 26px;
+  padding: 2px 6px;
+  border: 1px solid rgba(22, 75, 105, .2);
+  border-radius: 7px;
+  color: rgba(22, 75, 105, .82);
+  background: rgba(255, 255, 255, .58);
+  cursor: pointer;
+}
+
+.workmode-plan-tools button:hover,
+.workmode-step-edit button:hover,
+.workmode-remove-confirm button:hover {
+  background: #fff;
+}
+
+.workmode-plan-add,
+.workmode-step-edit {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.workmode-plan-add input,
+.workmode-step-edit input {
+  flex: 1 1 140px;
+  min-width: 0;
+  min-height: 34px;
+  padding: 6px 9px;
+  border: 1px solid rgba(22, 75, 105, .22);
+  border-radius: 8px;
+  color: var(--ink);
+  background: rgba(255, 255, 255, .72);
+  font: inherit;
+}
+
+.workmode-plan-add > button {
+  padding: 5px 10px;
+  border: 1px solid rgba(22, 75, 105, .22);
+  border-radius: 8px;
+  color: var(--ink);
+  background: rgba(255, 255, 255, .62);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.workmode-remove-confirm {
+  grid-column: 2 / -1;
+  color: var(--ink);
+  font-size: 10px;
+}
+
+.workmode-plan-feedback:empty { display: none; }
+.workmode-plan-feedback { margin: 6px 0 0; color: rgba(22, 75, 105, .82); font-size: 10px; }
+
+.workmode-plan-status {
+  color: rgba(22, 75, 105, .65);
+  font-size: 9px;
+  white-space: nowrap;
 }
 
 .workmode-task-title {
@@ -115,9 +356,27 @@
 }
 
 .workmode-step {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 11px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .42);
   font-size: 12px;
   color: rgba(22, 75, 105, 0.85);
   line-height: 1.5;
+}
+
+.workmode-step span {
+  color: rgba(22, 75, 105, .65);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+
+.workmode-step strong {
+  color: var(--ink);
+  font-size: 14px;
 }
 
 .workmode-step.dim {
@@ -136,6 +395,70 @@
   border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
+.workmode-timer-scope {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  text-align: center;
+}
+
+.workmode-timer-scope strong {
+  color: rgba(22, 75, 105, .9);
+  font-size: 11px;
+}
+
+.workmode-timer-scope span,
+.workmode-done-hint {
+  color: rgba(22, 75, 105, .65);
+  font-size: 10px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.workmode-next-step,
+.workmode-no-step {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 9px;
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .48);
+}
+
+.workmode-next-step > strong {
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.workmode-next-step button,
+.workmode-no-step button {
+  width: 100%;
+}
+
+.workmode-no-step p,
+.workmode-plan-finished {
+  margin: 0;
+  color: rgba(22, 75, 105, .75);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.workmode-transition {
+  margin: 0 0 10px;
+  padding: 10px 14px;
+  border: 1px solid rgba(35, 154, 96, .35);
+  border-radius: 12px;
+  background: rgba(208, 245, 220, .55);
+  color: #176944;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
 .workmode-clock {
   font-size: 40px;
   font-weight: 300;
@@ -146,6 +469,48 @@
 
 .workmode-clock.running {
   color: #087fb0;
+}
+
+.workmode-clock-readout {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.workmode-clock-readout > span {
+  color: rgba(22, 75, 105, .78);
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.workmode-clock-readout .workmode-clock {
+  font-size: 34px;
+  font-weight: 650;
+  letter-spacing: -.04em;
+  color: #087fb0;
+}
+
+.workmode-clock-track {
+  height: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(22, 75, 105, .14);
+}
+
+.workmode-clock-track > span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #21c3d5, #078bb8);
+  transition: width .5s linear;
+}
+
+.workmode-session-status {
+  color: #176944 !important;
+  font-weight: 700;
 }
 
 .workmode-presets {
@@ -300,6 +665,83 @@
 .workmode-notes-hint {
   font-size: 10px;
   color: rgba(22, 75, 105, 0.55);
+}
+
+.workmode-notes .ql-editor {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  max-height: 100%;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 8px 12px 8px 26px; /* gutter izquierdo para el mango de reordenar */
+}
+
+.workmode-notes .ql-container {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border: none !important;
+  font-family: inherit;
+}
+
+.workmode-notes .ql-toolbar {
+  flex-shrink: 0;
+  border: none !important;
+  border-bottom: 1px solid rgba(22, 75, 105, 0.15) !important;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.workmode-task .workmode-action-context {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.workmode-task .workmode-timer {
+  flex-shrink: 0;
+}
+
+.workmode-task .workmode-step {
+  flex-shrink: 0;
+}
+
+.workmode-task .workmode-origin {
+  flex-shrink: 0;
+}
+
+.workmode-task .workmode-task-title {
+  flex-shrink: 0;
+}
+
+.workmode-task .workmode-task-kicker {
+  flex-shrink: 0;
+}
+
+.workmode-notes-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.workmode-timestamp-btn {
+  border: 1px solid rgba(22, 75, 105, 0.3);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(22, 75, 105, 0.85);
+  background: rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.workmode-timestamp-btn:hover {
+  background: rgba(255, 255, 255, 0.55);
 }
 
 .workmode-empty {

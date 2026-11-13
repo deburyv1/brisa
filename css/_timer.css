@@ -178,6 +178,31 @@
   accent-color: #087fb0;
 }
 
+/* Section wrapper: groups related controls under a quiet label */
+.timer-section {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.timer-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: rgba(22, 75, 105, 0.62);
+}
+
+/* Scale hints under the size slider */
+.timer-size-scale {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  font-weight: 700;
+  color: rgba(22, 75, 105, 0.5);
+  margin-top: -3px;
+}
+
 .timer-home {
   border: 1px solid rgba(22, 75, 105, 0.3);
   background: rgba(255, 255, 255, 0.4);
@@ -188,6 +213,23 @@
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
+  transition: var(--transition-speed);
+}
+
+.timer-home:hover {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+/* Footer: minimize + center side by side, saves vertical space */
+.timer-footer {
+  display: flex;
+  gap: 6px;
+}
+
+.timer-footer .timer-home {
+  flex: 1;
+  padding: 7px 6px;
+  font-size: 10px;
 }
 
 .timer-presets {
@@ -210,6 +252,7 @@
 
 .timer-custom {
   display: flex;
+  align-items: stretch;
   gap: 6px;
 }
 
@@ -228,6 +271,26 @@
 
 .timer-custom input::placeholder {
   color: rgba(22, 75, 105, 0.55);
+}
+
+/* Static unit suffix inside the custom-duration field */
+.timer-custom-unit {
+  display: grid;
+  place-items: center;
+  padding: 0 8px;
+  border: 1px solid rgba(22, 75, 105, 0.25);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.35);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  color: rgba(22, 75, 105, 0.65);
+}
+
+/* OK confirms on click; Enter in the field does the same (see timer.js) */
+.timer-custom .modal-btn {
+  flex: 0 0 auto;
+  padding: 8px 12px;
 }
 
 .timer-row {
@@ -275,6 +338,54 @@
   margin: 0 0 16px;
   font-size: 12px;
   color: rgba(22, 75, 105, 0.85);
+}
+
+.timer-alarm-card .timer-checkin-label {
+  display: block;
+  margin: 14px 0 5px;
+  color: rgba(22, 75, 105, .82);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: left;
+}
+
+.timer-alarm-card #timer-checkin-input {
+  display: block;
+  width: 100%;
+  min-height: 86px;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid rgba(22, 75, 105, .25);
+  border-radius: 12px;
+  color: var(--ink);
+  background: rgba(255, 255, 255, .78);
+  font: inherit;
+  resize: vertical;
+}
+
+.timer-checkin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.timer-checkin-response {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .55);
+  text-align: left;
+}
+
+.timer-checkin-response p { margin: 7px 0 0; }
+.timer-checkin-next span {
+  display: block;
+  margin-bottom: 3px;
+  color: rgba(22, 75, 105, .68);
+  font-size: 11px;
+  font-weight: 700;
 }
 
 /* Exchange: postpone a task, paid with its first small step.

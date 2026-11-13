@@ -147,6 +147,39 @@ button.focus-step-box.as-complete:hover .focus-step-check::after {
   margin: 0 0 8px;
 }
 
+/* Programar fecha: la hora es opcional y se quita de una vez */
+.focus-time-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.focus-time-row input[type="time"] {
+  flex: 1;
+  min-width: 0;
+}
+
+.focus-time-clear {
+  border: 1px solid rgba(22, 75, 105, 0.3);
+  border-radius: 99px;
+  padding: 9px 12px;
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(22, 75, 105, 0.85);
+  background: rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: var(--transition-speed);
+}
+
+.focus-time-clear:hover {
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.focus-time-clear[hidden] {
+  display: none;
+}
+
 /* Event prep checklist */
 .prep-list {
   display: flex;

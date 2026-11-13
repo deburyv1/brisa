@@ -4,9 +4,11 @@
    No new tables: scratch lives in task.description.
    ============================================ */
 import { state } from "./state.js";
-import { pickNextAction } from "./nextAction.js?v=20261019ab";
-import { createEditor, editorHTML, htmlWithLightImages, isHTML } from "./richtext.js";
+import { pickNextAction } from "./nextAction.js?v=20261020sched";
+import { createEditor, editorHTML, htmlWithLightImages, isHTML } from "./richtext.js?v=20261021rtl9";
+import { pairsHTML } from "./dataPairs.js?v=20261021pairs1";
 import { confirmDiscard } from "./modalGuard.js";
+import { eventPhaseLabel, getActionPlan } from "./workmodePlan.js";
 
 const API_BASE = "/api";
 
@@ -16,9 +18,20 @@ let saveTimer = null;
 let pollTimer = null;
 let dirty = false;
 let unloadBound = false;
+let transitionMessage = "";
 
 function pendingTasks() {
   return (state.tasks || []).filter(t => !t.is_completed);
+}
+
+// Los datos útiles viven en la acción: si estás trabajando un paso del
+// checklist, se muestran los de su padre.
+function pairsForTask(task) {
+  if (task?.parent_task_id != null) {
+    const parent = (state.tasks || []).find(t => String(t.id) === String(task.parent_task_id));
+    if (parent) return parent.data_pairs;
+  }
+  return task?.data_pairs;
 }
 
 function resolveTask() {
@@ -27,7 +40,7 @@ function resolveTask() {
     return pending.find(t => String(t.id) === String(currentId));
   }
   const pick = pickNextAction(state.tasks || [], new Date());
-  const task = pick && pick.current ? pick.current : pending[0] || null;
+  const task = pick?.activeTask || pick?.current || pending[0] || null;
   currentId = task ? task.id : null;
   return task;
 }
@@ -46,24 +59,62 @@ function escapeHtml(str) {
     .replace(/"/g, "&quot;");
 }
 
-// Parent breadcrumb: when working a step, show which action it
-// belongs to and where you are in it.
-function parentContext(task) {
-  if (task.parent_task_id == null) return "";
-  const all = state.tasks || [];
-  const parent = all.find(t => String(t.id) === String(task.parent_task_id));
-  if (!parent) return "";
-  const siblings = all.filter(t => String(t.parent_task_id) === String(parent.id));
-  const pos = siblings.findIndex(t => String(t.id) === String(task.id)) + 1;
-  const total = siblings.length;
+function formatEventDate(event) {
+  if (!event?.start) return "";
+  const date = new Date(event.start);
+  const day = date.toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "long" });
+  const h = date.getHours(), m = date.getMinutes();
+  return (h === 0 && m === 0) || (h === 23 && m === 59)
+    ? day
+    : `${day} · ${date.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })}`;
+}
+
+function actionContext(task, plan) {
+  const hasContext = !!plan.parent || plan.total > 0 || task.event_id != null || plan.action.event_id != null;
+  if (!hasContext) return "";
+  const eventId = task.event_id || plan.action.event_id;
+  const event = eventId != null
+    ? (state.events || []).find(item => String(item.id) === String(eventId)) : null;
+  const currentId = plan.currentStep?.id;
   return `
-    <button type="button" class="workmode-parent" data-parent="${parent.id}" title="Ver la acción completa">
-      Parte de: <strong>${escapeHtml(parent.title)}</strong>${total > 0 ? ` · Paso ${pos} de ${total}` : ""}
-    </button>`;
+    <section class="workmode-action-context" aria-label="Contexto de la acción">
+      <div class="workmode-context-kicker">${plan.parent ? "ACCIÓN COMPLETA" : "CONTEXTO"}</div>
+      ${plan.parent ? `<div class="workmode-context-title">${escapeHtml(plan.action.title)}</div>` : ""}
+      ${(plan.parent || plan.total > 0) && plan.action.first_step ? `<p class="workmode-context-first"><strong>Primer movimiento:</strong> ${escapeHtml(plan.action.first_step)}</p>` : ""}
+      ${event ? `<p class="workmode-context-event">Para ${escapeHtml(event.title)} · ${escapeHtml(formatEventDate(event))} · ${escapeHtml(eventPhaseLabel(task.event_phase || plan.action.event_phase))}</p>` : ""}
+      ${plan.total ? `
+        <details class="workmode-plan" open>
+          <summary><span>Plan de esta acción</span><span>${plan.done} de ${plan.total} pasos listos</span></summary>
+          <div class="workmode-plan-progress" role="progressbar" aria-label="Avance del plan" aria-valuemin="0" aria-valuemax="${plan.total}" aria-valuenow="${plan.done}">
+            <span style="width:${Math.round((plan.done / plan.total) * 100)}%"></span>
+          </div>
+          <ol id="workmode-plan-list" data-plan-id="${plan.action.id}">${plan.steps.map((step, index) => {
+            const done = !!step.is_completed;
+            const isCurrent = !!plan.parent && String(step.id) === String(currentId) && !done;
+            const isNext = !plan.parent && String(step.id) === String(plan.nextStep?.id) && !done;
+            return `<li class="${done ? "done" : isCurrent ? "current" : isNext ? "next" : "pending"}" data-step-row="${step.id}" data-step-id="${step.id}" draggable="true" title="Arrastra para cambiar el orden">
+              <span class="workmode-plan-marker" aria-hidden="true">${done ? "✓" : index + 1}</span>
+              <span class="workmode-plan-name">${escapeHtml(step.title)}</span>
+              <span class="workmode-plan-status${done ? " is-done" : ""}">${done ? "Listo" : isCurrent ? "Ahora" : isNext ? "Siguiente" : "Pendiente"}</span>
+              <span class="workmode-plan-tools">
+                <button type="button" data-step-done="${step.id}" data-done="${done}" aria-label="${done ? "Desmarcar" : "Marcar"} ${escapeHtml(step.title)} ${done ? "como pendiente" : "como listo"}" title="${done ? "Deshacer listo" : "Marcar listo"}">${done ? "↶" : "✓"}</button>
+                <button type="button" data-step-edit="${step.id}" aria-label="Editar ${escapeHtml(step.title)}" title="Editar">✎</button>
+                <button type="button" data-step-remove="${step.id}" aria-label="Quitar ${escapeHtml(step.title)} del plan" title="No corresponde">×</button>
+              </span>
+            </li>`;
+          }).join("")}</ol>
+          <form class="workmode-plan-add" id="workmode-add-step-form">
+            <input name="step" maxlength="240" placeholder="Agregar el siguiente paso…" aria-label="Agregar paso al plan">
+            <button type="submit">Agregar</button>
+          </form>
+          <p class="workmode-plan-feedback" id="workmode-plan-feedback" role="status"></p>
+        </details>` : ""}
+      ${plan.action.estimated_minutes ? `<p class="workmode-action-estimate">Estimación de la acción completa: ~${Number(plan.action.estimated_minutes)} min</p>` : ""}
+    </section>`;
 }
 
 async function flushSave() {
-  if (!dirty || !quill || !currentId) return;
+  if (!dirty || !quill || !currentId) return true;
   dirty = false;
   paintSaveState("saving");
   try {
@@ -76,10 +127,12 @@ async function flushSave() {
     const t = (state.tasks || []).find(x => String(x.id) === String(currentId));
     if (t) t.description = html;
     paintSaveState("saved");
+    return true;
   } catch (e) {
     console.warn("No se pudo guardar el bloc:", e);
     dirty = true;
     paintSaveState("error");
+    return false;
   }
 }
 
@@ -93,14 +146,19 @@ function paintSaveState(s) {
 function paintTimer() {
   const t = window.brisaTimer && window.brisaTimer.timeLeft ? window.brisaTimer.timeLeft() : null;
   const clock = document.querySelector("#workmode-clock");
+  const progress = document.querySelector("#workmode-clock-progress");
   const toggle = document.querySelector("#workmode-toggle");
-  if (!clock || !t) return;
-  clock.textContent = fmt(t.remainingSec);
-  clock.classList.toggle("running", t.running);
-  if (toggle) toggle.textContent = t.running ? "⏸ Pausar" : "▶ Empezar";
-  document.querySelectorAll(".workmode-preset").forEach(b => {
-    b.classList.toggle("selected", Math.round(t.totalSec / 60) === Number(b.dataset.min));
-  });
+  if (!t) return;
+  if (clock) {
+    clock.textContent = fmt(t.remainingSec);
+    clock.classList.toggle("running", t.running);
+  }
+  if (progress) progress.style.width = `${t.totalSec > 0 ? Math.max(0, Math.min(100, (t.remainingSec / t.totalSec) * 100)) : 0}%`;
+  if (toggle) toggle.textContent = t.running ? "⏸ Pausar" : t.remainingSec < t.totalSec ? "▶ Retomar" : "▶ Empezar bloque";
+  const status = document.querySelector("#workmode-session-status");
+  if (status) status.textContent = t.running
+    ? "En marcha · sigue con este paso."
+    : t.remainingSec < t.totalSec ? "En pausa · puedes retomarlo cuando quieras." : "Listo para iniciar cuando tú quieras.";
 }
 
 let patioTimer = null;
@@ -164,8 +222,9 @@ function stripHtml(html) {
 async function fillOrigin(task) {
   const el = document.querySelector("#workmode-origin");
   if (!el) return;
+  const actionId = task.parent_task_id || task.id;
   try {
-    const res = await fetch(`${API_BASE}/entries?target_type=action&target_id=${task.id}`);
+    const res = await fetch(`${API_BASE}/entries?target_type=action&target_id=${actionId}`);
     if (!res.ok) return;
     const rows = await res.json();
     if (!rows.length) return;
@@ -204,8 +263,6 @@ function paintFocusChip() {
 function render(section) {
   clearPatio();
   const task = resolveTask();
-  const pending = pendingTasks();
-
   if (!task) {
     section.innerHTML = `
       <div class="workmode-empty">
@@ -215,94 +272,305 @@ function render(section) {
     return;
   }
 
+  const plan = getActionPlan(task, state.tasks || []);
+  window.currentWorkActionId = plan.action?.id || task.id;
+  if (window.brisaTimer?.hasSession?.() && window.brisaTimer?.setTask) {
+    window.brisaTimer.setTask(window.currentWorkActionId);
+  }
+  const isActionOverview = !plan.parent && plan.total > 0;
+  const isChecklistStep = task.parent_task_id != null;
+  const immediateStep = isActionOverview ? "" : task.first_step?.trim() || (isChecklistStep ? task.title : "");
+  const context = actionContext(task, plan);
+  const event = (state.events || []).find(item => String(item.id) === String(task.event_id || plan.action.event_id));
+  const stepCaption = isChecklistStep ? "PASO ACTUAL" : isActionOverview ? "ACCIÓN COMPLETA" : "ACCIÓN";
+  const message = transitionMessage;
+  transitionMessage = "";
+  const timerControls = isActionOverview ? `
+    ${plan.nextStep ? `
+      <div class="workmode-next-step">
+        <div class="workmode-context-kicker">SIGUIENTE PASO</div>
+        <strong>${escapeHtml(plan.nextStep.title)}</strong>
+        <button type="button" class="modal-btn modal-btn-primary" id="workmode-open-next">Ver este paso</button>
+      </div>` : `<p class="workmode-plan-finished">Todos los pasos registrados están listos. Revisa la acción completa y ciérrala cuando corresponda.</p>`}
+    ${plan.pending === 0 ? `<button class="modal-btn modal-btn-primary" id="workmode-done">Cerrar acción ✓</button>` : ""}
+  ` : immediateStep ? `
+    <div class="workmode-timer-scope">
+      <strong>Temporizador de la sesión</strong>
+      <div class="workmode-clock-readout"><span>Tiempo restante del bloque</span><b id="workmode-clock" class="workmode-clock" aria-live="off">10:00</b></div>
+      <div class="workmode-clock-track" aria-hidden="true"><span id="workmode-clock-progress"></span></div>
+      <span id="workmode-session-status" class="workmode-session-status" role="status"></span>
+      ${plan.action.estimated_minutes ? `<span>Estimación de la acción: ~${Number(plan.action.estimated_minutes)} min</span>` : ""}
+    </div>
+    <div class="workmode-actions">
+      <button class="modal-btn modal-btn-primary" id="workmode-toggle">▶ Empezar bloque</button>
+      <button class="modal-btn modal-btn-secondary" id="workmode-stuck">¿Qué me frena?</button>
+    </div>
+    <div class="workmode-switch-row">
+      <button class="modal-btn modal-btn-secondary" id="workmode-switch" title="Cambiar a otra tarea sin culpa">⇄ Otra cosa</button>
+      <button class="modal-btn modal-btn-secondary" id="workmode-patio" title="Pausa corta para recuperarte">Patio</button>
+    </div>
+    <div class="workmode-switch-panel" id="workmode-switch-panel"></div>
+    <button class="modal-btn modal-btn-primary" id="workmode-done">${isChecklistStep ? "Terminar este paso ✓" : "Marcar acción hecha ✓"}</button>
+    ${isChecklistStep ? `<p class="workmode-done-hint">Al terminar, te mostraré el siguiente paso del plan.</p>` : ""}
+    <button class="modal-btn modal-btn-secondary" id="workmode-postpone" title="Mover para mañana">Pasar a mañana</button>
+    <button class="modal-btn modal-btn-secondary" id="workmode-discard" title="Descartar este paso o la acción">Descartar</button>
+    <div class="workmode-switch-panel" id="workmode-discard-panel"></div>
+  ` : `
+    <div class="workmode-no-step">
+      <p>Aún no hay un primer movimiento concreto. Lo definimos juntos antes de iniciar el temporizador.</p>
+      <button type="button" class="modal-btn modal-btn-primary" id="workmode-define-step">Ayúdame a encontrar por dónde partir</button>
+    </div>`;
+
   section.innerHTML = `
+    ${message ? `<p class="workmode-transition" role="status">${escapeHtml(message)}</p>` : ""}
     <div class="workmode-header">
-      <div class="workmode-title">Enfoque</div>
+      <div><div class="workmode-title">Estación de trabajo</div><div class="workmode-heading-hint">La acción, el paso actual y tus notas en un solo lugar.</div></div>
       <div class="workmode-tools">
-        <select id="workmode-task-select" class="workmode-select" title="Cambiar de tarea">
-          ${pending.map(t => `<option value="${t.id}" ${String(t.id) === String(task.id) ? "selected" : ""}>${escapeHtml(t.title)}</option>`).join("")}
-        </select>
         <button class="workmode-zen-btn" id="workmode-zen" title="Ocultar barra lateral">⛶ Zen</button>
       </div>
     </div>
     <div class="workmode-grid">
       <div class="workmode-task aero-panel">
-        ${parentContext(task)}
+        ${context}
+        <div class="workmode-task-kicker">${stepCaption}</div>
         <div class="workmode-task-title">${escapeHtml(task.title)}</div>
         <div class="workmode-origin" id="workmode-origin"></div>
-        ${task.first_step ? `<div class="workmode-step">Ahora mismo, solo esto: <strong>${escapeHtml(task.first_step)}</strong></div>` : `<div class="workmode-step dim">Sin primer paso definido.</div>`}
+        ${pairsHTML(pairsForTask(task))}
+        ${immediateStep ? `<div class="workmode-step"><span>AHORA MISMO, SOLO ESTO</span><strong>${escapeHtml(immediateStep)}</strong></div>` : ""}
         <div class="workmode-timer">
-          <div class="workmode-clock" id="workmode-clock">--:--</div>
-          <div class="workmode-presets">
-            ${[10, 15, 25].map(m => `<button class="workmode-preset" data-min="${m}">${m}</button>`).join("")}
-            <button class="workmode-preset workmode-reset" id="workmode-reset" title="Detener y volver al inicio">↺</button>
-          </div>
-          <div class="workmode-actions">
-            <button class="modal-btn modal-btn-primary" id="workmode-toggle">▶ Empezar</button>
-            <button class="modal-btn modal-btn-secondary" id="workmode-stuck">¿Trabado?</button>
-          </div>
-          <div class="workmode-switch-row">
-            <button class="modal-btn modal-btn-secondary" id="workmode-switch" title="Rotar a otra tarea sin culpa">⇄ Otra cosa</button>
-            <button class="modal-btn modal-btn-secondary" id="workmode-patio" title="Pausa corta para poner los pies en la tierra">Patio</button>
-          </div>
-          <div class="workmode-switch-panel" id="workmode-switch-panel"></div>
-          <button class="modal-btn modal-btn-secondary" id="workmode-done">Marcar hecha ✓</button>
-          <button class="modal-btn modal-btn-secondary" id="workmode-postpone" title="Patear para mañana (sin fecha límite hoy)">Patear → mañana</button>
-          <button class="modal-btn modal-btn-secondary" id="workmode-discard" title="Descartar este paso o la tarea">Descartar</button>
-          <div class="workmode-switch-panel" id="workmode-discard-panel"></div>
+          ${timerControls}
         </div>
       </div>
       <div class="workmode-notes aero-panel">
         <div class="workmode-notes-head">
-          <span>Bloc de la sesión</span>
-          <span id="workmode-save-state" class="workmode-save"></span>
+          <span>${isChecklistStep ? "Notas de este paso" : "Notas de esta acción"}</span>
+          <div class="workmode-notes-tools">
+            <button class="workmode-timestamp-btn" id="workmode-timestamp" title="Insertar timestamp de avance">+ Avance</button>
+            <span id="workmode-save-state" class="workmode-save"></span>
+          </div>
         </div>
         <div id="workmode-quill"></div>
-        <div class="workmode-notes-hint">Se guarda solo en esta tarea · Ctrl+Enter para terminar</div>
+        <div class="workmode-notes-hint">Se guarda automáticamente con ${isChecklistStep ? "este paso" : "esta acción"}. · Ctrl+Enter para terminar</div>
       </div>
     </div>
   `;
 
-  section.querySelector("#workmode-task-select")?.addEventListener("change", async (e) => {
-    await flushSave();
-    currentId = e.target.value;
+  const planFeedback = (message) => {
+    const el = section.querySelector("#workmode-plan-feedback");
+    if (el) el.textContent = message;
+  };
+  const refreshPlan = async (message = "") => {
+    if (window.initTasks) await window.initTasks();
+    if (window.renderNext) await window.renderNext();
+    if (window.initToday) await window.initToday();
+    if (message) transitionMessage = message;
     render(section);
+  };
+  section.querySelectorAll("[data-step-done]").forEach(button => {
+    button.addEventListener("click", async () => {
+      button.disabled = true;
+      try {
+        const res = await fetch(`${API_BASE}/tasks/${button.dataset.stepDone}`, {
+          method: "PUT", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(button.dataset.done === "true"
+            ? { is_completed: false, completed_at: null }
+            : { is_completed: true, completed_at: new Date().toISOString() }),
+        });
+        if (!res.ok) throw new Error("No se pudo guardar el paso.");
+        await refreshPlan(button.dataset.done === "true"
+          ? "Paso devuelto a pendientes. El plan ya refleja lo que falta."
+          : "Paso marcado como listo. El plan ya refleja lo que falta.");
+      } catch (error) {
+        planFeedback(error.message || "No se pudo guardar el paso.");
+        button.disabled = false;
+      }
+    });
+  });
+  const planList = section.querySelector("#workmode-plan-list");
+  if (planList) {
+    let draggedRow = null;
+    const dragAutoScroll = event => {
+      if (!draggedRow) return;
+      const bounds = planList.getBoundingClientRect();
+      const edge = 42;
+      const maxScroll = planList.scrollHeight - planList.clientHeight;
+      if (event.clientY < bounds.top + edge && planList.scrollTop > 0) {
+        const speed = Math.min(18, Math.max(4, Math.ceil((bounds.top + edge - event.clientY) / 3)));
+        planList.scrollTop -= speed;
+      } else if (event.clientY > bounds.bottom - edge && planList.scrollTop < maxScroll) {
+        const speed = Math.min(18, Math.max(4, Math.ceil((event.clientY - (bounds.bottom - edge)) / 3)));
+        planList.scrollTop += speed;
+      }
+
+      const viewportEdge = 54;
+      if (event.clientY < viewportEdge) window.scrollBy(0, -12);
+      else if (event.clientY > window.innerHeight - viewportEdge) window.scrollBy(0, 12);
+    };
+    planList.querySelectorAll("[data-step-id]").forEach(row => {
+      row.addEventListener("dragstart", event => {
+        draggedRow = row;
+        row.classList.add("dragging");
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", row.dataset.stepId);
+        document.addEventListener("dragover", dragAutoScroll, true);
+      });
+      row.addEventListener("dragend", () => {
+        row.classList.remove("dragging");
+        draggedRow = null;
+        document.removeEventListener("dragover", dragAutoScroll, true);
+        planList.querySelectorAll(".drop-before, .drop-after").forEach(item => item.classList.remove("drop-before", "drop-after"));
+      });
+      row.addEventListener("dragover", event => {
+        if (!draggedRow || draggedRow === row) return;
+        event.preventDefault();
+        const after = event.clientY > row.getBoundingClientRect().top + row.offsetHeight / 2;
+        row.classList.toggle("drop-after", after);
+        row.classList.toggle("drop-before", !after);
+        planList.insertBefore(draggedRow, after ? row.nextSibling : row);
+      });
+      row.addEventListener("drop", event => event.preventDefault());
+    });
+    planList.addEventListener("wheel", event => {
+      if (!draggedRow) return;
+      event.preventDefault();
+      planList.scrollTop += event.deltaY;
+    }, { passive: false });
+    planList.addEventListener("dragend", async () => {
+      const ids = [...planList.querySelectorAll("[data-step-id]")].map(row => Number(row.dataset.stepId));
+      if (ids.length < 2) return;
+      const response = await fetch(`${API_BASE}/tasks/reorder`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ parent_task_id: Number(planList.dataset.planId), task_ids: ids }),
+      });
+      if (!response.ok) {
+        transitionMessage = "No se pudo guardar el orden. El plan se restauró.";
+        await refreshPlan();
+        return;
+      }
+      if (plan.parent) {
+        const nextStepId = ids.find(id => {
+          const item = (state.tasks || []).find(candidate => String(candidate.id) === String(id));
+          return item && !item.is_completed;
+        });
+        currentId = nextStepId ?? plan.action.id;
+      }
+      await refreshPlan("Orden del plan guardado.");
+    });
+  }
+  section.querySelectorAll("[data-step-edit]").forEach(button => {
+    button.addEventListener("click", () => {
+      const step = (state.tasks || []).find(item => String(item.id) === String(button.dataset.stepEdit));
+      const row = section.querySelector(`[data-step-row="${button.dataset.stepEdit}"]`);
+      const name = row?.querySelector(".workmode-plan-name");
+      if (!step || !row || !name) return;
+      name.innerHTML = `<form class="workmode-step-edit"><input maxlength="240" value="${escapeHtml(step.title)}" aria-label="Editar nombre del paso"><button type="submit">Guardar</button><button type="button" data-cancel-edit>Cancelar</button></form>`;
+      const form = name.querySelector("form");
+      const input = form.querySelector("input");
+      input.focus(); input.select();
+      form.addEventListener("submit", async event => {
+        event.preventDefault();
+        const title = input.value.trim();
+        if (!title) { input.focus(); return; }
+        const res = await fetch(`${API_BASE}/tasks/${step.id}`, {
+          method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title }),
+        });
+        if (!res.ok) { planFeedback("No se pudo guardar el nombre del paso."); return; }
+        await refreshPlan("Paso actualizado.");
+      });
+      form.querySelector("[data-cancel-edit]").addEventListener("click", () => { name.textContent = step.title; });
+    });
+  });
+  section.querySelectorAll("[data-step-remove]").forEach(button => {
+    button.addEventListener("click", () => {
+      const id = button.dataset.stepRemove;
+      const row = section.querySelector(`[data-step-row="${id}"]`);
+      const name = row?.querySelector(".workmode-plan-name")?.textContent || "este paso";
+      const confirm = document.createElement("span");
+      confirm.className = "workmode-remove-confirm";
+      confirm.innerHTML = `¿${escapeHtml(name)} no corresponde? <button type="button">Quitar</button> <button type="button" data-cancel>Cancelar</button>`;
+      button.replaceWith(confirm);
+      confirm.querySelector("[data-cancel]").addEventListener("click", () => render(section));
+      confirm.querySelector("button:not([data-cancel])").addEventListener("click", async () => {
+        const res = await fetch(`${API_BASE}/tasks/${id}`, { method: "DELETE" });
+        if (!res.ok) { planFeedback("No se pudo quitar este paso."); return; }
+        if (String(currentId) === String(id)) currentId = plan.parent?.id || task.id;
+        await refreshPlan("Paso quitado del plan. La acción se conserva.");
+      });
+    });
+  });
+  section.querySelector("#workmode-add-step-form")?.addEventListener("submit", async event => {
+    event.preventDefault();
+    const input = event.currentTarget.elements.step;
+    const title = input.value.trim();
+    if (!title) { input.focus(); return; }
+    const res = await fetch(`${API_BASE}/tasks`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, parent_task_id: plan.action.id, event_id: plan.action.event_id || null }),
+    });
+    if (!res.ok) { planFeedback("No se pudo agregar el paso. Intenta de nuevo."); return; }
+    await refreshPlan("Paso agregado al plan.");
   });
 
   section.querySelector("#workmode-zen")?.addEventListener("click", () => {
     document.body.classList.toggle("zen");
   });
 
-  section.querySelector(".workmode-parent")?.addEventListener("click", (e) => {
-    const pid = e.currentTarget.dataset.parent;
-    if (pid && window.openFocus) window.openFocus(pid);
+  section.querySelector("#workmode-timestamp")?.addEventListener("click", async () => {
+    if (!quill) return;
+    const now = new Date();
+    const timestamp = now.toLocaleString("es-CL", { dateStyle: "short", timeStyle: "short" });
+    const entry = `<p><strong>Avance · ${escapeHtml(timestamp)}</strong><br></p>`;
+    const html = await htmlWithLightImages(editorHTML(quill));
+    const newHtml = /<\/?(?:p|div|ul|ol|h[1-6])\b/i.test(html)
+      ? `${html}${entry}`
+      : `<p>${escapeHtml(html).replace(/\n/g, "<br>")}</p>${entry}`;
+    try {
+      quill.setContents(quill.clipboard.convert(newHtml));
+      dirty = true;
+      await flushSave();
+    } catch (e) {
+      console.warn("No se pudo insertar timestamp:", e);
+    }
   });
 
-  section.querySelectorAll(".workmode-preset").forEach(b => {
-    b.addEventListener("click", () => {
-      if (window.brisaTimer) window.brisaTimer.setMinutes(Number(b.dataset.min));
-      paintTimer();
-    });
+  section.querySelector("#workmode-define-step")?.addEventListener("click", () => {
+    if (window.openFocus) window.openFocus(task.id);
   });
 
-  section.querySelector("#workmode-toggle")?.addEventListener("click", () => {
+  section.querySelector("#workmode-open-next")?.addEventListener("click", async () => {
+    if (!plan.nextStep) return;
+    await flushSave();
+    if (window.brisaTimer?.setTask) window.brisaTimer.setTask(plan.action.id);
+    currentId = plan.nextStep.id;
+    transitionMessage = `El siguiente paso es “${plan.nextStep.title}”. El temporizador sigue siendo el mismo bloque de sesión.`;
+    render(section);
+  });
+
+  section.querySelector("#workmode-toggle")?.addEventListener("click", async () => {
     if (!window.brisaTimer) return;
     if (window.brisaTimer.isRunning()) {
       window.brisaTimer.stop();
     } else {
-      if (window.brisaTimer.setTask) window.brisaTimer.setTask(currentId);
+      if (!plan.action.started_at) {
+        const startedAt = new Date().toISOString();
+        try {
+          const res = await fetch(`${API_BASE}/tasks/${plan.action.id}`, {
+            method: "PUT", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ started_at: startedAt }),
+          });
+          if (res.ok) {
+            plan.action.started_at = startedAt;
+            const local = (state.tasks || []).find(t => String(t.id) === String(plan.action.id));
+            if (local) local.started_at = startedAt;
+            if (window.renderNext) await window.renderNext();
+          }
+        } catch (e) {
+          console.warn("No se pudo guardar el inicio de la acción:", e);
+        }
+      }
+      if (window.brisaTimer.setTask) window.brisaTimer.setTask(plan.action.id);
       window.brisaTimer.start();
     }
-    paintTimer();
-  });
-
-  section.querySelector("#workmode-reset")?.addEventListener("click", () => {
-    if (!window.brisaTimer || !window.brisaTimer.timeLeft) return;
-    const t = window.brisaTimer.timeLeft();
-    const total = t && Number.isFinite(t.totalSec) ? t.totalSec : 600;
-    const mins = Math.max(1, Math.round(total / 60));
-    window.brisaTimer.stop();
-    window.brisaTimer.setMinutes(mins);
     paintTimer();
   });
 
@@ -334,8 +602,9 @@ function render(section) {
     panel.querySelectorAll("[data-alt]").forEach(btn => {
       btn.addEventListener("click", async () => {
         await flushSave();
-        if (window.brisaTimer) window.brisaTimer.stop();
         currentId = btn.dataset.alt;
+        const nextAction = getActionPlan((state.tasks || []).find(item => String(item.id) === String(currentId)), state.tasks || []).action;
+        if (nextAction && window.brisaTimer?.setTask) window.brisaTimer.setTask(nextAction.id);
         render(section);
       });
     });
@@ -423,45 +692,68 @@ function render(section) {
     }
   });
 
-  section.querySelector("#workmode-done")?.addEventListener("click", async () => {
+  section.querySelector("#workmode-done")?.addEventListener("click", async (event) => {
     await flushSave();
     try {
-      await fetch(`${API_BASE}/tasks/${task.id}`, {
+      const res = await fetch(`${API_BASE}/tasks/${task.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ is_completed: true, completed_at: new Date().toISOString() }),
       });
+      if (!res.ok) throw new Error("No se pudo guardar el avance.");
     } catch (e) {
       console.error("Error completando tarea:", e);
+      transitionMessage = e.message || "No se pudo guardar el avance. Intenta de nuevo.";
+      render(section);
+      return;
     }
     if (window.initTasks) await window.initTasks();
     if (window.renderNext) window.renderNext();
     if (window.initToday) window.initToday();
-    currentId = null;
+    if (plan.parent) {
+      const refreshedParent = (state.tasks || []).find(item => String(item.id) === String(plan.parent.id)) || plan.parent;
+      const after = getActionPlan(refreshedParent, state.tasks || []);
+      currentId = refreshedParent.id;
+      transitionMessage = after.nextStep
+        ? `Paso listo. El siguiente es “${after.nextStep.title}”. El plan sigue aquí para que no tengas que recordarlo.`
+        : "Todos los pasos registrados están listos. Revisa si la acción completa quedó resuelta.";
+    } else {
+      currentId = null;
+      transitionMessage = "Acción marcada como hecha. Ya no tienes que mantenerla en mente.";
+    }
     render(section);
+  });
 
   section.querySelector("#workmode-postpone")?.addEventListener("click", async () => {
     await flushSave();
     const btn = section.querySelector("#workmode-postpone");
     if (btn) { btn.disabled = true; btn.textContent = "Pateando…"; }
     try {
-      let at;
-      if (task.scheduled_datetime) {
-        const d = new Date(task.scheduled_datetime);
-        d.setDate(d.getDate() + 1);
-        at = d.toISOString();
+      // Mañana real = hoy + 1: conserva la hora programada; si no hay hora,
+      // mueve la fecha límite; si tampoco hay, usa 9:00.
+      const d = new Date();
+      d.setDate(d.getDate() + 1);
+      const orig = task.scheduled_datetime ? new Date(task.scheduled_datetime) : null;
+      const due = task.due_datetime ? new Date(task.due_datetime) : null;
+      let payload;
+      if (orig && !Number.isNaN(orig.getTime())) {
+        d.setHours(orig.getHours(), orig.getMinutes(), 0, 0);
+        payload = { scheduled_datetime: d.toISOString() };
+      } else if (due && !Number.isNaN(due.getTime())) {
+        const nextDue = new Date();
+        nextDue.setDate(nextDue.getDate() + 1);
+        nextDue.setHours(due.getHours(), due.getMinutes(), 0, 0);
+        payload = { due_datetime: nextDue.toISOString() };
       } else {
-        const d = new Date();
-        d.setDate(d.getDate() + 1);
         d.setHours(9, 0, 0, 0);
-        at = d.toISOString();
+        payload = { scheduled_datetime: d.toISOString() };
       }
       await fetch(`${API_BASE}/tasks/${task.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scheduled_datetime: at }),
+        body: JSON.stringify(payload),
       });
-      if (window.brisaTimer) window.brisaTimer.stop();
+      if (window.brisaTimer?.setTask) window.brisaTimer.setTask(null);
       if (window.initTasks) await window.initTasks();
       if (window.renderNext) window.renderNext();
       if (window.initToday) window.initToday();
@@ -472,7 +764,6 @@ function render(section) {
       console.error("No se pudo patear:", e);
       if (btn) { btn.disabled = false; btn.textContent = "Patear → mañana"; }
     }
-  });
   });
 
   quill = createEditor(section.querySelector("#workmode-quill"), {
@@ -507,11 +798,12 @@ function render(section) {
 export async function initWorkmode() {
   const section = document.querySelector("#workmode-section");
   if (!section) return;
+  window.flushWorkmodeNotes = flushSave;
   await flushSave();
   render(section);
   if (!pollTimer) {
     pollTimer = setInterval(() => {
-      if (document.querySelector("#workmode-section #workmode-clock")) paintTimer();
+      if (document.querySelector("#workmode-section #workmode-session-status")) paintTimer();
       paintFocusChip();
     }, 500);
   }
@@ -607,6 +899,7 @@ export function initTaskNotes() {
 export async function startWorkmode(taskId) {
   await flushSave();
   if (window.initTasks) await window.initTasks();
+  if (window.renderNext) await window.renderNext();
   if (taskId != null) currentId = taskId;
   document.querySelector('.nav[data-nav="workmode"]')?.click();
   await initWorkmode();
